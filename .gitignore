@@ -1,0 +1,42 @@
+# --- Global ---
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- Next.js (ataskopi_admin) ---
+ataskopi_admin/node_modules/
+ataskopi_admin/.next/
+ataskopi_admin/out/
+ataskopi_admin/build/
+ataskopi_admin/.vercel
+ataskopi_admin/*.tsbuildinfo
+
+# --- Flutter (ataskopi_frontend) ---
+ataskopi_frontend/.dart_tool/
+ataskopi_frontend/.flutter-plugins
+ataskopi_frontend/.flutter-plugins-dependencies
+ataskopi_frontend/.pub-cache/
+ataskopi_frontend/.pub/
+ataskopi_frontend/build/
+ataskopi_frontend/ios/Pods/
+ataskopi_frontend/ios/.symlinks/
+ataskopi_frontend/ios/Flutter/Generated.xcconfig
+ataskopi_frontend/ios/Flutter/flutter_export_environment.sh
+ataskopi_frontend/android/app/src/main/res/values/strings.xml
+ataskopi_frontend/android/key.properties
+ataskopi_frontend/android/.gradle/
+ataskopi_frontend/*.key
+
+# --- Supabase / Docker ---
+supabase/db/data/
+supabase/storage/data/
+supabase/.temp/
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo

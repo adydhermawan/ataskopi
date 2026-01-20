@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1250a5",
+                        "accent": "#ffb400",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .ios-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#0e131b] dark:text-white font-display min-h-screen pb-32">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 ios-blur pt-4">
+<div class="flex items-center px-4 pb-2 justify-between">
+<div class="flex items-center gap-3">
+<div class="p-2 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-[#0e131b] dark:text-white" style="font-size: 24px;">arrow_back_ios_new</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight">Menu Utama</h1>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+<span class="material-symbols-outlined text-red-500" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+</div>
+<!-- Search Bar -->
+<div class="px-4 py-3">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full shadow-sm">
+<div class="text-[#4e6d97] flex border-none bg-white dark:bg-slate-800 items-center justify-center pl-4 rounded-l-xl">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-r-xl text-[#0e131b] dark:text-white focus:outline-0 focus:ring-0 border-none bg-white dark:bg-slate-800 focus:border-none h-full placeholder:text-[#4e6d97] px-4 pl-2 text-base font-normal leading-normal" placeholder="Cari menu favoritmu..." value=""/>
+</div>
+</label>
+</div>
+<!-- Category Tabs -->
+<div class="pb-2 overflow-x-auto hide-scrollbar">
+<div class="flex px-4 gap-3">
+<a class="flex shrink-0 items-center justify-center rounded-full px-5 py-2 bg-primary text-white shadow-md shadow-primary/20" href="#">
+<p class="text-sm font-bold tracking-[0.015em]">Semua</p>
+</a>
+<a class="flex shrink-0 items-center justify-center rounded-full px-5 py-2 bg-white dark:bg-slate-800 text-[#4e6d97] border border-slate-100 dark:border-slate-700" href="#">
+<p class="text-sm font-bold tracking-[0.015em]">Kopi</p>
+</a>
+<a class="flex shrink-0 items-center justify-center rounded-full px-5 py-2 bg-white dark:bg-slate-800 text-[#4e6d97] border border-slate-100 dark:border-slate-700" href="#">
+<p class="text-sm font-bold tracking-[0.015em]">Non-Kopi</p>
+</a>
+<a class="flex shrink-0 items-center justify-center rounded-full px-5 py-2 bg-white dark:bg-slate-800 text-[#4e6d97] border border-slate-100 dark:border-slate-700" href="#">
+<p class="text-sm font-bold tracking-[0.015em]">Makanan</p>
+</a>
+</div>
+</div>
+<div class="h-2"></div>
+</header>
+<main class="px-4 space-y-4">
+<!-- Section Header -->
+<div class="flex items-center justify-between mt-2">
+<h2 class="text-lg font-bold">Terpopuler</h2>
+<span class="text-primary text-sm font-semibold">Lihat Semua</span>
+</div>
+<!-- List Items -->
+<div class="space-y-3">
+<!-- Item 1: Caffe Latte -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-50 dark:border-slate-700 relative overflow-hidden">
+<div class="absolute top-0 right-0">
+<div class="bg-accent text-[#0e131b] text-[10px] font-bold px-2 py-1 rounded-bl-lg">BEST SELLER</div>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-20 shrink-0" data-alt="Creamy caffe latte with heart shaped art" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC4ZRu3eLFQ8RLYiMHxcWFXoS7h4SkLa6AwRmZkT2LXVPhtkr8GGs51nq_WIPzfoc1Ms_hM4HzvA_ROsCEaRIzMAOIo99DnGMN5Ge4gO10OsoG6CSigRIudkYjHszRQHZKEgbApo-LFcBXoRu6v6Km_CHNIM-Lxdoxvba6_trgU0lyzE8unqqWIerkQYGk3Yp5byj_gNBMCd4CaXERBzPwXFcW5SZUEeubplxzZKuOSksRQPNORLTxUQiO3CJCsfOU-H1XpEp84iG6F");'></div>
+<div class="flex flex-col flex-1 justify-center">
+<p class="text-[#0e131b] dark:text-white text-base font-bold leading-tight">Caffe Latte</p>
+<p class="text-[#4e6d97] text-xs font-normal leading-tight mt-1 line-clamp-2">Espresso with perfectly steamed silky milk</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-accent" style="font-size: 14px; font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-[11px] font-bold text-slate-500">4.8 (120+)</span>
+</div>
+<p class="text-primary dark:text-blue-400 text-sm font-bold mt-2">Rp 28,000</p>
+</div>
+<button class="shrink-0 bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary dark:text-blue-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 24px;">add</span>
+</button>
+</div>
+<!-- Item 2: Cappuccino -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-50 dark:border-slate-700">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-20 shrink-0" data-alt="Cappuccino with thick white foam layer" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBt1YzaYLjpzgDVno8YIVBWmvSktFS-W5O255i4EpTiBcS0iQQhK9XKSEMK2HHubxOkkxOti2hm-_rxHFwU5nr6dMZzeJrt3Jtq-rowOViFkcSwFsAGl55tI6bKmPdyThog0JTNqA6BXNHnBPsbah0gUxfviNByge4Dz8GJdI4BD-x0cMooirelVMyv73_5YFKhc8Q6ErekIuHG_vrqSsoxH48pHQOX-hv3J-rkaypbYL-WRXWmLXtqXxd2Vv1Pc5Kd5hx2jd97nbw_");'></div>
+<div class="flex flex-col flex-1 justify-center">
+<p class="text-[#0e131b] dark:text-white text-base font-bold leading-tight">Cappuccino</p>
+<p class="text-[#4e6d97] text-xs font-normal leading-tight mt-1 line-clamp-2">Rich espresso with thick, velvety foam</p>
+<p class="text-primary dark:text-blue-400 text-sm font-bold mt-2">Rp 24,000</p>
+</div>
+<button class="shrink-0 bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary dark:text-blue-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 24px;">add</span>
+</button>
+</div>
+<!-- Item 3: Croissant -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-50 dark:border-slate-700">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-20 shrink-0" data-alt="Golden flaky buttery croissant" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBRjrc5d6LVSX5lZNpv_Hjtpqq2suG7DfQrC4LToqFKpWdRANmDxfIQXJ-VLfnAKMIhqgyoDCrtyqWS8FlJokV5lWWpHl2uDK55kk7_WKDWK4COJyV6qB7nRMql0OJJHvsAOq6QmaGm3iSFUHBiScpwO2DyswciulW0DQqK1Ls3amBJYGuotQM13H88pJci3afvTl0QA4EANdvkAtDpeZwoUq_MIzffUWwoIRbLmYvC5tMMkYlL9QhB6w1Q49skj6vkTJGZS3r5gbdN");'></div>
+<div class="flex flex-col flex-1 justify-center">
+<p class="text-[#0e131b] dark:text-white text-base font-bold leading-tight">Butter Croissant</p>
+<p class="text-[#4e6d97] text-xs font-normal leading-tight mt-1 line-clamp-2">Flaky, buttery pastry baked fresh daily</p>
+<p class="text-primary dark:text-blue-400 text-sm font-bold mt-2">Rp 22,000</p>
+</div>
+<button class="shrink-0 bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary dark:text-blue-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 24px;">add</span>
+</button>
+</div>
+<!-- Item 4: Iced Matcha -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-50 dark:border-slate-700">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-20 shrink-0" data-alt="Iced matcha latte with green layers" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDlHDbOsIvK23ibXaBtkfHzAwsgK2J2wWpEr_W4773qe615Dtje0bCyP9XjlOBTEwoQOsjAgaj8r9dVoNxPad71Eyi75sPbsicPBQ1moDR4QTx69QtSK4u8vEl8z7NO74_RV3xVwYUgJq9GL9DbBmPKmoNd7Fle8EEmOwFBI62Z-0L9BIfJSJPR0HzdvSFbSWhnlq55SaXE_vm5dBviF537jXvXDkRBqW44L-jGNFiNtY-Qap_JG3JpLarAR4DUmIAfJ4iSqReexLdc");'></div>
+<div class="flex flex-col flex-1 justify-center">
+<p class="text-[#0e131b] dark:text-white text-base font-bold leading-tight">Iced Matcha Latte</p>
+<p class="text-[#4e6d97] text-xs font-normal leading-tight mt-1 line-clamp-2">Premium Japanese matcha with fresh milk</p>
+<p class="text-primary dark:text-blue-400 text-sm font-bold mt-2">Rp 32,000</p>
+</div>
+<button class="shrink-0 bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary dark:text-blue-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 24px;">add</span>
+</button>
+</div>
+<!-- Item 5: Pain Au Chocolat -->
+<div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-50 dark:border-slate-700">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-20 shrink-0" data-alt="Pastry with chocolate filling" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBlol544G7zgwDXXBa_MhVucemY0PcqWo0iGqhGVzcjjC24VMWTSmArlJHrNGKuTjGouy5kIFA7riN-BM6iwqyiMvUImNQOKWyyEE98i5uZ_vK0-0x9U6XIKd3tyIDxa6Mu1tFsj5cj2kEpyxwtNtexwl0274NQlo4u4tBsRSZZqvRrxLNzGW1UPtzfXzPki0bidIxoV4sFnN3aBvOyfAxgrCGIJOXmW-AEMxiT98zp53kiymx3Dr8lYLHfrfQhw1_RVBJSnl6LWwp9");'></div>
+<div class="flex flex-col flex-1 justify-center">
+<p class="text-[#0e131b] dark:text-white text-base font-bold leading-tight">Pain Au Chocolat</p>
+<p class="text-[#4e6d97] text-xs font-normal leading-tight mt-1 line-clamp-2">Traditional French pastry with dark chocolate</p>
+<p class="text-primary dark:text-blue-400 text-sm font-bold mt-2">Rp 26,000</p>
+</div>
+<button class="shrink-0 bg-primary/10 dark:bg-primary/20 p-2 rounded-lg text-primary dark:text-blue-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 24px;">add</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Floating Cart Bar -->
+<div class="fixed bottom-6 left-4 right-4 z-40">
+<div class="bg-primary shadow-xl shadow-primary/30 rounded-xl p-3 flex items-center justify-between">
+<div class="flex items-center gap-3 pl-2">
+<div class="relative">
+<span class="material-symbols-outlined text-white" style="font-size: 28px;">shopping_bag</span>
+<span class="absolute -top-1 -right-1 bg-accent text-[#0e131b] text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full border-2 border-primary">3</span>
+</div>
+<div class="flex flex-col">
+<p class="text-white/80 text-[10px] font-medium leading-none">3 Items</p>
+<p class="text-white text-base font-bold leading-tight">Rp 76,000</p>
+</div>
+</div>
+<button class="bg-white text-primary px-6 py-2.5 rounded-lg font-bold text-sm tracking-wide active:scale-95 transition-transform">
+                Checkout
+            </button>
+</div>
+</div>
+</body></html>

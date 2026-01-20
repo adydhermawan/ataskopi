@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Coffee Shop Home Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1E40AF",
+                        "background-light": "#F8FAFC",
+                        "background-dark": "#0F172A",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1E293B",
+                    },
+                    fontFamily: {
+                        display: ["Poppins", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "16px",
+                    },
+                    aspectRatio: {
+                        '5/6': '5 / 6',
+                    },
+                },
+            },
+        };
+    </script>
+<style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+<div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+<div class="relative w-full max-w-[340px] bg-white dark:bg-card-dark rounded-[16px] overflow-hidden shadow-2xl">
+<div class="p-6">
+<h2 class="text-xl font-bold text-center text-slate-900 dark:text-white mb-6">Pilih Waktu Pengambilan</h2>
+<div class="flex items-center gap-4 p-4 mb-3 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 rounded-[16px] cursor-pointer active:scale-[0.98] transition-transform">
+<div class="text-primary dark:text-blue-400">
+<i class="w-5 h-5" data-lucide="calendar"></i>
+</div>
+<div class="flex-1">
+<p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Tanggal</p>
+<p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Hari Ini, 17 Jan 2026</p>
+</div>
+<i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i>
+</div>
+<div class="flex items-center gap-4 p-4 mb-4 border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 rounded-[16px] cursor-pointer active:scale-[0.98] transition-transform">
+<div class="text-primary dark:text-blue-400">
+<i class="w-5 h-5" data-lucide="clock"></i>
+</div>
+<div class="flex-1">
+<p class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Jam</p>
+<p class="text-sm font-semibold text-slate-800 dark:text-slate-100">11:30</p>
+</div>
+<i class="w-4 h-4 text-slate-400" data-lucide="chevron-right"></i>
+</div>
+<div class="bg-blue-50 dark:bg-blue-900/20 px-4 py-3 rounded-[12px] flex items-center gap-2 mb-8">
+<i class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" data-lucide="info"></i>
+<p class="text-[11px] font-medium text-blue-700 dark:text-blue-300">Minimal 20 menit dari sekarang</p>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-4 rounded-[16px] transition-colors active:scale-[0.98]">
+                    Lanjutkan
+                </button>
+<button class="w-full bg-transparent text-slate-400 dark:text-slate-500 font-semibold py-2 transition-colors active:text-slate-600">
+                    Batal
+                </button>
+</div>
+</div>
+</div>
+</div>
+<div class="max-w-md mx-auto relative overflow-hidden bg-background-light dark:bg-background-dark pb-24">
+<div class="relative w-full aspect-[5/6] overflow-hidden">
+<img alt="Ice Matcha coffee with cloud foam" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDv3GTavczasScBZ-fNGjS1OIu6hBJFWo2NCIMvU6umDihIp_imLv0CSrV7atCT94K1ozSAA9nCLn83gsFXCdhWwuNptCcJVwGeDewpj_nYdGDeieRHiqU17fMmzeTEeCvT_DarWz-WzMmiIZHz0e3TrUyseZofVj1gnGyeQNBsv4_rV_YvJBT_LkpokdAMXTxpYg2z9xF_36GO8K-7S29xULBYfQ-QlHDzUamPFEy5QJOMPZLuMkDH1EtQ0UjP9_yQBoPVUvprtpsM"/>
+<div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60"></div>
+<div class="absolute top-6 left-0 right-0 px-6 flex justify-between items-center">
+<div class="bg-white/20 backdrop-blur-md border border-white/30 rounded-full px-4 py-1.5 flex items-center gap-2">
+<span class="material-symbols-rounded text-yellow-400 text-lg">stars</span>
+<span class="text-white text-sm font-medium">Gold Member</span>
+</div>
+<div class="bg-white/20 backdrop-blur-md border border-white/30 rounded-full p-2.5 flex items-center justify-center relative">
+<span class="material-symbols-rounded text-white text-xl">notifications</span>
+<span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#1E1E1E]"></span>
+</div>
+</div>
+<div class="absolute inset-x-0 bottom-16 px-6 text-center">
+<h1 class="text-white text-2xl font-bold leading-tight drop-shadow-lg">
+                Ice Matcha Coffee with<br/>Cloud Foam &amp; Free Toast
+            </h1>
+<div class="flex justify-center gap-2 mt-4">
+<div class="w-8 h-1.5 bg-white rounded-full"></div>
+<div class="w-2 h-1.5 bg-white/40 rounded-full"></div>
+<div class="w-2 h-1.5 bg-white/40 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="px-4 relative -mt-8 z-20">
+<div class="bg-card-light dark:bg-card-dark shadow-sm rounded-2xl p-4 flex items-center gap-4 border-none">
+<div class="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-xl">
+<span class="material-symbols-rounded text-primary dark:text-blue-400">storefront</span>
+</div>
+<div class="flex-1">
+<p class="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-0.5">Ordering From</p>
+<p class="text-base font-bold text-slate-800 dark:text-slate-100">Outlet Central Park</p>
+</div>
+<span class="material-symbols-rounded text-slate-400">chevron_right</span>
+</div>
+</div>
+<div class="px-6 mt-6 grid grid-cols-2 gap-4">
+<div class="bg-[#FFFBEB] dark:bg-yellow-900/20 p-5 rounded-3xl relative overflow-hidden group active:scale-95 transition-transform">
+<div class="bg-white dark:bg-white/10 w-10 h-10 rounded-xl flex items-center justify-center mb-6 shadow-sm">
+<span class="material-symbols-rounded text-amber-600">shopping_basket</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Pick Up</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Skip the queue</p>
+</div>
+<span class="material-symbols-rounded absolute -bottom-4 -right-4 text-8xl text-amber-600/5 rotate-12">shopping_basket</span>
+</div>
+<div class="bg-[#FFF5F1] dark:bg-orange-900/20 p-5 rounded-3xl relative overflow-hidden group active:scale-95 transition-transform">
+<div class="bg-white dark:bg-white/10 w-10 h-10 rounded-xl flex items-center justify-center mb-6 shadow-sm">
+<span class="material-symbols-rounded text-orange-500">delivery_dining</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Delivery</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Doorstep service</p>
+</div>
+<span class="material-symbols-rounded absolute -bottom-4 -right-4 text-8xl text-orange-500/5 rotate-12">moped</span>
+</div>
+<div class="col-span-2 bg-[#EFF6FF] dark:bg-blue-900/20 p-5 rounded-3xl relative overflow-hidden group active:scale-95 transition-transform flex items-center gap-5">
+<div class="bg-white dark:bg-white/10 w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+<span class="material-symbols-rounded text-primary dark:text-blue-400 text-3xl">restaurant</span>
+</div>
+<div class="flex-1">
+<h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Dine In</h3>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Reserve or order at table</p>
+</div>
+<span class="material-symbols-rounded absolute -right-2 top-1/2 -translate-y-1/2 text-8xl text-primary/5">flatware</span>
+</div>
+</div>
+<div class="mt-8">
+<div class="px-6 flex justify-between items-end mb-5">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Daily Curations</h2>
+<a class="text-sm font-semibold text-primary dark:text-blue-400" href="#">View Menu</a>
+</div>
+<div class="flex overflow-x-auto gap-4 px-6 pb-4 hide-scrollbar">
+<div class="min-w-[150px] w-[150px] flex flex-col gap-2">
+<div class="relative h-[180px] w-full bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden">
+<img alt="Flat White Coffee" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3Aw7uz0sXZSxUrNdlxwlqCau6U3Xq9M5YuTx3oA_XAAZOAWrzQzRaF7R25x4-J88AmEtClmrJzHy7TmRNoDkh1YPny12Chri6_crwad0l84XLJQx6EAuxGYdwhZTskMf9TSfdvgtAb6U2s94HSa-UVnxIprbZIxPNS3GovCh4iD9i4gvXPoLN9KdmHJSEkQ82nHJKBAXPbfAMlCHmqOfD6qPIK77QsaC-1Ys8whzhKhDedyrv6lNcqlx6taBWLfDh6Euu9Dljpxde"/>
+<button class="absolute bottom-3 right-3 bg-primary text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-rounded text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="font-semibold text-sm text-slate-800 dark:text-slate-100">Flat White</h4>
+<p class="text-xs text-slate-400">$4.50</p>
+</div>
+</div>
+<div class="min-w-[150px] w-[150px] flex flex-col gap-2">
+<div class="relative h-[180px] w-full bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden">
+<img alt="Avo Toast" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCURq37wJgKEg38qLuqtl0GgLvjkFv2Os_8qxxs-A1stdnW36i8GpV-OXVnyK08MGUs7Qo8KY-0v6WlstteIXM5LzxMtELAWQV9rHtaCV17CTc0KYYsGFUmlYo6aD7n3ATV-Z9p1SgbJWqc3QToAJqSK0ou4Oxk4URJ61_sI7e-I1oX8kdpL9VwvNOUhGJXK5XPo1Ms-RGgJ5GNOGk3Yz-r3WbcHMBCjhdTJDKYJcZgHlSvr7wqrj3W2B22FOMQ8NYM--8pS22vaC0S"/>
+<div class="absolute top-3 left-3 bg-yellow-400 px-2 py-0.5 rounded-md">
+<span class="text-[10px] font-bold text-slate-900 uppercase tracking-tighter">HOT</span>
+</div>
+<button class="absolute bottom-3 right-3 bg-primary text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-rounded text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="font-semibold text-sm text-slate-800 dark:text-slate-100">Avo Toast</h4>
+<p class="text-xs text-slate-400">$12.00</p>
+</div>
+</div>
+<div class="min-w-[150px] w-[150px] flex flex-col gap-2">
+<div class="relative h-[180px] w-full bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden">
+<img alt="Cold Brew" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeNsBHUZHdLTGcogHEbbLwwmruJPOqumixj7kx188ngLe-2DOxkzLFRxwWIqQn67TswxTwBkqJJriz8wVAlAphXX_tSglvcjicqbSViJWQcapgvLHRHNePZTo9Qtnm_PrA-40mrkRQlXgtpLyR30wILKkAcDXhd9TWpQAfV422mgjnHy7k5jQ3sJB5mZ51b_xwY_7kHlzCUOKPMpJ6gWdHoEF62gYvJ8MxzrcxAF5aoMY3kHLWrbTVXsN3kbdBM8xDW9TzkoJIW9pC"/>
+<button class="absolute bottom-3 right-3 bg-primary text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-rounded text-lg">add</span>
+</button>
+</div>
+<div>
+<h4 class="font-semibold text-sm text-slate-800 dark:text-slate-100">Cold Brew</h4>
+<p class="text-xs text-slate-400">$5.25</p>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 px-8 py-3 flex justify-between items-center z-50">
+<button class="flex flex-col items-center gap-1.5 text-primary">
+<i class="w-6 h-6 stroke-[2.5]" data-lucide="home"></i>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
+<i class="w-6 h-6" data-lucide="scroll-text"></i>
+<span class="text-[10px] font-medium">Orders</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
+<i class="w-6 h-6" data-lucide="tag"></i>
+<span class="text-[10px] font-medium">Rewards</span>
+</button>
+<button class="flex flex-col items-center gap-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
+<i class="w-6 h-6" data-lucide="user"></i>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</div>
+<script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+</script>
+
+</body></html>

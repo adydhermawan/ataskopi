@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kopi Nusantara - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1250a5",
+                        "accent-gold": "#ffb400",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111821",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .soft-shadow {
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto overflow-x-hidden">
+<!-- Top App Bar (iOS Style) -->
+<div class="flex items-center bg-transparent p-4 justify-between">
+<div class="text-[#0e131b] dark:text-white flex size-12 shrink-0 items-center">
+<span class="material-symbols-outlined cursor-pointer">arrow_back_ios</span>
+</div>
+<h2 class="text-primary dark:text-primary text-sm font-bold leading-tight tracking-widest uppercase flex-1 text-center pr-12">Kopi Nusantara</h2>
+</div>
+<!-- Brand Identity Block -->
+<div class="flex flex-col items-center pt-8 pb-4">
+<div class="w-24 h-24 bg-primary rounded-xl flex items-center justify-center mb-6 soft-shadow overflow-hidden">
+<!-- Data-alt is mandatory for images -->
+<div class="w-full h-full bg-cover bg-center" data-alt="Kopi Nusantara minimalist coffee bean logo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAky1q9nM4BPATiw8kJza0eGFhanFTQja-j-qehiQZ4hJ0rwDupZv4_ADS6-g0D1fvI4w6Y6yxAbghyl1jft5tdNWpNSU6xEX7c1U5eJcZnAGvNKULuDk8lmtP77I5lWesHYI7K3GIctAixYsRy18y6KYi4J4ggV5dThVGO2uKVTKXzdIXBPiweUejNWD9XYx4wCiBE_d3qKqS0x1EO95ilEFcuvMO8-VgH1P1IjOpd_Wgp7P199tWjNJ4IADPU00GCLlZSG_-_eE7s')"></div>
+</div>
+<h1 class="text-[#0e131b] dark:text-white tracking-tight text-[28px] font-bold leading-tight px-6 text-center">
+                Selamat Datang
+            </h1>
+<p class="text-[#4e6d97] dark:text-slate-400 text-base font-normal leading-normal pt-2 px-8 text-center">
+                Nikmati aroma kopi nusantara pilihan langsung dari genggaman Anda.
+            </p>
+</div>
+<!-- New Member Incentive Badge -->
+<div class="flex justify-center mb-4">
+<div class="bg-accent-gold/15 text-accent-gold px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-accent-gold/20">
+<span class="material-symbols-outlined text-[14px] fill-1">stars</span>
+                Dapatkan voucher 50% untuk member baru
+            </div>
+</div>
+<!-- Input Section -->
+<div class="px-6 py-4 flex flex-col gap-4">
+<div class="bg-white dark:bg-slate-900 rounded-lg p-1 soft-shadow border border-[#d0d9e7] dark:border-slate-800">
+<div class="flex items-center">
+<!-- Country Code Selector (Simulated) -->
+<div class="flex items-center gap-2 px-4 py-4 border-r border-[#d0d9e7] dark:border-slate-800">
+<div class="w-6 h-4 bg-red-600 rounded-sm overflow-hidden flex flex-col" data-alt="Indonesian flag colors">
+<div class="bg-red-600 h-1/2 w-full"></div>
+<div class="bg-white h-1/2 w-full"></div>
+</div>
+<span class="text-[#0e131b] dark:text-white font-semibold text-base">+62</span>
+<span class="material-symbols-outlined text-sm text-[#4e6d97]">expand_more</span>
+</div>
+<!-- Phone Input -->
+<div class="flex-1">
+<input class="w-full border-none bg-transparent focus:ring-0 text-[#0e131b] dark:text-white placeholder:text-[#4e6d97] text-lg py-4 px-4 font-medium" placeholder="Nomor Ponsel" type="tel"/>
+</div>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="bg-primary hover:bg-primary/90 text-white w-full h-14 rounded-lg font-bold text-base transition-all active:scale-[0.98] soft-shadow flex items-center justify-center gap-2">
+                Lanjutkan
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<!-- Separator -->
+<div class="flex items-center px-6 py-6">
+<div class="flex-1 h-[1px] bg-[#d0d9e7] dark:bg-slate-800"></div>
+<span class="px-4 text-[#4e6d97] text-sm font-medium">atau</span>
+<div class="flex-1 h-[1px] bg-[#d0d9e7] dark:bg-slate-800"></div>
+</div>
+<!-- Social Login -->
+<div class="px-6 pb-8">
+<button class="bg-white dark:bg-slate-900 border-2 border-[#d0d9e7] dark:border-slate-800 text-[#0e131b] dark:text-white w-full h-14 rounded-lg font-semibold text-base transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+                Masuk dengan Google
+            </button>
+</div>
+<!-- Footer -->
+<div class="mt-auto pb-10 px-10 text-center">
+<p class="text-[#4e6d97] text-xs leading-relaxed">
+                Dengan melanjutkan, Anda menyetujui 
+                <a class="text-primary font-semibold" href="#">Ketentuan Layanan</a> &amp; 
+                <a class="text-primary font-semibold" href="#">Kebijakan Privasi</a> kami.
+            </p>
+</div>
+<!-- Bottom Home Indicator (iOS Style) -->
+<div class="flex justify-center pb-2">
+<div class="w-32 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+</div>
+</div>
+</body></html>

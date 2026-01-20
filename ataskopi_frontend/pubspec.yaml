@@ -1,0 +1,64 @@
+name: ataskopi_frontend
+description: A new Flutter project for Coffee Shop & Resto Customer App.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.9
+  google_fonts: ^6.1.0
+  flutter_screenutil: ^5.9.0
+  flutter_svg: ^2.0.9
+  lucide_icons: ^0.257.0
+  supabase_flutter: ^2.4.0
+  shared_preferences: ^2.2.2
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.3
+
+# Flutter Launcher Icons Configuration
+# Run: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/icons/icon-512.png"
+    background_color: "#1E3A5F"
+    theme_color: "#1E3A5F"
+  windows:
+    generate: true
+    image_path: "assets/icons/icon-1024.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icons/icon-1024.png"
+  
+  # Main icon configuration
+  image_path: "assets/icons/icon-1024.png"
+  
+  # Android Adaptive Icon (Android 8.0+)
+  adaptive_icon_background: "#1E3A5F"
+  adaptive_icon_foreground: "assets/icons/icon-foreground.png"
+  
+  # iOS specific
+  remove_alpha_ios: true
+  
+  # Minimum SDK for Android
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  # assets:
+  #   - assets/images/
+  # Note: Using google_fonts package instead of bundled fonts
+  # Fonts are loaded dynamically from Google Fonts CDN

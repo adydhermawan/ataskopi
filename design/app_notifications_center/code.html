@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>App Notifications Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1250a5",
+                        "background-light": "#f8f9fa", // Slightly off-white for contrast with white cards
+                        "background-dark": "#1a1a1a",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#262626",
+                        "badge-promo": "#ea580c",
+                        "badge-loyalty": "#ca8a04",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                    boxShadow: {
+                        "card": "0 2px 8px -2px rgba(0, 0, 0, 0.05), 0 1px 4px -1px rgba(0, 0, 0, 0.03)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased selection:bg-primary selection:text-white">
+<div class="mx-auto max-w-md min-h-screen flex flex-col relative pb-20 overflow-hidden">
+<!-- Header -->
+<div class="sticky top-0 z-30 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors duration-300">
+<div class="flex items-center p-4 justify-between h-16">
+<button aria-label="Go back" class="flex items-center justify-center size-10 rounded-full text-primary hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-[28px]">chevron_left</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Notifications</h1>
+<div class="size-10"></div> <!-- Spacer for centering -->
+</div>
+<!-- Filter Chips -->
+<div class="px-4 pb-4 overflow-x-auto scrollbar-hide">
+<div class="flex gap-3 min-w-max">
+<button class="flex h-9 items-center justify-center rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-5 shadow-sm transition-transform active:scale-95">
+<span class="text-sm font-medium">All</span>
+</button>
+<button class="flex h-9 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 px-4 shadow-sm hover:border-primary/30 transition-all active:scale-95 group">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Transaksi</span>
+</button>
+<button class="flex h-9 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 px-4 shadow-sm hover:border-badge-promo/30 transition-all active:scale-95 group">
+<div class="size-2 rounded-full bg-badge-promo"></div>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-badge-promo transition-colors">Promo</span>
+</button>
+<button class="flex h-9 items-center justify-center gap-x-1.5 rounded-full bg-white dark:bg-surface-dark border border-slate-200 dark:border-slate-700 px-4 shadow-sm hover:border-badge-loyalty/30 transition-all active:scale-95 group">
+<div class="size-2 rounded-full bg-badge-loyalty"></div>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300 group-hover:text-badge-loyalty transition-colors">Loyalty</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Content Area -->
+<main class="flex-1 px-4 pt-6 space-y-6">
+<!-- Section: New -->
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">New</h3>
+<button class="text-xs font-medium text-primary hover:underline">Mark all read</button>
+</div>
+<div class="space-y-3">
+<!-- Notification Card: Transaction (Unread) -->
+<div class="group relative overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark p-4 shadow-card hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+<div class="absolute right-4 top-4 size-2.5 rounded-full bg-primary ring-4 ring-primary/10"></div>
+<div class="flex gap-4">
+<div class="flex-shrink-0">
+<div class="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+<span class="material-symbols-outlined filled-icon" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+</div>
+</div>
+<div class="flex flex-col flex-1 pr-4">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">TRANSAKSI</span>
+<span class="text-xs text-slate-400">2m ago</span>
+</div>
+<h4 class="text-base font-bold text-slate-900 dark:text-white leading-tight mb-1 group-hover:text-primary transition-colors">Order #4092 is ready!</h4>
+<p class="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">Your Iced Americano and Croissant are waiting at the pickup counter.</p>
+</div>
+</div>
+</div>
+<!-- Notification Card: Promo (Unread) -->
+<div class="group relative overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark p-4 shadow-card hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+<div class="absolute right-4 top-4 size-2.5 rounded-full bg-primary ring-4 ring-primary/10"></div>
+<div class="flex gap-4">
+<div class="flex-shrink-0">
+<div class="flex size-12 items-center justify-center rounded-xl bg-badge-promo/10 text-badge-promo">
+<span class="material-symbols-outlined filled-icon" style="font-variation-settings: 'FILL' 1;">local_offer</span>
+</div>
+</div>
+<div class="flex flex-col flex-1 pr-4">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center rounded-md bg-badge-promo/10 px-2 py-0.5 text-xs font-semibold text-badge-promo">PROMO</span>
+<span class="text-xs text-slate-400">30m ago</span>
+</div>
+<h4 class="text-base font-bold text-slate-900 dark:text-white leading-tight mb-1 group-hover:text-badge-promo transition-colors">Flash Sale: 50% off Lattes</h4>
+<p class="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">Valid until 2 PM today only. Don't miss out on your afternoon boost!</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Earlier -->
+<section>
+<div class="flex items-center justify-between mb-3 px-1">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Earlier</h3>
+</div>
+<div class="space-y-3">
+<!-- Notification Card: Loyalty (Read) -->
+<div class="group relative overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark p-4 shadow-sm border border-slate-100 dark:border-slate-800 opacity-90 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="flex gap-4">
+<div class="flex-shrink-0">
+<div class="flex size-12 items-center justify-center rounded-xl bg-badge-loyalty/10 text-badge-loyalty grayscale group-hover:grayscale-0 transition-all duration-300">
+<span class="material-symbols-outlined filled-icon" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">LOYALTY</span>
+<span class="text-xs text-slate-400">2h ago</span>
+</div>
+<h4 class="text-base font-medium text-slate-700 dark:text-slate-200 leading-tight mb-1">You earned 50 beans</h4>
+<p class="text-sm text-slate-500 dark:text-slate-500 line-clamp-2">Great job! You are 120 beans away from a free drink.</p>
+</div>
+</div>
+</div>
+<!-- Notification Card: Transaction (Read) -->
+<div class="group relative overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark p-4 shadow-sm border border-slate-100 dark:border-slate-800 opacity-90 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="flex gap-4">
+<div class="flex-shrink-0">
+<div class="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary grayscale group-hover:grayscale-0 transition-all duration-300">
+<span class="material-symbols-outlined">description</span>
+</div>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">TRANSAKSI</span>
+<span class="text-xs text-slate-400">Yesterday</span>
+</div>
+<h4 class="text-base font-medium text-slate-700 dark:text-slate-200 leading-tight mb-1">Receipt for Order #4088</h4>
+<p class="text-sm text-slate-500 dark:text-slate-500 line-clamp-2">Total paid: $12.50. View your full receipt details here.</p>
+</div>
+</div>
+</div>
+<!-- Notification Card: Promo (Read) -->
+<div class="group relative overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark p-4 shadow-sm border border-slate-100 dark:border-slate-800 opacity-90 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="flex gap-4">
+<div class="flex-shrink-0">
+<div class="flex size-12 items-center justify-center rounded-xl bg-badge-promo/10 text-badge-promo grayscale group-hover:grayscale-0 transition-all duration-300">
+<span class="material-symbols-outlined">donut_small</span>
+</div>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">PROMO</span>
+<span class="text-xs text-slate-400">2d ago</span>
+</div>
+<h4 class="text-base font-medium text-slate-700 dark:text-slate-200 leading-tight mb-1">Free Donut with purchase</h4>
+<p class="text-sm text-slate-500 dark:text-slate-500 line-clamp-2">Thanks for being a loyal customer! Enjoy a sweet treat on us.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Empty State Illustration Placeholder (Contextual) -->
+<div class="mt-12 flex flex-col items-center justify-center p-8 opacity-40 grayscale">
+<div class="size-24 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-4xl text-slate-400">notifications_off</span>
+</div>
+<p class="text-sm text-slate-400 text-center font-medium">End of list</p>
+</div>
+</section>
+</main>
+<!-- Decorative Floating Gradient (Subtle) -->
+<div class="fixed bottom-0 left-0 w-full h-24 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent pointer-events-none z-20"></div>
+</div>
+</body></html>

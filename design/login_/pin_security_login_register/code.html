@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Branded PIN Security Login</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#124fa5",
+                        "primary-dark": "#0e3d81",
+                        "background-light": "#fdfdfd",
+                        "background-dark": "#121212",
+                        "surface-dark": "#1e1e1e",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "sans": ["Poppins", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 30px -10px rgba(18, 79, 165, 0.15)',
+                        'glow': '0 0 40px -10px rgba(18, 79, 165, 0.25)',
+                    }
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .keypad-btn:active {
+            transform: scale(0.92);
+            background-color: rgba(18, 79, 165, 0.1);
+        }
+        .dark .keypad-btn:active {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        body {
+            min-height: max(844px, 100dvh);
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-100 overflow-hidden relative selection:bg-primary selection:text-white">
+<div class="fixed top-[-5%] left-[-5%] w-[60%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
+<div class="fixed bottom-[-5%] right-[-5%] w-[60%] h-[50%] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
+<div class="relative z-10 flex flex-col h-[100dvh] w-full max-w-md mx-auto">
+<header class="flex justify-between items-center px-6 py-4">
+<button class="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors text-slate-400">
+<span class="material-symbols-outlined">close</span>
+</button>
+<div class="flex items-center gap-1.5">
+<span class="h-1.5 w-1.5 rounded-full bg-primary/20"></span>
+<span class="h-1.5 w-1.5 rounded-full bg-primary"></span>
+<span class="h-1.5 w-1.5 rounded-full bg-primary/20"></span>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center px-6 pb-2">
+<div class="relative mb-8">
+<div class="absolute inset-0 rounded-full border border-primary/20 scale-110"></div>
+<div class="relative w-24 h-24 rounded-full shadow-soft p-1 bg-white dark:bg-surface-dark">
+<div class="w-full h-full rounded-full overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="User Avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbntPVghwTaMEHPWvU31qH4Tl6L2ZDIcp4jMRCYUIEIqTGytszrFRBeMrDjOpZE5P27HeC-8Tv2_n5PWc_U6j2InxBCFyYs64Bn23qChDgU6cgKJW15sOYmAIPC-mJABMRwaI-F_MVcNpZDtrzWqTNnWJhCwbvmEBxPQ9xen4RuRKKXYEjMFL-lKApCzydyB8UUdpVrQgGUljZkWnlyzyP2nlz_SOw_yvkt5hI6bsakXmkGfSgbCkLmeA1mIOb1STT-Hp8VD2HMR4H"/>
+<div class="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-surface-dark rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="text-center space-y-1.5 mb-10">
+<h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Halo, <span class="text-primary">Budi!</span> 👋
+            </h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                Masukkan PIN keamanan Anda
+            </p>
+</div>
+<div aria-label="PIN Input status" class="flex items-center gap-5 mb-10">
+<div class="w-3.5 h-3.5 rounded-full bg-primary shadow-[0_0_12px_rgba(18,79,165,0.4)] transition-all duration-300"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-primary shadow-[0_0_12px_rgba(18,79,165,0.4)] transition-all duration-300"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-slate-800 transition-all duration-300"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-slate-800 transition-all duration-300"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-slate-800 transition-all duration-300"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-slate-800 transition-all duration-300"></div>
+</div>
+<button class="text-primary text-[15px] font-semibold hover:text-primary-dark transition-colors py-2 px-6 rounded-full hover:bg-primary/5">
+            Lupa PIN?
+        </button>
+</main>
+<section class="pb-10 px-8 w-full">
+<div class="max-w-[300px] mx-auto">
+<div class="grid grid-cols-3 gap-y-4 gap-x-8 mb-10">
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">1</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">2</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">abc</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">3</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">def</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">4</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">ghi</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">5</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">jkl</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">6</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">mno</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">7</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">pqrs</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">8</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">tuv</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">9</span>
+<span class="text-[10px] font-medium text-slate-400 mt-0.5 uppercase">wxyz</span>
+</button>
+<div class="h-16 w-16"></div> 
+<button class="keypad-btn h-16 w-16 rounded-full flex flex-col items-center justify-center transition-all duration-150 select-none">
+<span class="text-2xl font-semibold leading-none">0</span>
+</button>
+<button class="keypad-btn h-16 w-16 rounded-full flex items-center justify-center transition-all duration-150 select-none text-slate-500 hover:text-red-500">
+<span class="material-symbols-outlined text-[28px]">backspace</span>
+</button>
+</div>
+<div class="flex justify-center">
+<button class="text-slate-400 dark:text-slate-500 text-[13px] font-bold tracking-wider uppercase hover:text-primary transition-colors py-3 px-8 rounded-full hover:bg-slate-100 dark:hover:bg-white/5">
+                    Ganti Nomor HP
+                </button>
+</div>
+</div>
+</section>
+</div>
+
+</body></html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Profile</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#1173d4",
+              "background-light": "#f9fafa",
+              "background-dark": "#22252a",
+              "surface-light": "#ffffff",
+              "surface-dark": "#2d3138",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "1rem", 
+              "xl": "1.5rem", 
+              "2xl": "2rem",
+              "full": "9999px"
+            },
+            boxShadow: {
+                'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        /* Custom scrollbar hiding for clean mobile look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<div class="relative mx-auto flex h-full min-h-screen w-full max-w-md flex-col overflow-hidden bg-background-light dark:bg-background-dark shadow-2xl">
+<!-- Header -->
+<header class="sticky top-0 z-10 flex items-center justify-between px-4 pt-4 pb-2 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md">
+<button class="group flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700">
+<span class="material-symbols-outlined text-[24px] text-slate-800 dark:text-slate-200 transition-transform group-active:-translate-x-0.5">arrow_back_ios_new</span>
+</button>
+<h1 class="flex-1 text-center text-lg font-bold tracking-tight text-slate-900 dark:text-white">Edit Profil</h1>
+<div class="w-10"></div> <!-- Spacer for visual balance -->
+</header>
+<main class="flex-1 flex flex-col px-6 pb-24 pt-4">
+<!-- Avatar Section -->
+<div class="flex flex-col items-center justify-center gap-5 py-6">
+<div class="relative group cursor-pointer">
+<div class="h-28 w-28 overflow-hidden rounded-full border-4 border-white dark:border-surface-dark shadow-soft ring-1 ring-slate-100 dark:ring-slate-700 bg-slate-200" data-alt="Portrait of a young woman with a neutral background" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD69fpGYwHbvraM09Q7eg9UeYoyWo-H5j2-a6yxQXjzhys0qbZ4FM1c4eQ02LgBbmJUaJNcJwhithjRF88DZ0VLE9HzxmiUchue3KEyP3yD-Al4ZH0DAAgew7U1JLB1g6PnvDXQliOLhTpvOMDAlwNqnZHYQuCqXEX9Nlfzo-s9nOlSA5DQpQN_HzdjfQZCrUf1og1qKtERjiedqxrSW6wIRqYhEZ3QMCN19HIIO-59g19Bm3cJCtYOgR-Ffr3mbr_B7kYXzFYx8hN4'); background-size: cover; background-position: center;">
+</div>
+<button class="absolute bottom-0 right-0 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-2 ring-white dark:ring-surface-dark transition-transform hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+</button>
+</div>
+<button class="text-primary text-sm font-semibold tracking-wide hover:underline focus:outline-none rounded px-2 py-1 transition-colors hover:bg-primary/5">
+                    Ubah Foto
+                </button>
+</div>
+<!-- Form Fields -->
+<form class="mt-4 space-y-6">
+<!-- Full Name Field -->
+<div class="group">
+<label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Nama Lengkap</label>
+<div class="relative flex items-center">
+<input class="peer w-full rounded-2xl border-0 bg-white dark:bg-surface-dark px-4 py-4 pl-12 text-base text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:outline-none transition-all" placeholder="Masukkan nama lengkap" type="text" value="Rina Kusuma"/>
+<span class="material-symbols-outlined absolute left-4 text-slate-400 peer-focus:text-primary transition-colors">person</span>
+</div>
+</div>
+<!-- Email Field -->
+<div class="group">
+<label class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+<div class="relative flex items-center">
+<input class="peer w-full rounded-2xl border-0 bg-white dark:bg-surface-dark px-4 py-4 pl-12 text-base text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:outline-none transition-all" placeholder="email@address.com" type="email" value="rina.kusuma@example.com"/>
+<span class="material-symbols-outlined absolute left-4 text-slate-400 peer-focus:text-primary transition-colors">mail</span>
+</div>
+</div>
+<!-- Phone Number Field (Disabled) -->
+<div class="group opacity-75">
+<div class="flex items-center justify-between mb-2">
+<label class="text-sm font-medium text-slate-600 dark:text-slate-400">Nomor Telepon</label>
+<span class="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">Terkunci</span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full cursor-not-allowed rounded-2xl border-0 bg-slate-100 dark:bg-slate-800 px-4 py-4 pl-12 text-base text-slate-500 dark:text-slate-400 ring-1 ring-transparent focus:ring-0" disabled="" type="tel" value="+62 812 3456 7890"/>
+<span class="material-symbols-outlined absolute left-4 text-slate-400">smartphone</span>
+<span class="material-symbols-outlined absolute right-4 text-slate-400 text-[20px]">lock</span>
+</div>
+<p class="mt-2 text-xs text-slate-400 dark:text-slate-500 px-1">
+                        Hubungi layanan pelanggan untuk mengubah nomor telepon.
+                    </p>
+</div>
+</form>
+</main>
+<!-- Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 z-20 flex justify-center p-4 bg-gradient-to-t from-background-light dark:from-background-dark via-background-light/95 dark:via-background-dark/95 to-transparent pb-8 pt-6">
+<div class="w-full max-w-md px-2">
+<button class="relative w-full overflow-hidden rounded-2xl bg-primary py-4 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:shadow-primary/40 active:scale-[0.98] active:shadow-sm">
+<span class="relative z-10">Simpan Perubahan</span>
+<!-- Subtle shimmer effect -->
+<div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite]"></div>
+</button>
+</div>
+</div>
+</div>
+<style>
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</body></html>

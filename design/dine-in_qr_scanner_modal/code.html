@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html class="light" lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#1250a5",
+              "background-light": "#f6f7f8",
+              "background-dark": "#111821",
+            },
+            fontFamily: {
+              "display": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scanner frame effect */
+        .scanner-view {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+        }
+        .scanner-cutout {
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+        .corner-border {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #1250a5;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#0e131b] dark:text-white antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden font-display">
+<!-- Background Mock Camera View -->
+<div class="fixed inset-0 z-0 bg-black">
+<div class="absolute inset-0 scanner-view" data-alt="Blurry view of a modern cafe interior"></div>
+</div>
+<!-- Overlay UI -->
+<div class="relative z-10 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<div class="flex items-center p-4 justify-between bg-transparent">
+<button class="text-white flex size-12 shrink-0 items-center justify-center rounded-full bg-black/20 backdrop-blur-md">
+<span class="material-symbols-outlined">close</span>
+</button>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-12">Scan Meja</h2>
+</div>
+<!-- Content Area -->
+<div class="flex-1 flex flex-col items-center justify-center px-6">
+<!-- Scanner Reticle -->
+<div class="relative size-64 md:size-80 flex items-center justify-center">
+<!-- The "transparent" hole -->
+<div class="absolute inset-0 border-2 border-white/20 rounded-xl"></div>
+<!-- Corner Brackets -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+<!-- Scanning Line -->
+<div class="absolute top-1/2 left-4 right-4 h-0.5 bg-primary/80 shadow-[0_0_15px_rgba(18,80,165,0.8)]"></div>
+<img alt="QR Code focus example" class="opacity-40 grayscale brightness-150 size-40" data-alt="A ghosted QR code in the center of the scanner" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcDqz49d3b4qZAmJHawQlf8Ofo8FOpjuWAF6JHo2bw7G5_vRlD6F4Prvi1zjwq1UjHm65JnA1Y54wwHkxdVdO9B-ACrXltvIWo5E6jML0a_dJpfbnIdczZ7gBHhHnqz0OlVT8hOtwxCpI1J_yWjUSKUvYP_K2L4zCaTadL6-imoFEpi9KXbg4G28Xn7B2cNp17qF0BY1_Da7ZpmwnmTgdimflccn7_nkWEslFfKCamzNaXs_6stNbWTLxp54fxdgPAaF84aAT9Ey8U"/>
+</div>
+<!-- HeadlineText -->
+<div class="mt-10 max-w-xs">
+<h3 class="text-white tracking-tight text-2xl font-bold leading-tight text-center pb-2">
+                        Arahkan kamera ke QR code yang ada di meja
+                    </h3>
+</div>
+<!-- BodyText -->
+<div class="max-w-xs">
+<p class="text-white/80 text-base font-normal leading-normal pb-3 pt-1 text-center">
+                        Pastikan QR code terlihat jelas di dalam kotak
+                    </p>
+</div>
+</div>
+<!-- Bottom Controls -->
+<div class="pb-10 pt-4 px-6 flex flex-col gap-6">
+<!-- CameraControl -->
+<div class="flex items-center justify-center gap-8">
+<button class="flex shrink-0 items-center justify-center rounded-full size-12 bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined">flash_on</span>
+</button>
+<!-- Primary Shutter (Visual only) -->
+<button class="flex shrink-0 items-center justify-center rounded-full size-20 bg-white p-1 shadow-2xl active:scale-95 transition-transform">
+<div class="size-full rounded-full border-4 border-black/5 flex items-center justify-center bg-primary">
+<span class="material-symbols-outlined text-white text-4xl">qr_code_scanner</span>
+</div>
+</button>
+<button class="flex shrink-0 items-center justify-center rounded-full size-12 bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-colors">
+<span class="material-symbols-outlined">image</span>
+</button>
+</div>
+<!-- SingleButton -->
+<div class="flex justify-center">
+<button class="flex min-w-[200px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 px-8 bg-white/10 backdrop-blur-md border border-white/20 text-white text-base font-bold leading-normal tracking-wide hover:bg-white/20 transition-colors active:scale-95">
+<span class="truncate">Batal</span>
+</button>
+</div>
+</div>
+<!-- Safe Area Spacer -->
+<div class="h-6"></div>
+</div>
+</div>
+</body></html>
