@@ -24,7 +24,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             return null
         }
 
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long')
+        const secret = new TextEncoder().encode(process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long')
         const { payload } = await jwtVerify(token, secret)
 
         return {

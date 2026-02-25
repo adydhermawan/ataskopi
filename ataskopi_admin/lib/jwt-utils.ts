@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long'
+    process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long'
 );
 
 const JWT_ISSUER = 'ataskopi';
