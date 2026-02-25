@@ -5,6 +5,7 @@ class AppButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isLoading;
   final bool isSecondary;
+  final bool enabled;
   final IconData? icon;
 
   const AppButton({
@@ -13,26 +14,28 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.isSecondary = false,
+    this.enabled = true,
     this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isButtonEnabled = enabled && !isLoading;
     
     if (isSecondary) {
       return OutlinedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isButtonEnabled ? onPressed : null,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: theme.colorScheme.primary),
+          side: BorderSide(color: isButtonEnabled ? theme.colorScheme.primary : Colors.grey),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        child: _buildChild(theme.colorScheme.primary),
+        child: _buildChild(isButtonEnabled ? theme.colorScheme.primary : Colors.grey),
       );
     }
 
     return ElevatedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: isButtonEnabled ? onPressed : null,
       child: _buildChild(Colors.white),
     );
   }

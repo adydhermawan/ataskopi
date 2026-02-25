@@ -16,6 +16,14 @@ dependencies:
   supabase_flutter: ^2.4.0
   shared_preferences: ^2.2.2
   intl: ^0.19.0
+  http: ^1.2.0
+  flutter_map: ^6.1.0 # Changed from ^8.2.2
+  latlong2: ^0.9.0 # Changed from ^0.9.1
+  mobile_scanner: ^5.0.0 # Changed from ^7.1.4
+  geolocator: ^11.0.0 # Changed from ^14.0.2
+  geocoding: ^3.0.0 # Added
+  permission_handler: ^12.0.1
+  qr_flutter: ^4.1.0 # Added
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +66,8 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/images/
+  assets:
+    - assets/icons/
+    - assets/images/
   # Note: Using google_fonts package instead of bundled fonts
   # Fonts are loaded dynamically from Google Fonts CDN

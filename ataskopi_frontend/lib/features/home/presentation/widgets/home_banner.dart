@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ataskopi_frontend/core/api/api_config.dart';
 
 class HomeBanner extends StatelessWidget {
   final String imageUrl;
   final String title;
   final String tier;
+  final int unreadCount;
   final VoidCallback? onTierTap;
   final VoidCallback? onNotificationTap;
 
@@ -13,6 +15,7 @@ class HomeBanner extends StatelessWidget {
     required this.imageUrl,
     required this.title,
     required this.tier,
+    this.unreadCount = 0,
     this.onTierTap,
     this.onNotificationTap,
   });
@@ -29,7 +32,7 @@ class HomeBanner extends StatelessWidget {
           // Background Image
           Positioned.fill(
             child: Image.network(
-              imageUrl,
+              ApiConfig.fullImageUrl(imageUrl),
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 color: const Color(0xFF1E293B),
@@ -105,19 +108,20 @@ class HomeBanner extends StatelessWidget {
                         child: Stack(
                           children: [
                             Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24.w),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                width: 11.w,
-                                height: 11.w,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2.w),
+                            if (unreadCount > 0)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 11.w,
+                                  height: 11.w,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2.w),
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -146,16 +150,6 @@ class HomeBanner extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 24.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildDot(true),
-                          SizedBox(width: 8.w),
-                          _buildDot(false),
-                          SizedBox(width: 8.w),
-                          _buildDot(false),
-                        ],
-                      ),
                       SizedBox(height: 48.h), // Space for the overlapping outlet selector
                     ],
                   ),
@@ -164,17 +158,6 @@ class HomeBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDot(bool isActive) {
-    return Container(
-      width: isActive ? 32.w : 8.w,
-      height: 6.h,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.white : Colors.white.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(100),
       ),
     );
   }

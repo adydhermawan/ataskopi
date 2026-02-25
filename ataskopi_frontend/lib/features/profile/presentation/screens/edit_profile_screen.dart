@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/core/providers/auth_provider.dart';
+import 'package:ataskopi_frontend/core/providers/api_providers.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,15 +13,53 @@ class EditProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
+
+
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
-  final _nameController = TextEditingController(text: 'Budi Santoso');
-  final _emailController = TextEditingController(text: 'budi.santoso@example.com');
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authProvider).user;
+    _nameController = TextEditingController(text: user?.name ?? '');
+    _emailController = TextEditingController(text: user?.email ?? '');
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  void _handleSave() async {
+    setState(() => _isSaving = true);
+    try {
+      final repository = ref.read(profileRepositoryProvider);
+      final response = await repository.updateProfile(
+        name: _nameController.text,
+        email: _emailController.text,
+      );
+
+      if (response.success && response.data != null) {
+        // Update local auth state
+        ref.read(authProvider.notifier).updateUser(response.data!);
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message)),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal memperbarui profil')),
+      );
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -137,7 +177,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                   SizedBox(height: 4.h),
                   _buildTextField(
-                    controller: TextEditingController(text: '+62 812 3456 7890'),
+                    controller: TextEditingController(text: ref.watch(authProvider).user?.phone ?? ''),
                     hint: '+62...',
                     icon: Icons.smartphone_rounded,
                     tenant: tenant,
@@ -174,23 +214,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           width: double.infinity,
           height: 56.h,
           child: ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: _isSaving ? null : _handleSave,
             style: ElevatedButton.styleFrom(
               backgroundColor: tenant.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
               elevation: 0,
             ),
-            child: Text(
-              'Simpan Perubahan',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
+            child: _isSaving 
+              ? SizedBox(height: 24.w, width: 24.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text(
+                  'Simpan Perubahan',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
           ),
         ),
       ),
+
     );
   }
 

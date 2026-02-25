@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
-import 'edit_profile_screen.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/features/profile/presentation/providers/profile_providers.dart';
+import 'package:ataskopi_frontend/core/providers/auth_provider.dart';
+import 'package:ataskopi_frontend/features/home/presentation/providers/home_providers.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
+import 'package:ataskopi_frontend/features/profile/presentation/screens/address_list_screen.dart';
+import 'package:ataskopi_frontend/features/profile/presentation/screens/saved_payment_methods_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -11,6 +17,8 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenant = ref.watch(tenantProvider);
+    final user = ref.watch(authProvider).user;
+    final loyaltyInfo = ref.watch(loyaltyInfoProvider).value;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -43,38 +51,14 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(100),
-                          child: Image.network(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuD69fpGYwHbvraM09Q7eg9UeYoyWo-H5j2-a6yxQXjzhys0qbZ4FM1c4eQ02LgBbmJUaJNcJwhithjRF88DZ0VLE9HzxmiUchue3KEyP3yD-Al4ZH0DAAgew7U1JLB1g6PnvDXQliOLhTpvOMDAlwNqnZHYQuCqXEX9Nlfzo-s9nOlSA5DQpQN_HzdjfQZCrUf1og1qKtERjiedqxrSW6wIRqYhEZ3QMCN19HIIO-59g19Bm3cJCtYOgR-Ffr3mbr_B7kYXzFYx8hN4',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 34.w,
-                          height: 34.w,
-                          decoration: BoxDecoration(
-                            color: tenant.primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.w),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16.w),
+                          child: Icon(Icons.person, size: 60.w, color: const Color(0xFFCBD5E1)),
                         ),
                       ),
                     ],
                   ),
                   SizedBox(height: 20.h),
                   Text(
-                    'Budi Santoso',
+                    user?.name ?? 'User',
                     style: TextStyle(
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w800,
@@ -84,7 +68,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   SizedBox(height: 6.h),
                   Text(
-                    '+62 812 3456 7890',
+                    user?.phone ?? '',
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: const Color(0xFF64748B),
@@ -92,29 +76,30 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(height: 20.h),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7E6),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: const Color(0xFFFFD591)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.stars_rounded, color: const Color(0xFFFAAD14), size: 18.w),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Gold Member',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF873800),
+                  if (loyaltyInfo != null)
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7E6),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(color: const Color(0xFFFFD591)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.stars_rounded, color: const Color(0xFFFAAD14), size: 18.w),
+                          SizedBox(width: 8.w),
+                          Text(
+                            loyaltyInfo.currentTier?.name ?? 'Member',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF873800),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -137,8 +122,30 @@ class ProfileScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  _buildMenuItem(context, Icons.location_on_outlined, 'Alamat Tersimpan', tenant),
-                  _buildMenuItem(context, Icons.payment_rounded, 'Metode Pembayaran', tenant),
+                  _buildMenuItem(
+                    context, 
+                    Icons.location_on_outlined, 
+                    'Alamat Tersimpan', 
+                    tenant,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AddressListScreen()),
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
+                    context, 
+                    Icons.payment_rounded, 
+                    'Metode Pembayaran', 
+                    tenant,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SavedPaymentMethodsScreen()),
+                      );
+                    },
+                  ),
                   _buildMenuItem(context, Icons.settings_outlined, 'Pengaturan', tenant),
                   _buildMenuItem(context, Icons.help_outline_rounded, 'Bantuan', tenant),
                   _buildMenuItem(context, Icons.info_outline_rounded, 'Tentang Aplikasi', tenant),
@@ -150,6 +157,7 @@ class ProfileScreen extends ConsumerWidget {
                     tenant,
                     isDestructive: true,
                     onTap: () {
+                      ref.read(authProvider.notifier).logout();
                       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
                     },
                   ),
@@ -226,3 +234,4 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 }
+

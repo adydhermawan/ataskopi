@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/providers/tenant_provider.dart';
+import '../../../shared/domain/models/models.dart';
+import '../../../order/presentation/providers/order_state.dart';
+import '../../../menu/presentation/screens/menu_catalog_screen.dart';
 
 class DineInScannerScreen extends ConsumerStatefulWidget {
   const DineInScannerScreen({super.key});
@@ -13,6 +16,7 @@ class DineInScannerScreen extends ConsumerStatefulWidget {
 
 class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with SingleTickerProviderStateMixin {
   late AnimationController _scannerAnimationController;
+  final TextEditingController _tableController = TextEditingController();
 
   @override
   void initState() {
@@ -26,7 +30,53 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
   @override
   void dispose() {
     _scannerAnimationController.dispose();
+    _tableController.dispose();
     super.dispose();
+  }
+
+  void _onTableConfirmed(String tableNumber) {
+    if (tableNumber.isEmpty) return;
+    ref.read(orderFlowProvider.notifier).setMode(OrderMode.dineIn);
+    ref.read(orderFlowProvider.notifier).setDineInData(
+      tableNumber: tableNumber,
+      tableId: tableNumber, // Fallback for manual input, ideally should validate
+    );
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
+    );
+  }
+
+  void _showManualInput() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Input Nomor Meja'),
+        content: TextField(
+          controller: _tableController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            hintText: 'Contoh: 05',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final val = _tableController.text;
+              Navigator.pop(context);
+              _onTableConfirmed(val);
+            },
+            child: const Text('Konfirmasi'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -167,7 +217,7 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                       ),
                       SizedBox(height: 12.h),
                       Text(
-                        'Pastikan QR code terlihat jelas di dalam kotak',
+                        'Atau masukkan nomor meja secara manual',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15.sp,
@@ -189,11 +239,11 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildControlButton(Icons.flashlight_on_rounded),
+                          _buildControlButton(Icons.flashlight_on_rounded, () {}),
                           SizedBox(width: 32.w),
-                          _buildMainButton(tenant.primaryColor),
+                          _buildMainButton(tenant.primaryColor, () => _onTableConfirmed('05')), // Mock scan
                           SizedBox(width: 32.w),
-                          _buildControlButton(Icons.image_rounded),
+                          _buildControlButton(Icons.edit_note_rounded, _showManualInput),
                         ],
                       ),
                       SizedBox(height: 32.h),
@@ -267,34 +317,40 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
     );
   }
 
-  Widget _buildControlButton(IconData icon) {
-    return Container(
-      width: 52.w,
-      height: 52.w,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.w),
+  Widget _buildControlButton(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52.w,
+        height: 52.w,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.w),
+        ),
+        child: Icon(icon, color: Colors.white, size: 24.w),
       ),
-      child: Icon(icon, color: Colors.white, size: 24.w),
     );
   }
 
-  Widget _buildMainButton(Color color) {
-    return Container(
-      width: 80.w,
-      height: 80.w,
-      padding: EdgeInsets.all(4.w),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
+  Widget _buildMainButton(Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: color,
+        width: 80.w,
+        height: 80.w,
+        padding: EdgeInsets.all(4.w),
+        decoration: const BoxDecoration(
+          color: Colors.white,
           shape: BoxShape.circle,
         ),
-        child: Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 36.w),
+        child: Container(
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 36.w),
+        ),
       ),
     );
   }

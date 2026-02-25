@@ -5,14 +5,19 @@ import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../home/presentation/screens/home_main_screen.dart';
+import '../../../../core/providers/auth_provider.dart';
 
 class PinEntryScreen extends ConsumerStatefulWidget {
+  final String phoneNumber;
   final String name;
+  final String? email;
   final bool isRegistration;
 
   const PinEntryScreen({
     super.key,
+    required this.phoneNumber,
     required this.name,
+    this.email,
     this.isRegistration = false,
   });
 
@@ -22,8 +27,10 @@ class PinEntryScreen extends ConsumerStatefulWidget {
 
 class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   String _pin = '';
+  bool _isProcessing = false;
 
   void _onKeyPress(String value) {
+    if (_isProcessing) return;
     if (_pin.length < 6) {
       setState(() => _pin += value);
       if (_pin.length == 6) {
@@ -33,14 +40,45 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   }
 
   void _onBackspace() {
+    if (_isProcessing) return;
     if (_pin.isNotEmpty) {
       setState(() => _pin = _pin.substring(0, _pin.length - 1));
     }
   }
 
   void _verifyPin() async {
-    // Mock verification delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _isProcessing = true);
+    
+    bool success;
+    if (widget.isRegistration) {
+      success = await ref.read(authProvider.notifier).register(
+        phone: widget.phoneNumber,
+        name: widget.name,
+        email: widget.email,
+        pin: _pin,
+      );
+    } else {
+      success = await ref.read(authProvider.notifier).login(
+        widget.phoneNumber,
+        _pin,
+      );
+    }
+
+    if (!success) {
+      if (mounted) {
+        setState(() {
+          _pin = '';
+          _isProcessing = false;
+        });
+        
+        final error = ref.read(authProvider).error ?? 'Gagal masuk. Periksa PIN Anda.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+      return;
+    }
+
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,

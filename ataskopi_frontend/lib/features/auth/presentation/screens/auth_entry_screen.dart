@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import 'pin_entry_screen.dart';
-import 'registration_screen.dart';
+import 'package:ataskopi_frontend/core/providers/api_providers.dart';
+import 'package:ataskopi_frontend/core/providers/auth_provider.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_button.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/features/auth/presentation/screens/pin_entry_screen.dart';
+import 'package:ataskopi_frontend/features/auth/presentation/screens/registration_screen.dart';
+import 'package:ataskopi_frontend/features/home/presentation/screens/home_main_screen.dart';
+import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 
 class AuthEntryScreen extends ConsumerStatefulWidget {
   const AuthEntryScreen({super.key});
@@ -16,6 +20,7 @@ class AuthEntryScreen extends ConsumerStatefulWidget {
 
 class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,8 +28,84 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
     super.dispose();
   }
 
+  Future<void> _handleContinue() async {
+    final rawPhone = _phoneController.text.trim();
+    if (rawPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan nomor handphone')),
+      );
+      return;
+    }
+
+    // Standardize phone: if starts with 0, replace with +62
+    String formattedPhone = rawPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '+62${formattedPhone.substring(1)}';
+    } else if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+62$formattedPhone';
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final response = await repository.checkPhone(phone: formattedPhone);
+
+      if (response.success && response.data != null) {
+        if (!mounted) return;
+        
+        if (response.data!.exists) {
+          // Nav to PIN Entry for login
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PinEntryScreen(
+                phoneNumber: formattedPhone,
+                isRegistration: false,
+                name: response.data!.name ?? '',
+              ),
+            ),
+          );
+        } else {
+          // Nav to Registration
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RegistrationScreen(phoneNumber: formattedPhone),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Terjadi kesalahan koneksi')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.user != null) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomeMainScreen()),
+          (route) => false,
+        );
+      } else if (next.error != null && next.error!.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!)),
+        );
+      }
+    });
+
     final tenant = ref.watch(tenantProvider);
 
     return Scaffold(
@@ -52,10 +133,12 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                           color: tenant.primaryColor.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          Icons.coffee_rounded,
-                          size: 60.w,
-                          color: tenant.primaryColor,
+                        child: Padding(
+                          padding: EdgeInsets.all(24.w),
+                          child: Image.asset(
+                            'assets/icons/icon-512.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       SizedBox(height: 32.h),
@@ -76,21 +159,29 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                           color: const Color(0xFF64748B),
                         ),
                       ),
-                      SizedBox(height: 32.h),
+
+                      SizedBox(height: 16.h),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(authProvider.notifier).devLogin();
+                        },
+                        child: Text(
+                          '[DEV] Auto Login',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.red.shade400,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
                       // Phone Input
                       _buildPhoneInput(tenant),
                       SizedBox(height: 24.h),
                       AppButton(
                         text: 'Lanjutkan',
-                        onPressed: () {
-                          // Simple mock navigation for now
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RegistrationScreen(phoneNumber: _phoneController.text),
-                            ),
-                          );
-                        },
+                        isLoading: _isLoading,
+                        onPressed: _handleContinue,
                       ),
                       SizedBox(height: 24.h),
                       Row(
@@ -122,11 +213,11 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.network(
-                              'https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png',
+                              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
                               width: 24.w,
                               height: 24.w,
                               errorBuilder: (context, error, stackTrace) => 
-                                  Icon(Icons.g_mobiledata_rounded, size: 24.w),
+                                  Icon(Icons.g_mobiledata_rounded, size: 32.w, color: Colors.blue),
                             ),
                             SizedBox(width: 12.w),
                             Text(

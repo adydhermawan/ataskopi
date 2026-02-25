@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
+import '../../../shared/domain/models/models.dart';
+import '../../../order/presentation/providers/order_providers.dart';
+import '../../../order/presentation/providers/order_state.dart' as flow;
 
 class PaymentMethodScreen extends ConsumerStatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -17,6 +20,8 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
   @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
+    final calculation = ref.watch(orderCalculationProvider);
+    final orderFlow = ref.watch(flow.orderFlowProvider);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -39,7 +44,7 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
                   ),
                   SizedBox(height: 12.h),
                   Text(
-                    'Rp 92.400',
+                    'Rp ${(calculation['total']! / 1000).toInt()}.000',
                     style: TextStyle(
                       fontSize: 36.sp, 
                       fontWeight: FontWeight.w800, 
@@ -62,14 +67,16 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
                           icon: Icons.qr_code_scanner_rounded,
                           tenant: tenant,
                         ),
-                        SizedBox(height: 16.h),
-                        _buildPaymentOption(
-                          id: 'tunai',
-                          title: 'Tunai',
-                          subtitle: 'Bayar langsung di kasir',
-                          icon: Icons.payments_rounded,
-                          tenant: tenant,
-                        ),
+                        if (orderFlow.mode == OrderMode.dineIn) ...[
+                          SizedBox(height: 16.h),
+                          _buildPaymentOption(
+                            id: 'tunai',
+                            title: 'Tunai',
+                            subtitle: 'Bayar langsung di kasir',
+                            icon: Icons.payments_rounded,
+                            tenant: tenant,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -110,7 +117,13 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
               width: double.infinity,
               height: 58.h,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  // Here we would normally store the selected method
+                  // But for this refined flow, we just pop back since CheckoutSummaryScreen
+                  // is where the order is placed. 
+                  // In a real app, you'd use a provider to store the selection.
+                  Navigator.pop(context, _selectedMethod);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tenant.primaryColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
@@ -167,7 +180,8 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
               decoration: BoxDecoration(
                 color: isSelected ? primaryColor.withOpacity(0.12) : Colors.white,
                 borderRadius: BorderRadius.circular(14.r),
-                boxShadow: null,    ),
+                boxShadow: null,
+              ),
               child: Icon(
                 icon,
                 color: isSelected ? primaryColor : const Color(0xFF64748B),

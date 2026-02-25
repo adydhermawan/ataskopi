@@ -86,12 +86,22 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         child: AppButton(
           text: 'Lanjutkan',
           onPressed: () {
+            final name = _nameController.text.trim();
+            if (name.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Masukkan nama lengkap')),
+              );
+              return;
+            }
+
             // Navigate to PIN creation
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => PinEntryScreen(
-                  name: _nameController.text.isEmpty ? 'Budi' : _nameController.text,
+                  phoneNumber: widget.phoneNumber,
+                  name: name,
+                  email: _emailController.text.isEmpty ? null : _emailController.text.trim(),
                   isRegistration: true,
                 ),
               ),

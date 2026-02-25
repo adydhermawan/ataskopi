@@ -2,10 +2,10 @@ import '../domain/models/models.dart';
 
 class MockData {
   static const List<ProductCategory> categories = [
-    ProductCategory(id: '1', name: 'Coffee', icon: '☕'),
-    ProductCategory(id: '2', name: 'Non-Coffee', icon: '🥤'),
-    ProductCategory(id: '3', name: 'Food', icon: '🥐'),
-    ProductCategory(id: '4', name: 'Beverage', icon: '🍹'),
+    ProductCategory(id: '1', name: 'Coffee', slug: 'coffee'),
+    ProductCategory(id: '2', name: 'Non-Coffee', slug: 'non-coffee'),
+    ProductCategory(id: '3', name: 'Food', slug: 'food'),
+    ProductCategory(id: '4', name: 'Beverage', slug: 'beverage'),
   ];
 
   static const List<Product> products = [
@@ -17,9 +17,15 @@ class MockData {
       imageUrl: 'https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=375&auto=format&fit=crop',
       categoryId: '1',
       isRecommended: true,
-      variants: [
-        ProductVariant(id: 'v1', name: 'Hot', priceModifier: 0),
-        ProductVariant(id: 'v2', name: 'Ice', priceModifier: 2000),
+      options: [
+        ProductOption(
+          id: 'o1',
+          name: 'Suhu',
+          values: [
+            ProductOptionValue(id: 'ov1', name: 'Panas', priceModifier: 0, isDefault: true),
+            ProductOptionValue(id: 'ov2', name: 'Dingin', priceModifier: 2000, isDefault: false),
+          ],
+        ),
       ],
     ),
     Product(
@@ -30,8 +36,14 @@ class MockData {
       imageUrl: 'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?q=80&w=375&auto=format&fit=crop',
       categoryId: '2',
       isRecommended: true,
-      variants: [
-        ProductVariant(id: 'v3', name: 'Regular', priceModifier: 0),
+      options: [
+        ProductOption(
+          id: 'o2',
+          name: 'Ukuran',
+          values: [
+            ProductOptionValue(id: 'ov3', name: 'Regular', priceModifier: 0, isDefault: true),
+          ],
+        ),
       ],
     ),
     Product(
@@ -41,8 +53,14 @@ class MockData {
       basePrice: 25000,
       imageUrl: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?q=80&w=375&auto=format&fit=crop',
       categoryId: '1',
-      variants: [
-        ProductVariant(id: 'v4', name: 'Regular', priceModifier: 0),
+      options: [
+        ProductOption(
+          id: 'o3',
+          name: 'Ukuran',
+          values: [
+            ProductOptionValue(id: 'ov4', name: 'Regular', priceModifier: 0, isDefault: true),
+          ],
+        ),
       ],
     ),
     Product(

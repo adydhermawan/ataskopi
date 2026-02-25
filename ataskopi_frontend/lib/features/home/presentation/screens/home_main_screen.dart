@@ -2,17 +2,23 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
-import '../widgets/home_banner.dart';
-import '../widgets/outlet_selector.dart';
-import '../widgets/order_mode_selector.dart';
-import '../widgets/product_recommendation.dart';
-import '../../../menu/presentation/screens/menu_catalog_screen.dart';
-import '../../../activity/presentation/screens/activity_screen.dart';
-import '../screens/notifications_screen.dart';
-import '../screens/rewards_screen.dart';
-import '../../../profile/presentation/screens/profile_screen.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/features/home/presentation/widgets/home_banner.dart';
+import 'package:ataskopi_frontend/features/home/presentation/widgets/outlet_selector.dart';
+import 'package:ataskopi_frontend/features/home/presentation/widgets/order_mode_selector.dart';
+import 'package:ataskopi_frontend/features/home/presentation/widgets/product_recommendation.dart';
+import 'package:ataskopi_frontend/features/menu/presentation/screens/menu_catalog_screen.dart';
+import 'package:ataskopi_frontend/features/activity/presentation/screens/activity_screen.dart';
+import 'package:ataskopi_frontend/features/home/presentation/screens/notifications_screen.dart';
+import 'package:ataskopi_frontend/features/home/presentation/screens/rewards_screen.dart';
+import 'package:ataskopi_frontend/features/profile/presentation/screens/profile_screen.dart';
+import 'package:ataskopi_frontend/features/home/presentation/providers/home_providers.dart';
+import 'package:ataskopi_frontend/features/home/presentation/providers/notification_provider.dart';
+import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
+import 'package:ataskopi_frontend/core/providers/pending_qr_provider.dart';
+import 'package:ataskopi_frontend/features/scan/presentation/controllers/scan_controller.dart';
 
 class HomeMainScreen extends ConsumerStatefulWidget {
   const HomeMainScreen({super.key});
@@ -23,14 +29,12 @@ class HomeMainScreen extends ConsumerStatefulWidget {
 
 class _HashNavIcon extends StatelessWidget {
   final IconData icon;
-  final String label;
   final bool isActive;
   final VoidCallback onTap;
   final Color activeColor;
 
   const _HashNavIcon({
     required this.icon,
-    required this.label,
     required this.isActive,
     required this.onTap,
     required this.activeColor,
@@ -40,40 +44,45 @@ class _HashNavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? activeColor : const Color(0xFF94A3B8),
-            size: 24.w,
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w500,
-              color: isActive ? activeColor : const Color(0xFF94A3B8),
-            ),
-          ),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        child: Icon(
+          icon,
+          color: isActive ? activeColor : const Color(0xFF94A3B8),
+          size: 26.w,
+        ),
       ),
     );
   }
 }
 
 class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
-  int _bottomNavIndex = 0;
+  // Removed local _bottomNavIndex
+  int _currentPage = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
+    final bottomNavIndex = ref.watch(homeTabIndexProvider); // Watch provider
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(
-        index: _bottomNavIndex,
+        index: bottomNavIndex,
         children: [
           _buildHomeContent(context, tenant),
           const ActivityScreen(),
@@ -81,63 +90,66 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            height: 80.h + ScreenUtil().bottomBarHeight,
-            padding: EdgeInsets.only(
-              left: 40.w,
-              right: 40.w,
-              top: 12.h,
-              bottom: ScreenUtil().bottomBarHeight,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              border: Border(
-                top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _HashNavIcon(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  isActive: _bottomNavIndex == 0,
-                  activeColor: tenant.primaryColor,
-                  onTap: () => setState(() => _bottomNavIndex = 0),
-                ),
-                _HashNavIcon(
-                  icon: Icons.receipt_long_rounded,
-                  label: 'Orders',
-                  isActive: _bottomNavIndex == 1,
-                  activeColor: tenant.primaryColor,
-                  onTap: () => setState(() => _bottomNavIndex = 1),
-                ),
-                _HashNavIcon(
-                  icon: Icons.local_offer_rounded,
-                  label: 'Rewards',
-                  isActive: _bottomNavIndex == 2,
-                  activeColor: tenant.primaryColor,
-                  onTap: () => setState(() => _bottomNavIndex = 2),
-                ),
-                _HashNavIcon(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  isActive: _bottomNavIndex == 3,
-                  activeColor: tenant.primaryColor,
-                  onTap: () => setState(() => _bottomNavIndex = 3),
-                ),
-              ],
-            ),
+      bottomNavigationBar: Container(
+        height: 64.h + ScreenUtil().bottomBarHeight,
+        padding: EdgeInsets.only(
+          left: 24.w,
+          right: 24.w,
+          bottom: ScreenUtil().bottomBarHeight,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _HashNavIcon(
+              icon: LucideIcons.home,
+              isActive: bottomNavIndex == 0,
+              activeColor: tenant.primaryColor,
+              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
+            ),
+            _HashNavIcon(
+              icon: LucideIcons.receipt,
+              isActive: bottomNavIndex == 1,
+              activeColor: tenant.primaryColor,
+              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
+            ),
+            _HashNavIcon(
+              icon: LucideIcons.ticket,
+              isActive: bottomNavIndex == 2,
+              activeColor: tenant.primaryColor,
+              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
+            ),
+            _HashNavIcon(
+              icon: LucideIcons.user,
+              isActive: bottomNavIndex == 3,
+              activeColor: tenant.primaryColor,
+              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildHomeContent(BuildContext context, TenantConfig tenant) {
+    final bannersAsync = ref.watch(bannersProvider);
+    final selectedOutlet = ref.watch(selectedOutletProvider);
+    final loyaltyInfoAsync = ref.watch(loyaltyInfoProvider);
+    final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
+    final unreadCount = unreadCountAsync.valueOrNull ?? 0;
+
     return CustomScrollView(
       slivers: [
         // Banner with overlapping items
@@ -145,32 +157,76 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              HomeBanner(
-                imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDv3GTavczasScBZ-fNGjS1OIu6hBJFWo2NCIMvU6umDihIp_imLv0CSrV7atCT94K1ozSAA9nCLn83gsFXCdhWwuNptCcJVwGeDewpj_nYdGDeieRHiqU17fMmzeTEeCvT_DarWz-WzMmiIZHz0e3TrUyseZofVj1gnGyeQNBsv4_rV_YvJBT_LkpokdAMXTxpYg2z9xF_36GO8K-7S29xULBYfQ-QlHDzUamPFEy5QJOMPZLuMkDH1EtQ0UjP9_yQBoPVUvprtpsM',
-                title: 'Ice Matcha Coffee with\nCloud Foam & Free Toast',
-                tier: 'Gold Member',
-                onTierTap: () {
-                  setState(() {
-                    _bottomNavIndex = 2; // Index for RewardsScreen
-                  });
-                },
-                onNotificationTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                  );
-                },
+              SizedBox(
+                height: 1.sw * 6 / 5,
+                child: bannersAsync.when(
+                  data: (banners) {
+                    final List<dynamic> displayBanners = banners.isEmpty 
+                        ? [{'imageUrl': 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=1000', 'title': 'Welcome to ATASKOPI'}] 
+                        : banners;
+
+                    return PageView.builder(
+                      controller: _pageController,
+                      itemCount: displayBanners.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        final item = displayBanners[index];
+                        final isDefault = item is Map;
+                        
+                        return HomeBanner(
+                          imageUrl: isDefault ? item['imageUrl'] : item.bannerUrl,
+                          title: isDefault ? item['title'] : item.title,
+                          tier: loyaltyInfoAsync.value?.currentTier?.name ?? 'Member',
+                          unreadCount: unreadCount,
+                          onTierTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
+                          onNotificationTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => Container(height: 1.sw * 6 / 5, color: Colors.grey[200]),
+                  error: (e, s) => Container(height: 1.sw * 6 / 5, color: Colors.grey[300]),
+                ),
               ),
+              
+              // Dots Indicator
+              if (bannersAsync.valueOrNull != null && bannersAsync.value!.length > 1)
+                Positioned(
+                  bottom: 100.h,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(bannersAsync.value!.length, (index) {
+                      final isActive = index == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: EdgeInsets.symmetric(horizontal: 4.w),
+                        width: isActive ? 32.w : 8.w,
+                        height: 6.h,
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.white : Colors.white.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
               Positioned(
                 bottom: -40.h,
                 left: 20.w,
                 right: 20.w,
-                child: const OutletSelector(outletName: 'Outlet Central Park'),
+                child: OutletSelector(outletName: selectedOutlet?.name ?? 'Loading...'),
               ),
             ],
           ),
         ),
-        SliverToBoxAdapter(child: SizedBox(height: 80.h)), // Increased to 80.h for better separation
+        SliverToBoxAdapter(child: SizedBox(height: 40.h)), // Reduced to accommodate OutletSelector overlap
         SliverToBoxAdapter(child: SizedBox(height: 24.h)),
         // Order Mode Selector
         SliverToBoxAdapter(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'pickup_time_modal.dart';
-import '../screens/dine_in_scanner_screen.dart';
+import '../../../scan/presentation/screens/qr_scanner_screen.dart';
+import '../../../menu/presentation/screens/menu_catalog_screen.dart';
 import '../../../order/presentation/screens/delivery_address_screen.dart';
 
 class OrderModeSelector extends StatelessWidget {
@@ -58,11 +59,18 @@ class OrderModeSelector extends StatelessWidget {
           iconColor: const Color(0xFF1E40AF),
           accentIcon: Icons.flatware_rounded,
           isWide: true,
-          onTap: () {
-            Navigator.push(
+          onTap: () async {
+            final result = await Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const DineInScannerScreen()),
+              MaterialPageRoute(builder: (_) => const QrScannerScreen()),
             );
+            
+            if (result == true && context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
+              );
+            }
           },
         ),
       ],
@@ -86,7 +94,6 @@ class OrderModeSelector extends StatelessWidget {
       borderRadius: BorderRadius.circular(24.r),
       child: Container(
         height: isWide ? 110.h : 200.h,
-        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(24.r),
@@ -103,8 +110,8 @@ class OrderModeSelector extends StatelessWidget {
           children: [
             // Background Decorative Icon
             Positioned(
-              bottom: -16.w,
-              right: -16.w,
+              bottom: 0,
+              right: 0,
               child: Transform.rotate(
                 angle: 0.2,
                 child: Icon(
@@ -115,38 +122,20 @@ class OrderModeSelector extends StatelessWidget {
               ),
             ),
             // Content
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isWide ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: [
-                if (!isWide) ...[
-                  Container(
-                    width: 44.w,
-                    height: 44.w,
-                    decoration: BoxDecoration(
-                      color: iconBgColor,
-                      borderRadius: BorderRadius.circular(12.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(icon, color: iconColor, size: 24.w),
-                  ),
-                  SizedBox(height: 24.h),
-                ],
-                if (isWide)
-                  Row(
-                    children: [
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: isWide ? MainAxisAlignment.center : MainAxisAlignment.start,
+                  children: [
+                    if (!isWide) ...[
                       Container(
-                          width: 44.w,
-                          height: 44.w,
-                          decoration: BoxDecoration(
-                            color: iconBgColor,
-                            borderRadius: BorderRadius.circular(12.r),
+                        width: 44.w,
+                        height: 44.w,
+                        decoration: BoxDecoration(
+                          color: iconBgColor,
+                          borderRadius: BorderRadius.circular(12.r),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.06),
@@ -157,61 +146,84 @@ class OrderModeSelector extends StatelessWidget {
                         ),
                         child: Icon(icon, color: iconColor, size: 24.w),
                       ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 17.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF1E293B),
-                                letterSpacing: -0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                      SizedBox(height: 24.h),
+                    ],
+                    if (isWide)
+                      Row(
+                        children: [
+                          Container(
+                            width: 44.w,
+                            height: 44.w,
+                            decoration: BoxDecoration(
+                              color: iconBgColor,
+                              borderRadius: BorderRadius.circular(12.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: const Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            child: Icon(icon, color: iconColor, size: 24.w),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 17.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1E293B),
+                                    letterSpacing: -0.5,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: const Color(0xFF64748B),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        ],
+                      )
+                    else ...[
+                      const Spacer(),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1E293B),
+                          letterSpacing: -0.5,
                         ),
                       ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
-                  )
-                else ...[
-                  const Spacer(),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E293B),
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: const Color(0xFF64748B),
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ),

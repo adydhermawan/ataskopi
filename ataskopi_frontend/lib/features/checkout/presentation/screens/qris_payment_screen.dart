@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../activity/presentation/screens/activity_screen.dart';
-import '../../../activity/presentation/screens/order_tracking_screen.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_button.dart';
+import 'package:ataskopi_frontend/features/activity/presentation/screens/order_tracking_screen.dart';
+import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
+import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart';
 
 class QrisPaymentScreen extends ConsumerWidget {
-  const QrisPaymentScreen({super.key});
+  final Order order;
+  const QrisPaymentScreen({super.key, required this.order});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +34,7 @@ class QrisPaymentScreen extends ConsumerWidget {
             ),
             SizedBox(height: 8.h),
             Text(
-              'Rp 92.400',
+              'Rp ${(order.total / 1000).toInt()}.000',
               style: TextStyle(
                 fontSize: 32.sp,
                 fontWeight: FontWeight.w800,
@@ -49,7 +51,7 @@ class QrisPaymentScreen extends ConsumerWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24.r),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 8)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 20, offset: const Offset(0, 8)),
                   ],
                   border: Border.all(color: const Color(0xFFF1F5F9)),
                 ),
@@ -65,8 +67,9 @@ class QrisPaymentScreen extends ConsumerWidget {
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Image.network(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuCTFJYqUAKjESe0MS4c855a2N5Jo9JOnttAIXkmamVfSbOXIb7qtJ8Hhomav5Q_-VERwkz9mNq4xmbSON5tJWGA8ptabCnZjhNJhs_Dk4heovpHAKJSAwmoqqMTt9Vf2x2ajjtpx6l_LxvQHDPLVtL9T928m6Fyw01PoaaD8KjyDFshvpFFlkHCkfBpwu8rFoY7WW4pZsXebvA7nhgtJvDolOCdn3C1F0ydeUvf1h_FBU9rTEO_hnQB3rVlsHYXYVoHErq5tgpOG058',
+                          'https://static.okomura.com/qris_placeholder.png', // Placeholder or dynamic if available
                           fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const Center(child: Text('QRIS CODE')),
                         ),
                       ),
                     ),
@@ -83,7 +86,7 @@ class QrisPaymentScreen extends ConsumerWidget {
                           Icon(Icons.schedule_rounded, color: const Color(0xFF2563EB), size: 16.w),
                           SizedBox(width: 8.w),
                           Text(
-                            'Waktu Tersisa: 04:59',
+                            'Status: Menunggu Pembayaran',
                             style: TextStyle(
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w700,
@@ -128,7 +131,7 @@ class QrisPaymentScreen extends ConsumerWidget {
           color: Colors.white,
           border: Border(top: BorderSide(color: const Color(0xFFF1F5F9), width: 1.5)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, -5)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 15, offset: const Offset(0, -5)),
           ],
         ),
         child: Column(
@@ -142,9 +145,12 @@ class QrisPaymentScreen extends ConsumerWidget {
             SizedBox(height: 8.h),
             TextButton(
               onPressed: () {
+                // Invalidate active orders to refresh history
+                ref.invalidate(activeOrdersProvider);
+                
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const OrderTrackingScreen()),
+                  MaterialPageRoute(builder: (_) => OrderTrackingScreen(orderId: order.id)),
                   (route) => route.isFirst,
                 );
               },

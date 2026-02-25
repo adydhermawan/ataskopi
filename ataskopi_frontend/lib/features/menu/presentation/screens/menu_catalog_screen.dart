@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../core/providers/tenant_provider.dart';
-import '../../../../shared/widgets/app_top_bar.dart';
-import '../../../shared/data/mock_data.dart';
-import '../../../shared/domain/models/models.dart';
-import '../../../checkout/presentation/screens/checkout_summary_screen.dart';
-import '../widgets/product_detail_modal.dart';
+import 'package:intl/intl.dart';
+import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
+import 'package:ataskopi_frontend/features/checkout/presentation/screens/checkout_summary_screen.dart';
+import 'package:ataskopi_frontend/features/menu/presentation/widgets/product_detail_modal.dart';
+import 'package:ataskopi_frontend/features/menu/presentation/providers/menu_providers.dart';
+import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart' as order;
 
 class MenuCatalogScreen extends ConsumerStatefulWidget {
   const MenuCatalogScreen({super.key});
@@ -16,281 +18,254 @@ class MenuCatalogScreen extends ConsumerStatefulWidget {
 }
 
 class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
-  String _selectedCategoryId = 'all';
+  String? _selectedCategoryId;
+  final _currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
-    final filteredProducts = _selectedCategoryId == 'all'
-        ? MockData.products
-        : MockData.products.where((p) => p.categoryId == _selectedCategoryId).toList();
+    final cart = ref.watch(order.cartProvider);
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final productsAsync = ref.watch(productsByCategoryProvider(_selectedCategoryId));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F8),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppTopBar(
         title: 'Menu Utama',
         onBackPressed: () => Navigator.pop(context),
-        actions: [
-          AppTopBar.actionButton(
-            icon: Icons.favorite_rounded,
-            iconColor: const Color(0xFFEF4444),
-            onTap: () {},
-          ),
-        ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Search Bar
+          // 1. Search Bar
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: Container(
-              height: 48.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  SizedBox(width: 16.w),
-                  Icon(Icons.search_rounded, color: const Color(0xFF4E6D97), size: 22.w),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Cari menu favoritmu...',
-                        hintStyle: TextStyle(color: const Color(0xFF4E6D97), fontSize: 14.sp),
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ],
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+            child: TextField(
+              onChanged: (val) => ref.read(searchQueryProvider.notifier).state = val,
+              decoration: InputDecoration(
+                hintText: 'Cari menu...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          // Categories
-          SizedBox(
-            height: 40.h,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: MockData.categories.length + 1,
-              itemBuilder: (context, index) {
-                final bool isAll = index == 0;
-                final cat = isAll ? null : MockData.categories[index - 1];
-                final id = isAll ? 'all' : cat!.id;
-                final isSelected = _selectedCategoryId == id;
-                final name = isAll ? 'Semua' : cat!.name;
 
-                return Padding(
-                  padding: EdgeInsets.only(right: 12.w),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedCategoryId = id),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isSelected ? tenant.primaryColor : Colors.white,
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: null,
-                        border: !isSelected ? Border.all(color: const Color(0xFFF1F5F9)) : null,
-                      ),
-                      child: Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : const Color(0xFF4E6D97),
+          // 2. Categories
+          SizedBox(
+            height: 50.h,
+            child: categoriesAsync.when(
+              data: (categories) => ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length + 1,
+                separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                itemBuilder: (context, index) {
+                  final isAll = index == 0;
+                  final category = isAll ? null : categories[index - 1];
+                  final active = _selectedCategoryId == (isAll ? null : category?.id);
+
+                  return ChoiceChip(
+                    label: Text(isAll ? 'Semua' : category!.name),
+                    selected: active,
+                    onSelected: (_) => setState(() => _selectedCategoryId = isAll ? null : category?.id),
+                    selectedColor: tenant.primaryColor,
+                    labelStyle: TextStyle(
+                      color: active ? Colors.white : Colors.black87,
+                      fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    backgroundColor: Colors.white,
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                  );
+                },
+              ),
+              loading: () => const Center(child: LinearProgressIndicator()),
+              error: (_, __) => const SizedBox(),
+            ),
+          ),
+
+          SizedBox(height: 8.h),
+
+          // 3. Product List
+          Expanded(
+            child: productsAsync.when(
+              data: (products) {
+                if (products.isEmpty) {
+                  return const Center(child: Text("Tidak ada produk ditemukan"));
+                }
+                return ListView.separated(
+                  padding: EdgeInsets.all(16.w),
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return GestureDetector(
+                      onTap: () => ProductDetailModal.show(context, product),
+                      child: Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                        ),
+                        child: Row(
+                          children: [
+                            // Image
+                            Container(
+                              width: 80.w,
+                              height: 80.w,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12.r),
+                                image: product.imageUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(product.imageUrl!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: product.imageUrl == null
+                                  ? const Icon(Icons.coffee, color: Colors.grey)
+                                  : null,
+                            ),
+                            SizedBox(width: 12.w),
+                            
+                            // Info
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    product.description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Text(
+                                    _currencyFormat.format(product.basePrice),
+                                    style: TextStyle(
+                                      color: tenant.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Add Button
+                            Icon(Icons.add_circle, color: tenant.primaryColor, size: 32.w),
+                          ],
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
-            ),
-          ),
-          SizedBox(height: 16.h),
-          // Product List
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              itemCount: filteredProducts.length,
-              itemBuilder: (context, index) {
-                final product = filteredProducts[index];
-                return _buildProductListItem(context, product, tenant);
-              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
             ),
           ),
         ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _buildFloatingCart(context, tenant),
+      
+      // STANDARD FIXED BOTTOM BAR
+      bottomNavigationBar: cart.isNotEmpty ? _buildBottomCartBar(context, cart, tenant) : null,
     );
   }
 
-  Widget _buildProductListItem(BuildContext context, Product product, TenantConfig tenant) {
+  Widget _buildBottomCartBar(BuildContext context, List<order.CartItem> cart, TenantConfig tenant) {
+    final totalItems = cart.fold(0, (sum, item) => sum + item.quantity);
+    
+    // Defensive check for calculation
+    double subtotal = 0.0;
+    try {
+      final calculation = ref.watch(order.orderCalculationProvider);
+      subtotal = calculation['subtotal'] ?? 0.0;
+    } catch (e) {
+      // Fallback calculation if provider fails
+      subtotal = cart.fold(0, (sum, item) => sum + item.totalPrice);
+    }
+
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          )
         ],
-        border: Border.all(color: const Color(0xFFF8FAFC)),
       ),
-      child: Row(
-        children: [
-          Stack(
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          child: Row(
             children: [
-              Container(
-                width: 80.w,
-                height: 80.w,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12.r),
-                  image: DecorationImage(image: NetworkImage(product.imageUrl), fit: BoxFit.cover),
-                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$totalItems Item di Keranjang',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                  Text(
+                    _currencyFormat.format(subtotal),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp,
+                    ),
+                  ),
+                ],
               ),
-              if (product.isRecommended)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
-                    decoration: BoxDecoration(
-                      color: tenant.accentColor,
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(12.r),
-                        bottomLeft: Radius.circular(8.r),
-                      ),
-                    ),
-                    child: Text(
-                      'BEST SELLER',
-                      style: TextStyle(fontSize: 8.sp, fontWeight: FontWeight.bold, color: const Color(0xFF0E131B)),
-                    ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CheckoutSummaryScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: tenant.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                  minimumSize: Size(0, 44.h), // Override global full-width styles
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-            ],
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: const Color(0xFF0E131B)),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  product.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12.sp, color: const Color(0xFF4E6D97), height: 1.2),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Rp ${product.basePrice ~/ 1000},000',
-                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: tenant.primaryColor),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: 8.w),
-          SizedBox(
-            width: 48.w,
-            height: 48.w,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => ProductDetailModal.show(context, product),
-                borderRadius: BorderRadius.circular(100),
-                child: Center(
-                  child: Container(
-                    width: 32.w,
-                    height: 32.w,
-                    decoration: BoxDecoration(
-                      color: tenant.primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.add_rounded, color: tenant.primaryColor, size: 24.w),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingCart(BuildContext context, TenantConfig tenant) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: tenant.primaryColor,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(color: tenant.primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Stack(
-            children: [
-              Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 28.w),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  width: 18.w,
-                  height: 18.w,
-                  decoration: BoxDecoration(
-                    color: tenant.accentColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: tenant.primaryColor, width: 2.w),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '3',
-                    style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.bold, color: Colors.black),
-                  ),
-                ),
+                child: const Text('Checkout'),
               ),
             ],
           ),
-          SizedBox(width: 12.w),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('3 Items', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 10.sp)),
-              Text('Rp 76,000', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutSummaryScreen()));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: tenant.primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-              elevation: 0,
-            ),
-            child: const Text('Checkout'),
-          ),
-        ],
+        ),
       ),
     );
   }

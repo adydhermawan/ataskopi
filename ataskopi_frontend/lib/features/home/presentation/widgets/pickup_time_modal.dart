@@ -1,11 +1,15 @@
+// Force recompile
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../menu/presentation/screens/menu_catalog_screen.dart';
+import '../../../shared/domain/models/models.dart';
+import '../../../order/presentation/providers/order_state.dart';
 
-class PickupTimeModal extends ConsumerWidget {
+class PickupTimeModal extends ConsumerStatefulWidget {
   const PickupTimeModal({super.key});
 
   static void show(BuildContext context) {
@@ -18,7 +22,49 @@ class PickupTimeModal extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PickupTimeModal> createState() => _PickupTimeModalState();
+}
+
+class _PickupTimeModalState extends ConsumerState<PickupTimeModal> {
+  DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.fromDateTime(DateTime.now().add(const Duration(minutes: 30)));
+
+  bool get _isValid {
+    final now = DateTime.now();
+    final pickupDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+    return pickupDateTime.isAfter(now.add(const Duration(minutes: 19, seconds: 59)));
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 7)),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _selectTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
 
     return Container(
@@ -49,36 +95,48 @@ class PickupTimeModal extends ConsumerWidget {
             ),
           ),
           SizedBox(height: 32.h),
-          _buildSelectionItem(
-            icon: Icons.calendar_today_rounded,
-            label: 'TANGGAL',
-            value: 'Hari Ini, 17 Jan 2026',
-            tenant: tenant,
+          GestureDetector(
+            onTap: _selectDate,
+            child: _buildSelectionItem(
+              icon: Icons.calendar_today_rounded,
+              label: 'TANGGAL',
+              value: DateFormat('EEEE, d MMM yyyy').format(_selectedDate),
+              tenant: tenant,
+            ),
           ),
           SizedBox(height: 16.h),
-          _buildSelectionItem(
-            icon: Icons.access_time_rounded,
-            label: 'JAM',
-            value: '11:30',
-            tenant: tenant,
+          GestureDetector(
+            onTap: _selectTime,
+            child: _buildSelectionItem(
+              icon: Icons.access_time_rounded,
+              label: 'JAM',
+              value: _selectedTime.format(context),
+              tenant: tenant,
+            ),
           ),
           SizedBox(height: 20.h),
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: _isValid ? const Color(0xFFEFF6FF) : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, color: const Color(0xFF2563EB), size: 18.w),
+                Icon(
+                  _isValid ? Icons.info_outline_rounded : Icons.error_outline_rounded,
+                  color: _isValid ? const Color(0xFF2563EB) : const Color(0xFFEF4444),
+                  size: 18.w,
+                ),
                 SizedBox(width: 12.w),
-                Text(
-                  'Minimal 20 menit dari sekarang',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1D4ED8),
+                Expanded(
+                  child: Text(
+                    'Minimal 20 menit dari sekarang',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _isValid ? const Color(0xFF1D4ED8) : const Color(0xFFB91C1C),
+                    ),
                   ),
                 ),
               ],
@@ -87,7 +145,18 @@ class PickupTimeModal extends ConsumerWidget {
           SizedBox(height: 32.h),
           AppButton(
             text: 'Lanjutkan',
+            enabled: _isValid,
             onPressed: () {
+              final pickupDateTime = DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                _selectedTime.hour,
+                _selectedTime.minute,
+              );
+              ref.read(orderFlowProvider.notifier).setMode(OrderMode.pickup);
+              ref.read(orderFlowProvider.notifier).setPickupData(pickupDateTime);
+              
               Navigator.pop(context); // Close modal
               Navigator.push(
                 context,

@@ -1,0 +1,112 @@
+"use client"
+
+import { createContext, useContext, useEffect, useState } from 'react'
+
+interface User {
+    id: string
+    name: string
+    email?: string
+    role: string
+}
+
+interface UserContextType {
+    user: User | null
+    loading: boolean
+}
+
+const UserContext = createContext<UserContextType>({
+    user: null,
+    loading: true
+})
+
+export function UserProvider({ children }: { children: React.ReactNode }) {
+    const [user, setUser] = useState<User | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        // Fetch current user from API
+        fetch('/api/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    setUser({
+                        id: data.data.id,
+                        name: data.data.name,
+                        email: data.data.email,
+                        role: data.data.role
+                    })
+                }
+            })
+            .catch(err => console.error('Failed to fetch user:', err))
+            .finally(() => setLoading(false))
+    }, [])
+
+    return (
+        <UserContext.Provider value= {{ user, loading }
+}>
+    { children }
+    </UserContext.Provider>
+    )
+}
+
+export function useCurrentUser() {
+    const context = useContext(UserContext)
+    if (context === undefined) {
+        throw new Error('useCurrentUser must be used within UserProvider')
+    }
+    return context
+}
+
+/**
+ * Check if current user has required role
+ */
+export function useHasRole(allowedRoles: string[]) {
+    const { user } = useCurrentUser()
+    if (!user) return false
+    return allowedRoles.includes(user.role)
+}
+
+/**
+ * Check if current user can perform action on resource
+ */
+export function useCanPerform(action: string, resource: string) {
+    const { user } = useCurrentUser()
+
+    if (!user) return false
+    if (user.role === 'admin') return true
+
+    const permissions: Record<string, Record<string, string[]>> = {
+        products: {
+            view: ['admin', 'owner'],
+            create: ['admin', 'owner'],
+            update: ['admin', 'owner'],
+            delete: ['admin', 'owner']
+        },
+        categories: {
+            view: ['admin', 'owner'],
+            create: ['admin', 'owner'],
+            update: ['admin', 'owner'],
+            delete: ['admin', 'owner']
+        },
+        outlets: {
+            view: ['admin', 'owner'],
+            create: ['admin', 'owner'],
+            update: ['admin', 'owner'],
+            delete: ['admin', 'owner']
+        },
+        orders: {
+            view: ['admin', 'owner', 'kasir'],
+            create: ['admin', 'kasir'],
+            update: ['admin', 'kasir'],
+            delete: ['admin']
+        }
+    }
+
+    const resourcePermissions = permissions[resource]
+    if (!resourcePermissions) return false
+
+    const allowedRoles = resourcePermissions[action]
+    if (!allowedRoles) return false
+
+    return allowedRoles.includes(user.role)
+}

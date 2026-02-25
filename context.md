@@ -1,11 +1,19 @@
 # ☕ Coffee Shop & Resto Digital Ecosystem - Project Context
 
-**Version:** 1.0 (Final Comprehensive Version)  
+**Version:** 1.0.0 (Production Release)  
 **Developer:** Ady Putra Dhermawan  
 **Target Platforms:** Android, iOS, Mobile Web (Customer) & Desktop Web (Admin/Kasir)  
-**Last Updated:** 2026-01-13
+**Last Updated:** 2026-02-05
+
+> [!IMPORTANT]
+> **REMINDER:** Always update `ataskopi_admin_tasklist.md` progress status after completing every major task or package.
 
 ---
+## 🎯 0. Project Url 
+local development (tunnel via cloudflare)
+[dev](https://devataskopi.dadi.web.id/)
+
+
 
 ## 🎯 1. Project Overview
 
@@ -15,13 +23,13 @@ Ekosistem aplikasi digital end-to-end yang mentransformasi operasional bisnis F&
 2. **Staf Operasional (Kasir/Barista)** - Web Dashboard untuk manajemen pesanan
 3. **Pemilik Bisnis (Admin/Owner)** - Web Dashboard untuk manajemen bisnis
 
-### Filosofi Produk: "The 3-Click Experience"
+### Alur Pemesanan (Order Flows)
 
-Fokus utama adalah meminimalisir hambatan antara keinginan pelanggan dan pemenuhan pesanan. Pelanggan dapat menyelesaikan pesanan hanya dalam **tiga langkah utama**:
+Sistem mendukung tiga metode pemesanan utama dengan alur validasi yang spesifik:
 
-1. **Pilih metode** (Dine-in, Pickup, atau Delivery)
-2. **Kustomisasi menu** (Varian, Toppings, Notes)
-3. **Pembayaran digital** (QRIS)
+1. **Dine-in**: Validasi melalui Scan QR Code Meja (Implemented via MobileScanner).
+2. **Pick Up**: Penjadwalan waktu pengambilan (Min. 20 menit ke depan).
+3. **Delivery**: Penentuan lokasi pengiriman melalui Pin Drop Map (Implemented via Flutter Map OSM).
 
 ---
 
@@ -33,18 +41,20 @@ Fokus utama adalah meminimalisir hambatan antara keinginan pelanggan dan pemenuh
 - **State Management:** Riverpod atau Provider (Reactive UI)
 - **Design System:** Custom UI (Primary Blue: #1250a5, Accent Gold: #ffb400), Poppins/Inter Font, 16px Border Radius
 - **Security:** PIN 6-digit untuk autentikasi cepat
+- **Key Packages:** `flutter_map` (OSM), `mobile_scanner` (QR), `latlong2`, `flutter_riverpod`
 
 ### Web Dashboard & API (Backend Monolith)
-- **Framework:** Next.js 14+ (App Router)
-- **UI Components:** Shadcn/UI + Tailwind CSS
-- **Role:** Melayani Admin Panel (UI) dan Mobile App (API)
-- **Deployment:** Vercel (Unified Deployment)
-- **Architecture:** Monolith (Frontend + Backend in one repo)
+- **Framework:** Next.js 16.1.4 (App Router) with Turbopack
+- **Language:** TypeScript 5+
+- **Styling:** Tailwind CSS v4 + Shadcn/UI
+- **Deployment:** Vercel / VPS (Dockerized)
+- **Architecture:** Monolith (Frontend Admin + Backend Rest API)
+- **Performance:** Persistent Layouts for SPA-like navigation
 
 ### Backend Services (Portability Focused)
 - **Primary Database:** PostgreSQL (Hosted via Supabase)
-- **Portability Goal:** Codebase treats Supabase strictly as a standard PostgreSQL database to allow seamless migration to any VPS with a vanilla PostgreSQL instance.
-- **ORM/Query Builder:** Prisma or Drizzle (Recommended for portability)
+- **Portability Goal:** Codebase treats database connection strictly as standard PostgreSQL.
+- **ORM:** Prisma 6 (Standard Library Engine) - No Supabase-exclusive SDK dependencies in API layer.
 - **Auth Provider:** Supabase GoTrue (Open-source, replaceable)
 - **Storage:** Supabase Storage (S3 Compatible, replaceable)
 - **Realtime:** Supabase Realtime (Open-source extension)
@@ -86,188 +96,17 @@ Fokus utama adalah meminimalisir hambatan antara keinginan pelanggan dan pemenuh
 
 ---
 
-## � 3. White Labeling Architecture
+## 🏢 3. Architecture Strategy
 
-### Multi-Tenant Strategy
+### Single Tenant, Multi-Outlet
+Sistem ini dirancang untuk satu bisnis brand yang memiliki banyak cabang (outlet). Tidak ada isolasi data antar tenant yang kompleks. Seluruh database adalah milik satu entitas bisnis.
 
-**Tenant Isolation Level:** Database-level (Shared Database, Isolated Schema)
+### Data Model Simplified
+- **User:** Global user base.
+- **Outlet:** Cabang-cabang toko.
+- **Product:** Katalog produk global.
+- **Order:** Transaksi linked ke User dan Outlet spesifik.
 
-Setiap tenant memiliki:
-- **Unique Tenant ID** (slug format: `ataskopi-demo`, `cafe-jakarta`)
-- **Dedicated Subdomain** (`ataskopi-demo.ataskopi.com`)
-- **Isolated Data** (RLS - Row Level Security di Supabase)
-- **Custom Branding** (logo, colors, fonts, splash screen)
-
-### Brand Configuration System
-
-#### A. Tenant Registration Flow
-
-**Super Admin Dashboard:**
-1. Create new tenant → Generate tenant_id
-2. Configure brand settings (nama, logo, warna)
-3. Setup initial admin user untuk tenant
-4. Generate mobile app build (automated CI/CD)
-5. Deploy tenant-specific subdomain
-
-#### B. Brand Customization Options
-
-**Visual Identity:**
-```json
-{
-  "tenant_id": "ataskopi-demo",
-  "brand_name": "AtasKopi Demo",
-  "logo_url": "https://cdn.ataskopi.com/tenants/ataskopi-demo/logo.png",
-  "splash_screen_url": "https://cdn.ataskopi.com/tenants/ataskopi-demo/splash.png",
-  "app_icon_url": "https://cdn.ataskopi.com/tenants/ataskopi-demo/icon.png",
-  "primary_color": "#124fa5",
-  "secondary_color": "#FFFFFF",
-  "accent_color": "#ffb400",
-  "font_family": "Poppins",
-  "border_radius": 16
-}
-```
-
-**Operational Settings:**
-```json
-{
-  "business_name": "AtasKopi Demo",
-  "business_type": "coffee_shop",
-  "currency": "IDR",
-  "tax_rate": 10,
-  "service_fee": 5000,
-  "loyalty_enabled": true,
-  "delivery_enabled": true,
-  "pickup_enabled": true,
-  "dine_in_enabled": true,
-  "payment_methods": ["qris", "cash", "gopay"],
-  "operating_hours": {
-    "monday": {"open": "08:00", "close": "22:00"},
-    "tuesday": {"open": "08:00", "close": "22:00"}
-  }
-}
-```
-
-**Feature Toggles:**
-```json
-{
-  "features": {
-    "loyalty_system": true,
-    "voucher_system": true,
-    "table_reservation": false,
-    "pre_order": true,
-    "reviews": true,
-    "push_notifications": true,
-    "analytics": true
-  }
-}
-```
-
-### C. Mobile App Generation
-
-> [!NOTE]
-> **MVP Implementation (Phase 1):** Single base app dengan **tenant selector** di development mode. Production build menggunakan hardcoded `tenant_id` via build-time variable.
-
-**Build Variants:**
-- **Development:** Single app dengan tenant selector dropdown
-- **Production (MVP):** Hardcoded tenant_id per build
-
-**MVP Build Process:**
-1. Set tenant_id via environment variable
-2. Build APK/IPA dengan tenant config
-3. Manual upload ke Play Store/App Store
-
-**Flutter Configuration (MVP):**
-```dart
-// lib/config/tenant_config.dart
-class TenantConfig {
-  // Development: Allow tenant selection
-  // Production: Hardcoded via build-time variable
-  static const String tenantId = String.fromEnvironment(
-    'TENANT_ID',
-    defaultValue: 'demo', // For development
-  );
-}
-
-// Build command (Production)
-flutter build apk --dart-define=TENANT_ID=ataskopi-demo
-```
-
-**Development Mode - Tenant Selector:**
-```dart
-// Show tenant selector di login screen (development only)
-if (kDebugMode) {
-  DropdownButton<String>(
-    value: selectedTenant,
-    items: ['demo', 'ataskopi-demo', 'cafe-jakarta']
-        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-        .toList(),
-    onChanged: (tenant) => setState(() => selectedTenant = tenant),
-  );
-}
-```
-
----
-
-> [!IMPORTANT]
-> **Phase 3 Enhancement:** Automated build pipeline dengan GitHub Actions untuk generate per-tenant app otomatis. Lihat implementation_plan.md untuk detail.
-
-### D. Web Dashboard Deployment
-
-**Subdomain Strategy:**
-- Customer App: `app.ataskopi-demo.ataskopi.com`
-- Admin Dashboard: `admin.ataskopi-demo.ataskopi.com`
-- Kasir Dashboard: `kasir.ataskopi-demo.ataskopi.com`
-
-**Tenant Detection:**
-```javascript
-// Next.js middleware
-export function middleware(request) {
-  const hostname = request.headers.get('host');
-  const tenant = hostname.split('.')[0]; // Extract subdomain
-  
-  // Inject tenant context
-  request.headers.set('x-tenant-id', tenant);
-}
-```
-
-### E. Data Isolation Strategy
-
-**Row Level Security (RLS) Policies:**
-```sql
--- Example: Products table
-CREATE POLICY "Tenant isolation" ON products
-  FOR ALL
-  USING (tenant_id = current_setting('app.current_tenant')::text);
-
--- Set tenant context per request
-SET app.current_tenant = 'ataskopi-demo';
-```
-
-### Role-Based Access Matrix
-
-| Feature/Page | Owner | Admin | Kasir |
-|--------------|:-----:|:-----:|:-----:|
-| Dashboard Analytics | ✅ | ✅ | ❌ |
-| Revenue Reports | ✅ | ✅ | ❌ |
-| Product Management | ✅ | ✅ | ❌ |
-| Category Management | ✅ | ✅ | ❌ |
-| Voucher Management | ✅ | ✅ | ❌ |
-| Loyalty Settings | ✅ | ✅ | ❌ |
-| User Management | ✅ | ✅ | ❌ |
-| Staff Management | ✅ | ❌ | ❌ |
-| Outlet Settings | ✅ | ✅ | ❌ |
-| Live Order Queue | ✅ | ✅ | ✅ |
-| Update Order Status | ✅ | ✅ | ✅ |
-| Payment Verification | ✅ | ✅ | ✅ |
-| Order History (View) | ✅ | ✅ | ✅ |
-
-### API Request Flow
-1. Client (Mobile/Web) sends HTTP Request ke `https://ataskopi.dadi.web.id/api/*`
-2. Next.js Middleware memvalidasi Session/JWT
-3. Middleware extract `tenant_id` dari subdomain atau header
-4. API Route Handler menjalankan business logic (validasi harga, stok, dll)
-5. API Route Handler query database via Supabase Client (Service Role)
-6. Response dikembalikan ke client dalam format JSON standar
 
 
 ---
@@ -289,7 +128,7 @@ SET app.current_tenant = 'ataskopi-demo';
 - HP lama → Login dengan PIN
 - Lupa PIN → Reset via Hubungi Admin / Customer Service
 
-### B. Loyalty & Leveling System (MVP - Simplified)
+### B. Loyalty & Leveling System
 
 **1. Point Earning Mechanism:**
 - **Method:** Per Item Purchased (Default).
@@ -328,9 +167,26 @@ Admin dapat mengatur rentang poin dan nama tier melalui dashboard:
 - Total Poin.
 - Current Tier Name.
 - Progress Bar ke tier berikutnya.
+- Progress Bar ke tier berikutnya.
 - Points needed untuk next tier.
 
+**Technical Implementation (Backend):**
+- **Trigger:** Server Action `updateOrderStatus` (in `actions/orders.ts`).
+- **Event:** When order status changes to `completed`.
+- **Logic:**
+  1. Check if Loyalty is enabled in `loyalty_settings`.
+  2. Calculate points: `Total Items * points_per_item`.
+  3. Update `users.loyalty_points` (increment).
+  4. Create `loyalty_transactions` record (type: `earned`).
+
+**Technical Implementation (Frontend):**
+- **Trigger:** Upon successful order placement in `CheckoutSummaryScreen`.
+- **Action:** `ref.refresh(loyaltyInfoProvider)` & `ref.refresh(vouchersProvider)`. 
+- **Goal:** Ensure updated points balance is immediately reflected in `RewardsScreen`.
+
 ---
+
+### C. Order Management
 
 ### C. Order Management
 
@@ -340,12 +196,12 @@ Admin dapat mengatur rentang poin dan nama tier melalui dashboard:
 Contoh: 0001130126-001
 ```
 
-**Order Modes:**
+**Order Modes & Logic:**
 
 #### 1. Dine-in
-- **Validation:** Wajib Scan QR Code Meja
+- **Validation:** Wajib Scan QR Code Meja (Implemented: `QrScannerScreen` verifies `ATASKOPI-TABLE-XX`)
 - **Payment:** Static QRIS (Kasir manually cross-checks) atau Cash
-- **Flow:** Scan QR → Menu → Checkout → Payment → Live Tracking
+- **Flow:** Scan QR → Validasi API `/api/tables` → Menu (Mode Dine-In active) → Checkout → Payment
 - **Status Progression:** Unpaid → Paid (Manual Check) → Prep → Done
 
 #### 2. Pickup (Scheduled)
@@ -354,13 +210,22 @@ Contoh: 0001130126-001
 - **Flow:** Pilih Waktu → Menu → Checkout → Payment → Live Tracking
 - **Status Progression:** Unpaid → Paid (Manual Check) → Prep → Ready → Done
 
-#### 3. Delivery (MVP)
-- **Validation:** Integrasi alamat GPS dengan OpenStreetMap (OSM Pin Drop)
+#### 3. Delivery
+- **Validation:** Integrasi alamat GPS dengan OpenStreetMap (`flutter_map` Pin Drop)
 - **Payment:** Static QRIS (Admin manually cross-checks payment)
 - **Delivery Method:** Kasir order Gojek manual (MVP)
 - **Radius:** Terbatas pada radius tertentu
-- **Flow:** Pin Alamat → Menu → Checkout → Payment → Live Tracking
+- **Flow:** Pin Alamat (OSM) → Input Detail → Menu (Mode Delivery active) → Checkout → Payment
 - **Status Progression:** Unpaid → Paid (Manual Check) → Prep → Waiting Pickup → OTW → Done
+
+#### 4. Order History (Dedicated Endpoint)
+- **Problem:** Performance & "Unexpected null" errors when fetching all orders together.
+- **Solution:** Dedicated endpoint `/api/orders/history` (GET).
+- **Filters:** Only status `completed` & `cancelled`.
+- **Response:** Optimized JSON payload with null-safe fields.
+- **Frontend:** `OrderRepository.getDedicatedOrderHistory`.
+
+---
 
 ---
 
@@ -382,6 +247,11 @@ Contoh: 0001130126-001
 > 📐 **Design:** [Auth Entry](file:///Users/adydhermawan/Projects/ataskopi/design/login_/_register_entry/code.html) | [Registration](file:///Users/adydhermawan/Projects/ataskopi/design/login_/new_user_registration/code.html) | [PIN Security](file:///Users/adydhermawan/Projects/ataskopi/design/login_/pin_security_login_register/code.html)
 
 **Logic:** Entry Point -> Check Phone Number -> Redirect to Login (PIN) OR Register (Data Diri).
+
+#### Development Shortcuts
+- **[DEV] Auto Login:** Button in `AuthEntryScreen`. Hardcoded credentials for quick testing (`+6281234567890`, PIN `123456`). Visible only in DEV mode (conceptually, currently hardcoded UI).
+
+#### Unified Entry Point
 
 #### Unified Entry Point
 - **UI:** Welcome screen dengan logo, tagline, dan incentive badge ("Voucher 50%").
@@ -452,6 +322,13 @@ Contoh: 0001130126-001
 **Input:** Map Pin (GPS Location)  
 **Trigger:** Klik "Delivery" di Home
 
+#### Outlet Selection (Modal)
+**Trigger:** Klik Outlet Card di Home
+**Input:**
+- Search Bar ("Cari outlet terdekat").
+- **List:** Outlet Cards showing distance, address, and Open/Closed status.
+- **Action:** Select outlet to update global tenant state.
+
 #### Product Customizer (Bottom Sheet Modal)
 **Trigger:** Klik produk di katalog  
 **Layout:** Header image, Product description, Option groups.
@@ -460,13 +337,6 @@ Contoh: 0001130126-001
 - **Tambahan (Opsional):** Checkbox list (Extra Shot, Whipped Cream, Oat Milk Upgrade).
 - **Catatan (Optional):** Textarea "Contoh: Kurangi gula, sedikit es...".
 - **Stepper:** Bottom sticky bar dengan +/- buttons dan Real-time Subtotal.
-
-#### Outlet Selection (Modal)
-**Trigger:** Klik Outlet Card di Home
-**Input:**
-- Search Bar ("Cari outlet terdekat").
-- **List:** Outlet Cards showing distance, address, and Open/Closed status.
-- **Action:** Select outlet to update global tenant state.
 
 ---
 
@@ -525,17 +395,17 @@ Contoh: 0001130126-001
 #### Active Order Tracking
 **Trigger:** Setelah bayar atau klik orderan aktif di tab Activity.
 **UI Details:**
-- **Status Stepper:** Paid → Preparing → Ready for Pickup → Done.
+- **Status Stepper:** Paid → Preparing → Ready for Pickup → Done (Status menyesuaikan mode).
 - **Progress Line:** Menampilkan status terkini dengan animasi pulsa pada status aktif.
-- **Estimasi:** "Est. Time: 5 mins".
-- **Info:** Order ID (#000xxx), Order Summary, dan Pickup Location card.
+- **Estimasi:** "Est. Time: 5 mins" (Dihitung dari pesanan masuk).
+- **Info:** Order ID (#000xxx), Order Summary, dan Pickup/Delivery Location card.
 
 #### Order History (Tabbed View)
 **Tabs:** "Aktif" & "Riwayat".
 **UI Details:**
-- **Order Cards:** ID Pesanan, Tanggal/Jam, Status Badge (Selesai/Dibatalkan).
+- **Order Cards:** ID Pesanan, Tanggal/Jam, Status Badge (Selesai/Dibatalkan/Diproses).
 - **Content:** List item singkat (e.g., "1x Flat White, 1x Avo Toast").
-- **Footer:** Total Harga & Button "Order Lagi".
+- **Footer:** Total Harga & Button "Order Lagi" (Re-order functionality).
 
 ---
 
@@ -606,26 +476,12 @@ Contoh: 0001130126-001
 
 ## 🗄 7. Database Schema (Supabase)
 
-### Multi-Tenant Core Tables
-
-#### `tenants`
-```sql
-- id (uuid, PK)
-- tenant_slug (varchar, unique) -- URL-friendly: ataskopi-demo
-- business_name (varchar)
-- business_type (enum: 'coffee_shop', 'restaurant', 'cafe')
-- subdomain (varchar, unique) -- ataskopi-demo.ataskopi.com
-- status (enum: 'active', 'suspended', 'trial', 'cancelled')
-
-- created_at (timestamp)
-- updated_at (timestamp)
-```
+### Core Tables
 
 #### `brand_settings`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id)
-- brand_name (varchar)
+- business_name (varchar)
 - logo_url (text)
 - splash_screen_url (text)
 - app_icon_url (text)
@@ -638,7 +494,6 @@ Contoh: 0001130126-001
 - tax_rate (decimal, default: 10)
 - service_fee (decimal)
 - operational_settings (jsonb) -- Operating hours, delivery radius, etc.
-- feature_flags (jsonb) -- Enable/disable features per tenant
 - created_at (timestamp)
 - updated_at (timestamp)
 ```
@@ -646,7 +501,6 @@ Contoh: 0001130126-001
 #### `loyalty_settings`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id, unique)
 - is_enabled (boolean, default: true)
 - points_per_item (int, default: 1)
 - point_value_idr (decimal, default: 1000) -- 1 point = Rp X
@@ -659,7 +513,6 @@ Contoh: 0001130126-001
 #### `membership_tiers`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id)
 - tier_level (int) -- 1, 2, 3, 4, 5
 - tier_name (varchar) -- Bronze, Silver, Gold, Platinum, Diamond
 - min_points (int) -- Minimum points untuk tier ini
@@ -667,43 +520,28 @@ Contoh: 0001130126-001
 - benefits_description (text) -- Deskripsi benefit
 - created_at (timestamp)
 - updated_at (timestamp)
-- UNIQUE(tenant_id, tier_level)
+- UNIQUE(tier_level)
 ```
-
-
-#### `tenant_admins`
-```sql
-- id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id)
-- user_id (uuid, FK -> users.id)
-- role (enum: 'owner', 'admin', 'kasir')
-- permissions (jsonb)
-- created_at (timestamp)
-```
-
-### Tenant-Scoped Tables
 
 #### `users`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
-- phone (varchar)
+- phone (varchar, unique)
 - name (varchar)
 - email (varchar, nullable)
 - pin_hash (varchar)
 - loyalty_points (int, default: 0)
-- current_tier_id (uuid, FK -> membership_tiers.id, nullable) -- NEW: Reference to current tier
+- current_tier_id (uuid, FK -> membership_tiers.id, nullable)
 - total_items_purchased (int, default: 0)
-- total_spent (decimal, default: 0) -- NEW: Total amount spent (for percentage-based points)
+- total_spent (decimal, default: 0)
+- role (enum: 'customer', 'admin', 'kasir', 'owner') -- Unified role column
 - created_at (timestamp)
 - updated_at (timestamp)
-- UNIQUE(tenant_id, phone) -- Phone unique per tenant
 ```
 
 #### `outlets`
 ```sql
 - id (varchar, PK) -- Format: 0001
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - name (varchar)
 - address (text)
 - latitude (decimal)
@@ -716,7 +554,6 @@ Contoh: 0001130126-001
 #### `tables`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - outlet_id (varchar, FK)
 - table_number (varchar)
 - qr_code (text)
@@ -727,7 +564,6 @@ Contoh: 0001130126-001
 #### `products`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - name (varchar)
 - description (text)
 - category (enum: 'food', 'drink')
@@ -750,7 +586,6 @@ Contoh: 0001130126-001
 #### `toppings`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - name (varchar)
 - price (decimal)
 - is_available (boolean)
@@ -759,7 +594,6 @@ Contoh: 0001130126-001
 #### `orders`
 ```sql
 - id (varchar, PK) -- Format: [OutletID][DDMMYY]-[Seq]
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - user_id (uuid, FK)
 - outlet_id (varchar, FK)
 - order_type (enum: 'dine_in', 'pickup', 'delivery')
@@ -804,7 +638,6 @@ Contoh: 0001130126-001
 #### `loyalty_transactions`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id)
 - user_id (uuid, FK -> users.id)
 - order_id (varchar, FK -> orders.id, nullable) -- Null jika manual adjustment
 - transaction_type (enum: 'earned', 'redeemed', 'expired', 'adjusted')
@@ -820,8 +653,7 @@ Contoh: 0001130126-001
 #### `vouchers`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
-- code (varchar)
+- code (varchar, unique)
 - description (text)
 - discount_type (enum: 'percentage', 'fixed')
 - discount_value (decimal)
@@ -832,8 +664,7 @@ Contoh: 0001130126-001
 - usage_limit (int, nullable)
 - used_count (int, default: 0)
 - is_active (boolean)
-- target_membership_tier_id (uuid, FK -> membership_tiers.id, nullable) -- NEW: Filter voucher by tier
-- UNIQUE(tenant_id, code) -- Code unique per tenant
+- target_membership_tier_id (uuid, FK -> membership_tiers.id, nullable) -- Filter voucher by tier
 - created_at (timestamp)
 - updated_at (timestamp)
 ```
@@ -841,7 +672,6 @@ Contoh: 0001130126-001
 #### `notifications`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - user_id (uuid, FK)
 - category (enum: 'transaction', 'promo', 'loyalty', 'info')
 - title (varchar)
@@ -853,7 +683,6 @@ Contoh: 0001130126-001
 #### `promos`
 ```sql
 - id (uuid, PK)
-- tenant_id (uuid, FK -> tenants.id) -- NEW: Tenant isolation
 - title (varchar)
 - description (text)
 - banner_url (text)
@@ -1390,16 +1219,16 @@ Future<void> checkAndUpgradeTier(String userId, int newPoints) async {
 
 ## 🎯 17. Roadmap
 
-### Phase 1: White Label Foundation (Current)
+### Phase 1: White Label Foundation (Completed)
 - [x] Multi-tenant architecture
 - [x] Tenant isolation (RLS)
 - [x] Brand customization system
 - [x] Dynamic theming (mobile & web)
-- [ ] Core order flow (Dine-in, Pickup, Delivery)
-- [ ] Basic loyalty system
-- [ ] QRIS payment
-- [ ] Tenant admin dashboard
-- [ ] Super admin dashboard
+- [x] Core order flow (Dine-in QR, Pickup, Delivery OSM)
+- [x] Basic loyalty system
+- [x] QRIS payment
+- [x] Tenant admin dashboard
+- [x] Super admin dashboard
 
 ### Phase 2: Tenant Features
 - [ ] Advanced analytics per tenant
@@ -1415,6 +1244,29 @@ Future<void> checkAndUpgradeTier(String userId, int newPoints) async {
 - [ ] API for third-party integrations
 - [ ] Tenant marketplace (plugins/addons)
 - [ ] White-label mobile app generator
+
+---
+
+## 🛡 8. Development Protocol (Strict Rules)
+
+To minimize bugs and ensure architectural consistency, these rules apply to ALL development tasks:
+
+### 1. Verification Before Action
+- **No Guessing Imports**: Always verify the file path using `find` or `ls` before writing an import statement.
+- **Confirm Signatures**: Before using a widget (e.g., `AppButton`) or calling a repository method (e.g., `createOrder`), you MUST `view_file` its definition to verify parameters and types.
+- **Search Before Define**: Before creating a new Enum or Model, search for it in `lib/features/shared/domain/models/models.dart`.
+
+### 2. State & Model Integrity
+- **Single Source of Truth**: All core Enums (like `OrderMode`) and Models MUST be stored and used from the shared domain models. No local duplicates.
+- **Provider Accuracy**: Always check the return type of a `ref.watch()` or `ref.read()` call to ensure you are accessing the correct state object.
+
+### 3. Verification Post-Edit
+- **Atomic Analysis**: Run `flutter analyze` after every major file edit. Reporting "Success" is only valid if the project compiles without errors.
+- **Fix Immediate**: Do not ignore analysis errors to work on a different file. Fix current errors before moving to the next task.
+
+### 4. Code Quality
+- **Widget Consistency**: Do not hardcode styles if a shared widget (like `AppButton` or `AppTopBar`) is available.
+- **Docstrings**: Update comments when modifying public method signatures.
 
 ---
 

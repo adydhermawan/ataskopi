@@ -25,6 +25,9 @@ CREATE SCHEMA IF NOT EXISTS realtime AUTHORIZATION supabase_admin;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" SCHEMA public;
 
+-- Create publication for realtime
+CREATE PUBLICATION supabase_realtime;
+
 -- Grant permissions (basic for local dev)
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO supabase_admin;
