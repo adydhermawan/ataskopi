@@ -120,8 +120,8 @@ export default function LandingPage() {
               >
                 <div className="relative aspect-square lg:aspect-[4/3] transform transition-transform hover:scale-[1.02] duration-500">
                   {/* Main Screen (Dashboard) */}
-                  <div className="absolute top-0 right-0 w-[90%] rounded-2xl shadow-2xl border-[6px] border-zinc-100 bg-white overflow-hidden z-20 flex items-center justify-center p-8">
-                    <Image src="/images/pos_illustration.png" alt="AtasKopi POS System" width={400} height={400} className="object-contain" />
+                  <div className="absolute top-0 right-0 w-[90%] rounded-2xl shadow-2xl border-[6px] border-zinc-900 bg-zinc-900 overflow-hidden z-20">
+                    <Image src="/images/screen 16.png" alt="AtasKopi Dashboard" width={800} height={600} className="object-cover" />
                   </div>
 
                   {/* Secondary Screen (Mobile App) */}
@@ -182,8 +182,63 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-2xl font-bold mb-2 text-zinc-900">POS Modern & Cepat</h3>
                   <p className="text-zinc-500 mb-6 max-w-sm">Proses pesanan dalam hitungan detik. Tampilan visual memudahkan kasir bekerja saat jam sibuk.</p>
-                  <div className="flex-1 relative mt-4 rounded-t-xl overflow-hidden shadow-inner border border-zinc-100 bg-white flex items-center justify-center p-8">
-                    <Image src="/images/pos_illustration.png" alt="POS Visual Illustration" fill className="object-contain p-4" />
+                  <div className="flex-1 relative mt-4 rounded-t-xl overflow-hidden bg-zinc-100/50 p-2 sm:p-4">
+                    {/* Abstract CSS POS UI Mockup instead of Image */}
+                    <div className="absolute inset-x-4 top-4 bottom-[-10px] bg-white rounded-t-xl shadow-xl border border-zinc-200/80 flex overflow-hidden">
+                      {/* Sidebar */}
+                      <div className="w-12 sm:w-16 bg-zinc-50 border-r border-zinc-100 flex flex-col items-center py-4 gap-3">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
+                          <Coffee className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </div>
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200 mt-2"></div>
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200"></div>
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200"></div>
+                      </div>
+
+                      {/* Main Content (Products) */}
+                      <div className="flex-1 p-3 sm:p-4 bg-zinc-50/50 flex flex-col">
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="w-20 h-3 sm:h-4 bg-zinc-200 rounded-md"></div>
+                          <div className="w-12 h-4 sm:h-5 bg-white border border-zinc-200 shadow-sm rounded-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 flex-1">
+                          {[1, 2, 3, 4, 5, 6].map((i) => (
+                            <div key={i} className="bg-white rounded-lg border border-zinc-100 shadow-sm p-1.5 sm:p-2 flex flex-col">
+                              <div className="w-full aspect-[4/3] bg-zinc-100 rounded-md mb-2"></div>
+                              <div className="w-2/3 h-1.5 sm:h-2 bg-zinc-200 rounded-full mb-1"></div>
+                              <div className="w-1/3 h-1.5 sm:h-2 bg-blue-100 rounded-full"></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Order Panel */}
+                      <div className="w-[35%] bg-white border-l border-zinc-100 p-3 flex flex-col">
+                        <div className="w-1/2 h-3 bg-zinc-200 rounded-md mb-4"></div>
+                        <div className="flex-1 space-y-3">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex justify-between items-end gap-2">
+                              <div className="flex flex-col gap-1.5 w-full">
+                                <div className="w-[85%] h-1.5 sm:h-2 bg-zinc-200 rounded-full"></div>
+                                <div className="w-1/3 h-1.5 sm:h-2 bg-zinc-100 rounded-full"></div>
+                              </div>
+                              <div className="w-8 h-1.5 sm:h-2 bg-zinc-200 rounded-full shrink-0"></div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Checkout Button */}
+                        <div className="mt-auto pt-3 border-t border-zinc-100">
+                          <div className="flex justify-between mb-3">
+                            <div className="w-8 h-2 sm:h-2.5 bg-zinc-300 rounded-full"></div>
+                            <div className="w-12 h-2 sm:h-2.5 bg-zinc-900 rounded-full"></div>
+                          </div>
+                          <div className="w-full h-8 sm:h-10 bg-blue-600 hover:bg-blue-700 transition-colors rounded-md sm:rounded-lg shadow-sm flex items-center justify-center cursor-pointer">
+                            <div className="w-12 h-1.5 sm:h-2 bg-white/80 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -266,9 +321,15 @@ export default function LandingPage() {
                 </div>
 
                 {/* QR Code for Mobile Users */}
-                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm max-w-sm mt-8 hidden lg:block">
-                  <p className="text-sm font-bold text-white mb-2">Scan untuk coba di HP</p>
-                  <p className="text-xs text-zinc-400">Pengalaman terbaik di layar portrait.</p>
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm max-w-sm mt-8 hidden lg:flex items-center gap-6">
+                  <div className="bg-white p-2 rounded-xl shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://app-ataskopi.dadi.web.id" alt="QR Code Web App" className="w-20 h-20 object-contain" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white mb-2">Scan untuk coba di HP</p>
+                    <p className="text-xs text-zinc-400">Pengalaman terbaik di layar portrait.</p>
+                  </div>
                 </div>
               </div>
 
@@ -282,7 +343,7 @@ export default function LandingPage() {
 
                   {/* Iframe */}
                   <iframe
-                    src="http://localhost:4001/"
+                    src="https://app-ataskopi.dadi.web.id"
                     className="w-full h-full border-0 bg-white"
                     title="App Demo"
                   />
