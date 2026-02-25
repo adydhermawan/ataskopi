@@ -4,17 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, Coffee, LayoutGrid, ShieldCheck, Smartphone, Users, Zap, CheckCircle2, MonitorPlay } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { useRef } from "react";
 
 export const dynamic = 'force-dynamic';
 
-const fadeInUp = {
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -120,8 +120,8 @@ export default function LandingPage() {
               >
                 <div className="relative aspect-square lg:aspect-[4/3] transform transition-transform hover:scale-[1.02] duration-500">
                   {/* Main Screen (Dashboard) */}
-                  <div className="absolute top-0 right-0 w-[90%] rounded-2xl shadow-2xl border-[6px] border-zinc-900 bg-zinc-900 overflow-hidden z-20">
-                    <Image src="/images/screen 16.png" alt="AtasKopi Dashboard" width={800} height={600} className="object-cover" />
+                  <div className="absolute top-0 right-0 w-[90%] rounded-2xl shadow-2xl border-[6px] border-zinc-100 bg-white overflow-hidden z-20 flex items-center justify-center p-8">
+                    <Image src="/images/pos_illustration.png" alt="AtasKopi POS System" width={400} height={400} className="object-contain" />
                   </div>
 
                   {/* Secondary Screen (Mobile App) */}
@@ -174,7 +174,7 @@ export default function LandingPage() {
               {/* 1. Large Feature (POS) - 2x2 */}
               <motion.div
                 className="md:col-span-2 md:row-span-2 relative rounded-3xl overflow-hidden bg-white border border-zinc-100 shadow-sm group"
-                whileHover={{ y: -5, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               >
                 <div className="p-8 h-full flex flex-col z-10 relative">
                   <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-6">
@@ -182,8 +182,8 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-2xl font-bold mb-2 text-zinc-900">POS Modern & Cepat</h3>
                   <p className="text-zinc-500 mb-6 max-w-sm">Proses pesanan dalam hitungan detik. Tampilan visual memudahkan kasir bekerja saat jam sibuk.</p>
-                  <div className="flex-1 relative mt-4 rounded-t-xl overflow-hidden shadow-inner border border-zinc-100 bg-zinc-50">
-                    <Image src="/images/screen 16.png" alt="POS Visual" fill className="object-cover object-top" />
+                  <div className="flex-1 relative mt-4 rounded-t-xl overflow-hidden shadow-inner border border-zinc-100 bg-white flex items-center justify-center p-8">
+                    <Image src="/images/pos_illustration.png" alt="POS Visual Illustration" fill className="object-contain p-4" />
                   </div>
                 </div>
               </motion.div>

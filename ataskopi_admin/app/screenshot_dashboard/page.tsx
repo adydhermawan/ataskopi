@@ -174,7 +174,7 @@ function MockDashboard() {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `Rp${val / 1000000}jt`} />
-                                <Tooltip formatter={(val: number) => formatIDR(val)} cursor={{ fill: 'transparent' }} />
+                                <Tooltip formatter={(val: any) => formatIDR(val as number)} cursor={{ fill: 'transparent' }} />
                                 <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
