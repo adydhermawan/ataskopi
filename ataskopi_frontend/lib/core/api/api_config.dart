@@ -6,7 +6,7 @@
 class ApiConfig {
   // Development: Use Cloudflare Tunnel URL
   // Production: Use production domain
-  static const bool isProduction = false;
+  static const bool isProduction = true;
 
   static const String _devBaseUrl = 'https://devataskopi.dadi.web.id'; // Local Network IP with domain tunnel
   static const String _prodBaseUrl = 'https://ataskopi.dadi.web.id';

@@ -727,11 +727,14 @@ Contoh: 0001130126-001
 
 **Environment Variables:**
 ```env
-# Flutter .env
-API_BASE_URL=https://api-coffee.yourdomain.com
+# Flutter .env (api_config.dart)
+API_BASE_URL=https://devataskopi.dadi.web.id
 
 # Next.js .env.local
-NEXT_PUBLIC_API_URL=https://api-coffee.yourdomain.com
+NEXT_PUBLIC_API_URL=https://devataskopi.dadi.web.id
+
+# Local Docker Supabase API (For direct local DB/Auth testing)
+# URL: https://apidevataskopi.dadi.web.id
 ```
 
 **CRITICAL RULES:**
@@ -1044,9 +1047,9 @@ assets/
 ### Mobile App
 - **Android:** Google Play Store (Internal Testing → Beta → Production)
 - **iOS:** App Store Connect (TestFlight → Production)
-- **Web:** Vercel or Netlify
-
-### Web Dashboard
+- **Web:** Vercel (Local CLI Deployment)
+  - Di direktori `ataskopi_frontend`, jalankan `./deploy_vercel.sh` yang mengeksekusi `flutter build web --release` dan `vercel deploy --prod` di dalam `build/web/`.
+  - Ini dilakukan untuk menghemat kuota build time 45 menit dari Vercel Hobby tier.
 - **Platform:** Vercel (recommended) or Netlify
 - **Environment:** Production, Staging, Development
 
