@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
+import '../../../../shared/widgets/location_picker_map.dart';
 import '../../../menu/presentation/screens/menu_catalog_screen.dart';
 import '../../../shared/domain/models/models.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
@@ -307,131 +308,24 @@ class _DeliveryAddressScreenState
         children: [
           // ── Map area ────────────────────────────────────────────────────
           Expanded(
-            child: Stack(
-              children: [
-                // Map
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _center,
-                    initialZoom: _currentZoom,
-                    onPositionChanged: _onMapMoved,
-                    onMapEvent: _onMapMoveEnd,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.ataskopi.app',
-                    ),
-                  ],
-                ),
-
-                // Centre pin — fixed in screen space, tip at exact centre
-                // Icon(location_on) renders with its visual tip at the
-                // bottom-centre of the bounding box, so we nudge it up by
-                // half its height so the tip lands on the map centre.
-                IgnorePointer(
-                  child: Center(
-                    child: Transform.translate(
-                      offset: const Offset(0, -24), // half of 48px icon
-                      child: Icon(
-                        Icons.location_on_rounded,
-                        color: pinColor,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Search bar
-                Positioned(
-                  top: 12.h,
-                  left: 12.w,
-                  right: 12.w,
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 46.h,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: _searchAddress,
-                          decoration: InputDecoration(
-                            hintText: 'Cari lokasi...',
-                            hintStyle: TextStyle(
-                                color: const Color(0xFF94A3B8), fontSize: 13.sp),
-                            prefixIcon: Icon(Icons.search_rounded,
-                                color: const Color(0xFF94A3B8), size: 20.w),
-                            suffixIcon: _isSearching
-                                ? Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: tenant.primaryColor),
-                                    ),
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16.w, vertical: 13.h),
-                          ),
-                        ),
-                      ),
-                      
-                    ],
-                  ),
-                ),
-
-                // My-location FAB
-                Positioned(
-                  right: 12.w,
-                  bottom: 16.h,
-                  child: Material(
-                    color: Colors.white,
-                    elevation: 4,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: _isLocating ? null : _getCurrentLocation,
-                      customBorder: const CircleBorder(),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: _isLocating
-                            ? SizedBox(
-                                width: 22.w,
-                                height: 22.w,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: tenant.primaryColor),
-                              )
-                            : Icon(
-                                _locationFailed
-                                    ? Icons.location_off_rounded
-                                    : Icons.my_location_rounded,
-                                size: 22.w,
-                                color: _locationFailed
-                                    ? Colors.red
-                                    : const Color(0xFF475569),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            child: LocationPickerMap(
+              mapController: _mapController,
+              center: _center,
+              currentZoom: _currentZoom,
+              onMapMoved: _onMapMoved,
+              onMapMoveEnd: _onMapMoveEnd,
+              tenant: tenant,
+              pinColor: pinColor,
+              searchController: _searchController,
+              onSearchSubmitted: _searchAddress,
+              isSearching: _isSearching,
+              onClearSearch: () {
+                _searchController.clear();
+                FocusScope.of(context).unfocus();
+              },
+              onGetCurrentLocation: _getCurrentLocation,
+              isLocating: _isLocating,
+              locationFailed: _locationFailed,
             ),
           ),
 

@@ -12,6 +12,7 @@ import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
 import 'package:ataskopi_frontend/features/profile/presentation/providers/profile_providers.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
+import '../../../../shared/widgets/location_picker_map.dart';
 
 
 class AddressFormScreen extends ConsumerStatefulWidget {
@@ -294,193 +295,33 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       appBar: AppTopBar(title: isEditing ? 'Edit Alamat' : 'Tambah Alamat'),
       body: Stack(
         children: [
-          // Flutter Map OSM
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _center,
-              initialZoom: _currentZoom,
-              onPositionChanged: _onMapPositionChanged,
-              onMapEvent: (event) {
+          // Map layer
+          Positioned.fill(
+            child: LocationPickerMap(
+              mapController: _mapController,
+              center: _center,
+              currentZoom: _currentZoom,
+              onMapMoved: _onMapPositionChanged,
+              onMapMoveEnd: (event) {
                 if (event is MapEventMoveEnd && !event.source.name.contains('fitCamera')) {
                    _getAddressFromLatLng(event.camera.center);
                 }
               },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.ataskopi.app',
-              ),
-            ],
-          ),
-          
-          // Search Bar
-          Positioned(
-            top: 16.h,
-            left: 16.w,
-            right: 16.w,
-            child: Container(
-              height: 44.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onSubmitted: _searchAddress,
-                decoration: InputDecoration(
-                  hintText: 'Cari lokasi (cth: Monas)',
-                  hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13.sp),
-                  prefixIcon: Icon(Icons.search_rounded, color: const Color(0xFF94A3B8), size: 18.w),
-                  suffixIcon: _isSearching 
-                    ? SizedBox(width: 12.w, height: 12.w, child: const Center(child: CircularProgressIndicator(strokeWidth: 2)))
-                    : IconButton(
-                        icon: Icon(Icons.close_rounded, color: const Color(0xFF94A3B8), size: 18.w),
-                        onPressed: () {
-                          _searchController.clear();
-                          FocusScope.of(context).unfocus();
-                        },
-                      ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                ),
-              ),
-            ),
-          ),
-
-          // Zoom Controls (Moved higher to side)
-          Positioned(
-            right: 16.w,
-            top: 100.h,
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _zoomIn,
-                  child: Container(
-                    width: 40.w,
-                    height: 40.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(8.r),
-                        topRight: Radius.circular(8.r),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(Icons.add_rounded, color: const Color(0xFF475569), size: 24.w),
-                  ),
-                ),
-                Container(width: 40.w, height: 1.h, color: const Color(0xFFF1F5F9)),
-                GestureDetector(
-                  onTap: _zoomOut,
-                  child: Container(
-                    width: 40.w,
-                    height: 40.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(8.r),
-                        bottomRight: Radius.circular(8.r),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(Icons.remove_rounded, color: const Color(0xFF475569), size: 24.w),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Map Controls (Recenter - Moved higher to side)
-          Positioned(
-            right: 16.w,
-            top: 200.h,
-            child: GestureDetector(
-              onTap: _getCurrentLocation,
-              child: Container(
-                width: 44.w,
-                height: 44.w,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: _isLoading 
-                  ? Padding(padding: EdgeInsets.all(12.w), child: const CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.my_location_rounded, color: const Color(0xFF475569), size: 22.w),
-              ),
-            ),
-          ),
-
-          // Central Pin Icon — tip exactly at map center
-          IgnorePointer(
-            child: Center(
-              child: Transform.translate(
-                offset: const Offset(0, -24),
-                child: Icon(
-                  Icons.location_on_rounded,
-                  color: tenant.primaryColor,
-                  size: 48,
-                ),
-              ),
-            ),
-          ),
-          
-          // Floating Label (Above Pin)
-          IgnorePointer(
-            child: Center(
-              child: Transform.translate(
-                offset: const Offset(0, -72),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'Geser peta untuk mengubah',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-              ),
+              tenant: tenant,
+              pinColor: tenant.primaryColor,
+              searchController: _searchController,
+              onSearchSubmitted: _searchAddress,
+              isSearching: _isSearching,
+              onClearSearch: () {
+                _searchController.clear();
+                FocusScope.of(context).unfocus();
+              },
+              onGetCurrentLocation: _getCurrentLocation,
+              isLocating: _isLoading,
+              locationFailed: false,
+              onZoomIn: _zoomIn,
+              onZoomOut: _zoomOut,
+              searchHint: 'Cari lokasi (cth: Monas)',
             ),
           ),
 
