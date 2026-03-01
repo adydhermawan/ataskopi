@@ -293,10 +293,10 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppTopBar(title: isEditing ? 'Edit Alamat' : 'Tambah Alamat'),
-      body: Stack(
+      body: Column(
         children: [
           // Map layer
-          Positioned.fill(
+          Expanded(
             child: LocationPickerMap(
               mapController: _mapController,
               center: _center,
@@ -325,206 +325,168 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             ),
           ),
 
-          // Bottom Sheet
-
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          // Bottom panel
+          Container(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.07),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Address row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 48.w,
-                      height: 5.h,
+                      width: 40.w,
+                      height: 40.w,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
-                        borderRadius: BorderRadius.circular(100),
+                        color: tenant.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
+                      child: Icon(Icons.pin_drop_rounded,
+                          color: tenant.primaryColor, size: 20.w),
                     ),
-                    SizedBox(height: 16.h),
-                    
-                    // Location Display
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 44.w,
-                          height: 44.w,
-                          decoration: BoxDecoration(
-                            color: tenant.primaryColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.pin_drop_rounded, color: tenant.primaryColor, size: 24.w),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'LOKASI TERPILIH',
-                                style: TextStyle(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF94A3B8),
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                _addressText,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              SizedBox(height: 2.h),
-                              Text(
-                                _cityText,
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-                    Divider(height: 1.h, color: const Color(0xFFF1F5F9)),
-                    SizedBox(height: 16.h),
-                    
-                    // Label Field
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Label Alamat',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF475569),
-                          ),
-                        ),
-                        SizedBox(height: 6.h),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: TextField(
-                            controller: _labelController,
-                            decoration: InputDecoration(
-                              hintText: 'Contoh: Rumah, Kantor',
-                              hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 14.sp),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _addressText.isEmpty
+                                ? 'Geser peta untuk memilih lokasi'
+                                : _addressText,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-
-                    // Notes Field
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Detail Alamat (Opsional)',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF475569),
-                          ),
-                        ),
-                        SizedBox(height: 6.h),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
-                          child: TextField(
-                            controller: _notesController,
-                            decoration: InputDecoration(
-                              hintText: 'Contoh: Gedung A, Lt. 5, Pagar hitam',
-                              hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 14.sp),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-
-                    // Default Checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _isDefault, 
-                          activeColor: tenant.primaryColor,
-                          onChanged: (val) => setState(() => _isDefault = val ?? false),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
-                        ),
-                        Text(
-                          'Jadikan Alamat Utama',
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        )
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
-
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54.h,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _handleSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: tenant.primaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
-                          elevation: 0,
-                        ),
-                        child: _isSaving
-                            ? SizedBox(width: 24.w, height: 24.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text(
-                                'Simpan Alamat',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
+                          if (_cityText.isNotEmpty) ...[
+                            SizedBox(height: 2.h),
+                            Text(
+                              _cityText,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: const Color(0xFF64748B),
                               ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
+                SizedBox(height: 12.h),
+
+                // Label
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: TextField(
+                    controller: _labelController,
+                    decoration: InputDecoration(
+                      hintText: 'Label alamat (Rumah, Kantor, dll.)',
+                      hintStyle: TextStyle(
+                          color: const Color(0xFF94A3B8), fontSize: 13.sp),
+                      prefixIcon: Icon(Icons.label_outline_rounded,
+                          color: const Color(0xFF94A3B8), size: 20.w),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 12.h),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                
+                // Notes
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: TextField(
+                    controller: _notesController,
+                    decoration: InputDecoration(
+                      hintText: 'Detail alamat (Gedung, lantai, dll.)',
+                      hintStyle: TextStyle(
+                          color: const Color(0xFF94A3B8), fontSize: 13.sp),
+                      prefixIcon: Icon(Icons.edit_note_rounded,
+                          color: const Color(0xFF94A3B8), size: 20.w),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 12.h),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+
+                // Checkbox
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24.w,
+                      width: 24.w,
+                      child: Checkbox(
+                        value: _isDefault, 
+                        activeColor: tenant.primaryColor,
+                        onChanged: (val) => setState(() => _isDefault = val ?? false),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.r)),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Jadikan Alamat Utama',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    )
+                  ],
+                ),
+                SizedBox(height: 16.h),
+
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48.h,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tenant.primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      elevation: 0,
+                    ),
+                    child: _isSaving
+                        ? SizedBox(width: 20.w, height: 20.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(
+                            'Simpan Alamat',
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

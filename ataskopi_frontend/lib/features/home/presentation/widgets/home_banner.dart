@@ -42,23 +42,6 @@ class HomeBanner extends StatelessWidget {
               ),
             ),
           ),
-          // Gradient Overlay (Darker at top and bottom for readability)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.6),
-                    Colors.black.withOpacity(0.1),
-                    Colors.black.withOpacity(0.8),
-                  ],
-                  stops: const [0.0, 0.4, 1.0],
-                ),
-              ),
-            ),
-          ),
           // Content
           Padding(
             padding: EdgeInsets.fromLTRB(24.w, statusBarHeight + 12.h, 24.w, 24.h),
@@ -132,24 +115,6 @@ class HomeBanner extends StatelessWidget {
                 Center(
                   child: Column(
                     children: [
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28.sp,
-                          fontWeight: FontWeight.w800,
-                          height: 1.25,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 15,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 24.h),
                       SizedBox(height: 48.h), // Space for the overlapping outlet selector
                     ],
                   ),

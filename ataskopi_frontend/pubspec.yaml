@@ -24,6 +24,7 @@ dependencies:
   geocoding: ^3.0.0 # Added
   permission_handler: ^12.0.1
   qr_flutter: ^4.1.0 # Added
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

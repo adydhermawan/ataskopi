@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/features/order/presentation/providers/order_state.dart';
@@ -19,6 +20,7 @@ class QrScannerScreen extends ConsumerStatefulWidget {
 
 class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsBindingObserver {
   late final MobileScannerController controller;
+  final ImagePicker _picker = ImagePicker();
   bool _isProcessing = false;
   bool _isCameraStarted = false;
 
@@ -82,6 +84,60 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
         _isProcessing = false;
       });
     }
+  }
+
+  Future<void> _pickImageAndScan() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _isProcessing = true;
+        });
+        
+        final BarcodeCapture? capture = await controller.analyzeImage(image.path);
+        
+        if (capture != null && capture.barcodes.isNotEmpty) {
+           bool found = false;
+           for (final barcode in capture.barcodes) {
+             if (barcode.rawValue != null) {
+               final String code = barcode.rawValue!;
+               if (code.contains('ATASKOPI-TABLE')) {
+                  found = true;
+                  await _processQrCode(code);
+                  break;
+               }
+             }
+           }
+           if (!found) {
+             _showErrorDialog('QR Code Ataskopi tidak ditemukan di gambar ini.');
+             setState(() => _isProcessing = false);
+           }
+        } else {
+           _showErrorDialog('Tidak ada QR Code yang terdeteksi di gambar.');
+           setState(() => _isProcessing = false);
+        }
+      }
+    } catch (e) {
+      _showErrorDialog('Gagal memproses gambar: $e');
+      setState(() => _isProcessing = false);
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Gagal Scan'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showManualInputDialog() async {
@@ -252,20 +308,43 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
                   style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
                 SizedBox(height: 12.h),
-                TextButton(
-                  onPressed: _showManualInputDialog,
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.r),
-                      side: const BorderSide(color: Colors.white, width: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _showManualInputDialog,
+                      icon: const Icon(Icons.keyboard, color: Colors.white, size: 20),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30.r),
+                          side: const BorderSide(color: Colors.white, width: 1),
+                        ),
+                      ),
+                      label: const Text(
+                        'Ketik Manual',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    'Input Manual No. Meja',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
+                    SizedBox(width: 12.w),
+                    TextButton.icon(
+                      onPressed: _pickImageAndScan,
+                      icon: const Icon(Icons.image, color: Colors.white, size: 20),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30.r),
+                          side: const BorderSide(color: Colors.white, width: 1),
+                        ),
+                      ),
+                      label: const Text(
+                        'Upload Foto',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

@@ -159,7 +159,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
             clipBehavior: Clip.none,
             children: [
               SizedBox(
-                height: 1.sw * 6 / 5,
+                height: (1.sw * 6 / 5) * 0.7,
                 child: bannersAsync.when(
                   data: (banners) {
                     final List<dynamic> displayBanners = banners.isEmpty 
@@ -189,8 +189,8 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
                       },
                     );
                   },
-                  loading: () => Container(height: 1.sw * 6 / 5, color: Colors.grey[200]),
-                  error: (e, s) => Container(height: 1.sw * 6 / 5, color: Colors.grey[300]),
+                  loading: () => Container(height: (1.sw * 6 / 5) * 0.7, color: Colors.grey[200]),
+                  error: (e, s) => Container(height: (1.sw * 6 / 5) * 0.7, color: Colors.grey[300]),
                 ),
               ),
               
