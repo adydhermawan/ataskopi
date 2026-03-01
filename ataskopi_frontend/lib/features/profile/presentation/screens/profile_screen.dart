@@ -31,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
           // Profile Header
           SliverToBoxAdapter(
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 24.w),
+              padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
               decoration: const BoxDecoration(
                 color: Colors.white,
               ),
@@ -40,18 +40,18 @@ class ProfileScreen extends ConsumerWidget {
                   Stack(
                     children: [
                       Container(
-                        width: 108.w,
-                        height: 108.w,
+                        width: 88.w,
+                        height: 88.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: tenant.primaryColor.withOpacity(0.15), width: 4.w),
+                          border: Border.all(color: tenant.primaryColor.withOpacity(0.15), width: 3.w),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5)),
+                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4)),
                           ],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(100),
-                          child: Icon(Icons.person, size: 60.w, color: const Color(0xFFCBD5E1)),
+                          child: Icon(Icons.person, size: 48.w, color: const Color(0xFFCBD5E1)),
                         ),
                       ),
                     ],
@@ -60,7 +60,7 @@ class ProfileScreen extends ConsumerWidget {
                   Text(
                     user?.name ?? 'User',
                     style: TextStyle(
-                      fontSize: 24.sp,
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.w800,
                       color: const Color(0xFF0F172A),
                       letterSpacing: -0.5,
@@ -107,7 +107,7 @@ class ProfileScreen extends ConsumerWidget {
           // Menu Items
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 24.h),
+              padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 24.h),
               child: Column(
                 children: [
                   _buildMenuItem(
@@ -180,7 +180,7 @@ class ProfileScreen extends ConsumerWidget {
     VoidCallback? onTap,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
@@ -193,10 +193,10 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         leading: Container(
-          width: 44.w,
-          height: 44.w,
+          width: 38.w,
+          height: 38.w,
           decoration: BoxDecoration(
             color: isDestructive 
                 ? const Color(0xFFEF4444).withOpacity(0.08)
@@ -212,7 +212,7 @@ class ProfileScreen extends ConsumerWidget {
         title: Text(
           title,
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: 14.sp,
             fontWeight: FontWeight.w700,
             color: isDestructive ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
             letterSpacing: -0.3,

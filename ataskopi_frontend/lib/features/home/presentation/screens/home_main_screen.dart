@@ -90,28 +90,28 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: Container(
-        height: 64.h + ScreenUtil().bottomBarHeight,
-        padding: EdgeInsets.only(
-          left: 24.w,
-          right: 24.w,
-          bottom: ScreenUtil().bottomBarHeight,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 64.h,
+          padding: EdgeInsets.only(
+            left: 24.w,
+            right: 24.w,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _HashNavIcon(
               icon: LucideIcons.home,
@@ -120,7 +120,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
               onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
             ),
             _HashNavIcon(
-              icon: LucideIcons.receipt,
+              icon: LucideIcons.history,
               isActive: bottomNavIndex == 1,
               activeColor: tenant.primaryColor,
               onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
@@ -139,6 +139,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -219,8 +220,8 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
 
               Positioned(
                 bottom: -40.h,
-                left: 20.w,
-                right: 20.w,
+                left: 16.w,
+                right: 16.w,
                 child: OutletSelector(outletName: selectedOutlet?.name ?? 'Loading...'),
               ),
             ],
@@ -231,7 +232,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
         // Order Mode Selector
         SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: const OrderModeSelector(),
           ),
         ),
@@ -239,7 +240,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
         // Daily Curations Header
         SliverToBoxAdapter(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w), // Aligned with other sections
+            padding: EdgeInsets.symmetric(horizontal: 16.w), // Aligned with other sections
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,

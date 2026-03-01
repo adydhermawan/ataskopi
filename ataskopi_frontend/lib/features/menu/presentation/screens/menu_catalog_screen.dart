@@ -62,7 +62,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
 
           // 2. Categories
           SizedBox(
-            height: 50.h,
+            height: 40.h,
             child: categoriesAsync.when(
               data: (categories) => ListView.separated(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -112,7 +112,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                     return GestureDetector(
                       onTap: () => ProductDetailModal.show(context, product),
                       child: Container(
-                        padding: EdgeInsets.all(12.w),
+                        padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16.r),
@@ -121,8 +121,8 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                           children: [
                             // Image
                             Container(
-                              width: 80.w,
-                              height: 80.w,
+                              width: 64.w,
+                              height: 64.w,
                               decoration: BoxDecoration(
                                 color: Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12.r),
@@ -148,7 +148,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                                     product.name,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 16.sp,
+                                      fontSize: 14.sp,
                                     ),
                                   ),
                                   SizedBox(height: 4.h),
@@ -158,7 +158,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: Colors.grey[600],
-                                      fontSize: 12.sp,
+                                      fontSize: 11.sp,
                                     ),
                                   ),
                                   SizedBox(height: 8.h),
@@ -167,7 +167,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                                     style: TextStyle(
                                       color: tenant.primaryColor,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
+                                      fontSize: 13.sp,
                                     ),
                                   ),
                                 ],
@@ -175,7 +175,7 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                             ),
                             
                             // Add Button
-                            Icon(Icons.add_circle, color: tenant.primaryColor, size: 32.w),
+                            Icon(Icons.add_circle, color: tenant.primaryColor, size: 28.w),
                           ],
                         ),
                       ),
@@ -232,14 +232,14 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                     '$totalItems Item di Keranjang',
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontSize: 12.sp,
+                      fontSize: 11.sp,
                     ),
                   ),
                   Text(
                     _currencyFormat.format(subtotal),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18.sp,
+                      fontSize: 16.sp,
                     ),
                   ),
                 ],
@@ -255,8 +255,8 @@ class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: tenant.primaryColor,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                  minimumSize: Size(0, 44.h), // Override global full-width styles
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+                  minimumSize: Size(0, 40.h), // Override global full-width styles
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
                   ),

@@ -56,7 +56,6 @@ class ApiClient {
 
   /// Set the authentication token for subsequent requests
   void setAuthToken(String? token) {
-    print('DEBUG: ApiClient setAuthToken: ${token?.substring(0, 10)}...');
     _authToken = token;
   }
 
@@ -74,9 +73,6 @@ class ApiClient {
     if (requiresAuth) {
       if (_authToken != null) {
         headers['Authorization'] = 'Bearer $_authToken';
-        print('DEBUG: ApiClient adding Auth header. Token present.');
-      } else {
-        print('DEBUG: ApiClient requiresAuth=true BUT _authToken is NULL!');
       }
     }
 

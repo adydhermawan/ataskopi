@@ -14,12 +14,12 @@ import 'package:ataskopi_frontend/features/home/presentation/providers/home_prov
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/features/profile/presentation/screens/address_list_screen.dart';
 import 'package:ataskopi_frontend/core/providers/api_providers.dart';
-import 'package:ataskopi_frontend/core/providers/api_providers.dart';
 import '../../../order/presentation/providers/order_state.dart';
-import '../../../home/presentation/widgets/pickup_time_modal.dart';
 import '../../../order/presentation/screens/delivery_address_screen.dart';
+import '../../../home/presentation/widgets/pickup_time_modal.dart';
 import '../../../scan/presentation/controllers/scan_controller.dart';
 import '../../../scan/presentation/screens/qr_scanner_screen.dart';
+import 'package:ataskopi_frontend/core/providers/location_provider.dart';
 
 class CheckoutSummaryScreen extends ConsumerWidget {
   const CheckoutSummaryScreen({super.key});
@@ -125,7 +125,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     Text(
                       'Belum dipilih',
                       style: TextStyle(
-                        fontSize: 17.sp,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.5,
@@ -135,7 +135,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     Text(
                       'Meja ${orderFlow.tableNumber ?? "-"}',
                       style: TextStyle(
-                        fontSize: 17.sp,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.5,
@@ -158,7 +158,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                              child: Text(
                                orderFlow.deliveryAddress?.address ?? 'Pilih Alamat Pengiriman',
                                style: TextStyle(
-                                 fontSize: 15.sp,
+                                 fontSize: 14.sp,
                                  fontWeight: FontWeight.w700,
                                  color: orderFlow.deliveryAddress != null ? const Color(0xFF0F172A) : tenant.primaryColor,
                                ),
@@ -172,7 +172,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     Text(
                       selectedOutlet?.name ?? 'Loading...',
                       style: TextStyle(
-                        fontSize: 17.sp,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.5,
@@ -180,11 +180,11 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     ),
                   
                   if (orderFlow.mode != OrderMode.delivery) ...[
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 2.h),
                     Text(
                       selectedOutlet?.address ?? '',
                       style: TextStyle(
-                        fontSize: 14.sp,
+                        fontSize: 12.sp,
                         color: const Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
@@ -223,7 +223,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     child: Text(
                       'Pesanan Anda',
                       style: TextStyle(
-                        fontSize: 18.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.5,
@@ -267,7 +267,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                               Text(
                                 'Voucher',
                                 style: TextStyle(
-                                  fontSize: 15.sp, 
+                                  fontSize: 14.sp, 
                                   fontWeight: FontWeight.w800, 
                                   color: const Color(0xFF0F172A),
                                 ),
@@ -312,7 +312,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                               Text(
                                 'Tukar Poin (${loyaltyInfo.loyaltyPoints} Poin)',
                                 style: TextStyle(
-                                  fontSize: 15.sp, 
+                                  fontSize: 14.sp, 
                                   fontWeight: FontWeight.w800, 
                                   color: const Color(0xFF0F172A),
                                 ),
@@ -480,7 +480,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                       Text(
                         'Total Bayar',
                         style: TextStyle(
-                          fontSize: 17.sp, 
+                          fontSize: 15.sp, 
                           fontWeight: FontWeight.w800, 
                           color: const Color(0xFF0F172A),
                         ),
@@ -488,7 +488,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                       Text(
                         'Rp ${(calculation['total']! / 1000).toInt()}.000',
                         style: TextStyle(
-                          fontSize: 20.sp, 
+                          fontSize: 18.sp, 
                           fontWeight: FontWeight.w800, 
                           color: tenant.primaryColor,
                         ),
@@ -531,7 +531,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     Text(
                       'Rp ${(calculation['total']! / 1000).toInt()}.000',
                       style: TextStyle(
-                        fontSize: 22.sp, 
+                        fontSize: 20.sp, 
                         fontWeight: FontWeight.w800, 
                         color: tenant.primaryColor,
                         letterSpacing: -0.5,
@@ -1098,6 +1098,8 @@ class CheckoutSummaryScreen extends ConsumerWidget {
               Colors.orange, 
               () {
                 Navigator.pop(context);
+                // Trigger explicit location fetch on tap to workaround browser GPS restrictions
+                ref.read(userLocationProvider.notifier).refreshLocation();
                 PickupTimeModal.show(context);
               }
             ),

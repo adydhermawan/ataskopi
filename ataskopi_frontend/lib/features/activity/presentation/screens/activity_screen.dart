@@ -74,9 +74,9 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
         children: [
           // Tab Switcher
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             child: Container(
-              height: 52.h,
+              height: 44.h,
               padding: EdgeInsets.all(4.w),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
@@ -165,7 +165,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
              await Future.delayed(const Duration(milliseconds: 500)); // UI delay
           },
           child: ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             physics: const AlwaysScrollableScrollPhysics(), // Required for RefreshIndicator on empty lists
             itemCount: orders.length,
             itemBuilder: (context, index) {
@@ -194,8 +194,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
       }
 
       return Container(
-        margin: EdgeInsets.only(bottom: 20.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 16.h),
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20.r),
@@ -212,15 +212,15 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
                 Row(
                   children: [
                     Container(
-                      width: 48.w,
-                      height: 48.w,
+                      width: 40.w,
+                      height: 40.w,
                       decoration: BoxDecoration(
                         color: tenant.primaryColor.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(14.r),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                      child: Icon(Icons.coffee_rounded, color: tenant.primaryColor, size: 24.w),
+                      child: Icon(Icons.coffee_rounded, color: tenant.primaryColor, size: 20.w),
                     ),
-                    SizedBox(width: 14.w),
+                    SizedBox(width: 12.w),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -299,7 +299,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
                     Text(
                       'Rp ${(order.total / 1000).toInt()}.000',
                       style: TextStyle(
-                        fontSize: 18.sp, 
+                        fontSize: 16.sp, 
                         fontWeight: FontWeight.w800, 
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.5,
@@ -308,7 +308,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
                   ],
                 ),
                 SizedBox(
-                  height: 48.h,
+                  height: 40.h,
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.push(
@@ -335,8 +335,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> with SingleTick
         ),
       );
     } catch (e, s) {
-      print('DEBUG: Error building order card: $e');
-      print('DEBUG: StackTrace: $s');
       return Container(
         height: 100,
         color: Colors.red.shade100,

@@ -122,13 +122,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildContent(BuildContext context, Order order, TenantConfig tenant) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Status Card & Stepper
           _buildTrackingCard(order, tenant),
-          SizedBox(height: 24.h),
+          SizedBox(height: 16.h),
 
           // 2. Specific Info Card (Delivery Map / Pickup Time / Table Info)
           if (order.orderType == 'delivery' && order.deliveryAddress != null)
@@ -139,12 +139,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             _buildPickupInfo(order, tenant),
           
           if (order.orderType != 'dine_in' && (order.deliveryAddress != null || order.outlet != null || order.table != null))
-             SizedBox(height: 24.h),
+             SizedBox(height: 16.h),
 
           // 3. Order Summary (Items & Pricing)
           _buildOrderSummary(order, tenant),
           
-          SizedBox(height: 48.h),
+          SizedBox(height: 32.h),
         ],
       ),
     );
@@ -152,10 +152,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildTrackingCard(Order order, TenantConfig tenant) {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
@@ -172,7 +172,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   Text('ORDER ID', style: _labelStyle),
                   SizedBox(height: 4.h),
                   Text(order.orderNumber.isNotEmpty ? '#${order.orderNumber}' : '#${order.id.substring(0, 8).toUpperCase()}', 
-                    style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A))),
                 ],
               ),
               Container(
@@ -183,14 +183,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 ),
                 child: Text(
                   order.orderStatus.toUpperCase().replaceAll('_', ' '),
-                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w800, color: tenant.primaryColor),
+                  style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w800, color: tenant.primaryColor),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: 16.h),
           Container(height: 1.h, color: const Color(0xFFF1F5F9)),
-          SizedBox(height: 24.h),
+          SizedBox(height: 16.h),
           _buildStepper(tenant, order.orderStatus, order.orderType),
         ],
       ),
@@ -210,7 +210,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
@@ -220,7 +220,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 150.h,
+            height: 120.h,
             child: FlutterMap(
               options: MapOptions(
                 initialCenter: center,
@@ -246,7 +246,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(20.w),
+            padding: EdgeInsets.all(16.w),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -284,10 +284,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildDineInInfo(Order order, TenantConfig tenant) {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
@@ -311,7 +311,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               SizedBox(height: 4.h),
               Text(
                 'Meja ${order.table?.tableNumber ?? '-'}',
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
               ),
               Text(
                 order.outlet?.name ?? 'Outlet',
@@ -326,10 +326,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildPickupInfo(Order order, TenantConfig tenant) {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
@@ -354,7 +354,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 SizedBox(height: 4.h),
                 Text(
                   order.outlet?.name ?? 'Kopi Atas',
-                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
                 ),
                 Text(
                   order.outlet?.address ?? '',
@@ -374,10 +374,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildOrderSummary(Order order, TenantConfig tenant) {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
            BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
@@ -443,7 +443,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                Text('Total Pembayaran', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
                Text(
                  'Rp ${(order.total / 1000).toInt()}.000',
-                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w900, color: tenant.primaryColor),
+                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w900, color: tenant.primaryColor),
                ),
              ],
            ),
@@ -505,7 +505,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           SizedBox(width: 8.w),
           Text(
             'Rp ${(item.unitPrice * item.quantity / 1000).toInt()}.000',
-            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
           ),
         ],
       ),
@@ -523,7 +523,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
              '${isDiscount ? "-" : ""}Rp ${(amount.abs() / 1000).toInt()}.000',
              style: TextStyle(
                fontSize: 13.sp, 
-               fontWeight: FontWeight.w600, 
+               fontWeight: FontWeight.w700, 
                color: isDiscount ? const Color(0xFF16A34A) : const Color(0xFF0F172A)
             ),
            ),

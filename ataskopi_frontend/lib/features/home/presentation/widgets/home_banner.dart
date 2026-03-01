@@ -26,7 +26,7 @@ class HomeBanner extends StatelessWidget {
     
     return SizedBox(
       width: 1.sw,
-      height: 1.sw * 6 / 5, // Aspect ratio 5:6 from design
+      height: (1.sw * 6 / 5) * 0.7, // Aspect ratio 5:6 reduced to 70% of original height
       child: Stack(
         children: [
           // Background Image

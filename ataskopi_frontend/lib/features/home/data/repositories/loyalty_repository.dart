@@ -9,18 +9,14 @@ class LoyaltyRepository {
 
   /// Get loyalty summary and progress
   Future<ApiResponse<LoyaltyInfo>> getLoyaltyInfo() async {
-    print('DEBUG: Fetching Loyalty Info from ${ApiConfig.loyaltyEndpoint}');
     final response = await _apiClient.get<LoyaltyInfo>(
       ApiConfig.loyaltyEndpoint,
       requiresAuth: true,
       fromData: (data) {
-        print('DEBUG: Loyalty Raw Data: $data');
         return LoyaltyInfo.fromJson(data);
       },
     );
-    print('DEBUG: Loyalty Response Success: ${response.success}, Data: ${response.data}');
     if (!response.success) {
-      print('DEBUG: Loyalty Error: ${response.message}');
     }
     return response;
   }

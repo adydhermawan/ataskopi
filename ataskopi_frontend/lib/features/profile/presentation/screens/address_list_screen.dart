@@ -49,9 +49,9 @@ class AddressListScreen extends ConsumerWidget {
           }
 
           return ListView.separated(
-            padding: EdgeInsets.all(24.w),
+            padding: EdgeInsets.all(16.w),
             itemCount: addresses.length,
-            separatorBuilder: (_, __) => SizedBox(height: 16.h),
+            separatorBuilder: (_, __) => SizedBox(height: 12.h),
             itemBuilder: (context, index) {
               final address = addresses[index];
               return _buildAddressCard(context, ref, address, tenant);
@@ -101,7 +101,7 @@ class AddressListScreen extends ConsumerWidget {
     TenantConfig tenant
   ) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
@@ -139,7 +139,7 @@ class AddressListScreen extends ConsumerWidget {
                   child: Text(
                     address.label,
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFF0F172A),
                     ),
@@ -163,11 +163,11 @@ class AddressListScreen extends ConsumerWidget {
                   ),
               ],
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: 8.h),
             Text(
               address.address,
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: 13.sp,
                 color: const Color(0xFF64748B),
                 height: 1.5,
               ),
@@ -184,9 +184,9 @@ class AddressListScreen extends ConsumerWidget {
               ),
             ],
             if (!isSelectionMode) ...[
-              SizedBox(height: 16.h),
-              Divider(height: 1.h, color: const Color(0xFFE2E8F0)),
               SizedBox(height: 12.h),
+              Divider(height: 1.h, color: const Color(0xFFE2E8F0)),
+              SizedBox(height: 8.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

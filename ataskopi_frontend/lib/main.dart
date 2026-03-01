@@ -59,9 +59,8 @@ class _SessionCheckWrapperState extends ConsumerState<_SessionCheckWrapper> {
   }
 
   Future<void> _checkSession() async {
-    // Artificial delay for splash effect
-    await Future.delayed(const Duration(seconds: 2));
-    
+    // Artificial delay removed for seamless splash transition
+
     if (!mounted) return;
 
     // Check session

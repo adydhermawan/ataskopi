@@ -25,7 +25,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => Size.fromHeight(64.h);
+  Size get preferredSize => Size.fromHeight(56.h);
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +34,9 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       centerTitle: centerTitle,
       automaticallyImplyLeading: false,
-      toolbarHeight: 64.h,
+      toolbarHeight: 56.h,
       titleSpacing: 0,
-      leadingWidth: 56.w,
+      leadingWidth: 48.w,
       leading: showBackButton
           ? Padding(
               padding: EdgeInsets.only(left: 8.w),
@@ -47,12 +47,12 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                     onTap: onBackPressed ?? () => Navigator.pop(context),
                     borderRadius: BorderRadius.circular(50),
                     child: Container(
-                      width: 48.w,
-                      height: 48.w,
+                      width: 40.w,
+                      height: 40.w,
                       alignment: Alignment.center,
                       child: Icon(
                         Icons.chevron_left,
-                        size: 28.w,
+                        size: 24.w,
                         color: AppColors.primary,
                       ),
                     ),
@@ -65,7 +65,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: 18.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF0F172A),
               letterSpacing: -0.5,
@@ -103,8 +103,8 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
           alignment: Alignment.center,
           children: [
             Container(
-              width: 48.w,
-              height: 48.w,
+              width: 40.w,
+              height: 40.w,
               alignment: Alignment.center,
               decoration: const BoxDecoration(
                 color: Colors.transparent,
@@ -112,7 +112,7 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               child: Icon(
                 icon,
-                size: 22.w,
+                size: 20.w,
                 color: iconColor ?? const Color(0xFF0F172A),
               ),
             ),

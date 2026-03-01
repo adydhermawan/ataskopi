@@ -110,9 +110,9 @@ class _ProductDetailModalState extends ConsumerState<ProductDetailModal> {
                 // Image
                 if (widget.product.imageUrl != null)
                   Container(
-                    height: 200.h,
+                    height: 160.h,
                     width: double.infinity,
-                    margin: EdgeInsets.only(bottom: 20.h),
+                    margin: EdgeInsets.only(bottom: 16.h),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16.r),
                       image: DecorationImage(
@@ -125,21 +125,21 @@ class _ProductDetailModalState extends ConsumerState<ProductDetailModal> {
                 // Name & Price
                 Text(
                   widget.product.name,
-                  style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 6.h),
                 Text(
                   widget.product.description,
-                  style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13.sp, color: Colors.grey[600]),
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 16.h),
 
                 // Options
                 ...widget.product.options.map((option) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Pilih ${option.name}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+                    Text("Pilih ${option.name}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
                     SizedBox(height: 8.h),
                     Wrap(
                       spacing: 8.w,
@@ -163,9 +163,8 @@ class _ProductDetailModalState extends ConsumerState<ProductDetailModal> {
                   ],
                 )),
 
-                // Modifiers
                 if (widget.product.modifiers.isNotEmpty) ...[
-                  Text("Tambahan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+                  Text("Tambahan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
                   SizedBox(height: 8.h),
                   ...widget.product.modifiers.map((mod) {
                     final selected = _selectedModifiers.any((m) => m.id == mod.id);
@@ -216,12 +215,12 @@ class _ProductDetailModalState extends ConsumerState<ProductDetailModal> {
                         onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
                         icon: const Icon(Icons.remove),
                       ),
-                      SizedBox(width: 20.w),
+                      SizedBox(width: 16.w),
                       Text(
                         '$_quantity',
-                        style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(width: 20.w),
+                      SizedBox(width: 16.w),
                       IconButton.filledTonal(
                         onPressed: () => setState(() => _quantity++),
                         icon: const Icon(Icons.add),
@@ -234,7 +233,7 @@ class _ProductDetailModalState extends ConsumerState<ProductDetailModal> {
                   // Add Button
                   SizedBox(
                     width: double.infinity,
-                    height: 50.h,
+                    height: 48.h,
                     child: ElevatedButton(
                       onPressed: _addToCart,
                       style: ElevatedButton.styleFrom(

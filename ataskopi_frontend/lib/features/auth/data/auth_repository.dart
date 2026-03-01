@@ -125,7 +125,6 @@ class AuthRepository {
   Future<String?> getStoredToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
-    print('DEBUG: getStoredToken: ${token != null ? "Found (${token.substring(0, 5)}...)" : "Null"}');
     return token;
   }
 
@@ -133,11 +132,9 @@ class AuthRepository {
   Future<bool> restoreSession() async {
     final token = await getStoredToken();
     if (token != null && token.isNotEmpty) {
-      print('DEBUG: restoreSession: Restoring token');
       _apiClient.setAuthToken(token);
       return true;
     }
-    print('DEBUG: restoreSession: No token to restore');
     return false;
   }
 
@@ -145,12 +142,9 @@ class AuthRepository {
   Future<ApiResponse<User>> checkSession() async {
     final hasToken = await restoreSession();
     if (!hasToken) {
-      print('DEBUG: checkSession: No token found locally');
       return ApiResponse.error(message: 'No session found');
     }
-    print('DEBUG: checkSession: Token found, validating with getMe()');
     final response = await getMe();
-    print('DEBUG: checkSession: getMe response success=${response.success}, message=${response.message}, code=${response.errorCode}');
     return response;
   }
 

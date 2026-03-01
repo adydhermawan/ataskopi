@@ -1,12 +1,13 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:ataskopi_frontend/core/utils/platform_geolocation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:math';
 import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
 import 'package:ataskopi_frontend/features/profile/presentation/providers/profile_providers.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
@@ -37,23 +38,20 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   bool _isSearching = false;
-  
-  // Pin offset from screen center (half of the bottom padding)
-  double get _pinOffsetY => 140.h; // Higher offset for address form due to taller bottom sheet
 
   @override
   void initState() {
     super.initState();
     if (widget.address != null) {
-      // Editing existing address
       _labelController.text = widget.address!.label;
       _notesController.text = widget.address!.notes ?? '';
       _isDefault = widget.address!.isDefault;
       _center = LatLng(widget.address!.latitude, widget.address!.longitude);
       _addressText = widget.address!.address;
     } else {
-      // New address - get current location
-      _getCurrentLocation();
+      if (!kIsWeb) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
+      }
     }
   }
 
@@ -65,54 +63,65 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
     _mapController.dispose();
     super.dispose();
   }
-  
-  /// Gets the LatLng at the visual pin's tip position (offset from screen center)
-  LatLng _getLatLngAtPin() {
-    final camera = _mapController.camera;
-    final screenSize = camera.nonRotatedSize;
-    final pinScreenPoint = Offset(screenSize.x / 2, screenSize.y / 2 - _pinOffsetY);
-    return camera.pointToLatLng(Point(pinScreenPoint.dx, pinScreenPoint.dy));
-  }
-  
-  /// Moves the map so that the given target LatLng is under the pin's tip
-  void _moveMapToPinLocation(LatLng target, double zoom) {
-    final metersPerPixel = 156543.03392 * cos(target.latitude * pi / 180) / pow(2, zoom);
-    final offsetMeters = _pinOffsetY * metersPerPixel;
-    final offsetDegrees = offsetMeters / 111320;
-    final adjustedCenter = LatLng(target.latitude - offsetDegrees, target.longitude);
-    _mapController.move(adjustedCenter, zoom);
-    setState(() {
-      _center = target;
-      _currentZoom = zoom;
-    });
-  }
 
+  void _showLocationError(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Akses Lokasi'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    serviceEnabled = await PlatformGeolocation.isLocationServiceEnabled();
+    
+    if (!serviceEnabled) {
+      _showLocationError('Layanan lokasi tidak aktif. Silakan aktifkan di pengaturan perangkat Anda.');
+      return;
+    }
 
-    permission = await Geolocator.checkPermission();
+    permission = await PlatformGeolocation.checkPermission();
+
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+      permission = await PlatformGeolocation.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _showLocationError('Akses lokasi ditolak. Untuk menggunakan fitur ini, izinkan akses lokasi di browser/perangkat Anda.');
+        return;
+      }
     }
     
-    if (permission == LocationPermission.deniedForever) return;
+    if (permission == LocationPermission.deniedForever) {
+      _showLocationError('Akses lokasi diblokir secara permanen. Silakan atur ulang perizinan browser/perangkat Anda untuk melanjutkan.');
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      Position position = await PlatformGeolocation.getCurrentPosition();
+      
       final targetLatLng = LatLng(position.latitude, position.longitude);
-      _moveMapToPinLocation(targetLatLng, 17.0);
+      _mapController.move(targetLatLng, 17.0);
+      setState(() {
+        _center = targetLatLng;
+        _currentZoom = 17.0;
+      });
       await _getAddressFromLatLng(targetLatLng);
     } catch (e) {
-
+      if (mounted) {
+        _showLocationError('Gagal mendapatkan lokasi: $e\nSilakan periksa izin atau coba lagi.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -168,7 +177,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           final lon = double.parse(result['lon']);
           final targetLatLng = LatLng(lat, lon);
           
-          _moveMapToPinLocation(targetLatLng, 17.0);
+          _mapController.move(targetLatLng, 17.0);
+          setState(() {
+            _center = targetLatLng;
+            _currentZoom = 17.0;
+          });
           await _getAddressFromLatLng(targetLatLng);
         } else {
            if (mounted) {
@@ -192,17 +205,12 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
 
 
   void _onMapPositionChanged(MapPosition position, bool hasGesture) {
-      if (position.center != null) {
-        setState(() {
-          _currentZoom = position.zoom ?? _currentZoom;
-        });
-        
-        // Get the actual location under the pin tip
-        final pinLatLng = _getLatLngAtPin();
-        setState(() {
-          _center = pinLatLng;
-        });
-      }
+    if (position.center != null) {
+      setState(() {
+        _center = position.center!;
+        _currentZoom = position.zoom ?? _currentZoom;
+      });
+    }
   }
 
 
@@ -311,11 +319,11 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           
           // Search Bar
           Positioned(
-            top: 20.h,
+            top: 16.h,
             left: 16.w,
             right: 16.w,
             child: Container(
-              height: 48.h,
+              height: 44.h,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12.r),
@@ -433,41 +441,45 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
             ),
           ),
 
-          // Central Pin Icon
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 280.h), // Account for bottom sheet height
-              child: Icon(
-                Icons.location_on_rounded,
-                color: tenant.primaryColor,
-                size: 56.w,
+          // Central Pin Icon — tip exactly at map center
+          IgnorePointer(
+            child: Center(
+              child: Transform.translate(
+                offset: const Offset(0, -24),
+                child: Icon(
+                  Icons.location_on_rounded,
+                  color: tenant.primaryColor,
+                  size: 48,
+                ),
               ),
             ),
           ),
           
           // Floating Label (Above Pin)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 360.h), // adjusted to be above the new pin position
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+          IgnorePointer(
+            child: Center(
+              child: Transform.translate(
+                offset: const Offset(0, -72),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'Geser peta untuk mengubah',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
                     ),
-                  ],
-                ),
-                child: Text(
-                  'Geser peta untuk mengubah',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E293B),
                   ),
                 ),
               ),
@@ -479,7 +491,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 32.h),
+              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -568,12 +580,12 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                         Text(
                           'Label Alamat',
                           style: TextStyle(
-                            fontSize: 13.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF475569),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),
@@ -601,12 +613,12 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
                         Text(
                           'Detail Alamat (Opsional)',
                           style: TextStyle(
-                            fontSize: 13.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF475569),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFFF8FAFC),

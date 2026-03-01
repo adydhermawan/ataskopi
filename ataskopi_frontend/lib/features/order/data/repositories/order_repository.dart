@@ -48,14 +48,12 @@ class OrderRepository {
       '${ApiConfig.ordersEndpoint}?$query',
       requiresAuth: true,
       fromData: (data) {
-        print('DEBUG: OrderHistory Raw Data: $data');
         // Handle backend pagination structure: { items: [...], total: ... }
         final list = (data is Map && data.containsKey('items')) ? data['items'] : data;
         return (list as List).map((e) {
           try {
             return Order.fromJson(e);
           } catch (e) {
-            print('DEBUG: Error parsing Order: $e');
             rethrow;
           }
         }).toList();

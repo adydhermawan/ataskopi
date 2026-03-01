@@ -177,8 +177,8 @@ class RewardsScreen extends ConsumerWidget {
             child: Container(
               padding: EdgeInsets.only(
                 top: ScreenUtil().statusBarHeight + 20.h,
-                left: 24.w,
-                right: 24.w,
+                left: 16.w,
+                right: 16.w,
                 bottom: 24.h,
               ),
               decoration: BoxDecoration(
@@ -205,7 +205,7 @@ class RewardsScreen extends ConsumerWidget {
                     SizedBox(height: 24.h),
                     // Points Card
                     Container(
-                      padding: EdgeInsets.all(20.w),
+                      padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20.r),
@@ -221,7 +221,7 @@ class RewardsScreen extends ConsumerWidget {
                               Text(
                                 '${loyalty?.loyaltyPoints ?? 0}',
                                 style: TextStyle(
-                                  fontSize: 40.sp,
+                                  fontSize: 32.sp,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -277,7 +277,7 @@ class RewardsScreen extends ConsumerWidget {
           // Helper Text
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 8.h),
+              padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 8.h),
               child: Text(
                 "Voucher Tersedia",
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
@@ -303,7 +303,7 @@ class RewardsScreen extends ConsumerWidget {
                     return GestureDetector(
                       onTap: () => _showVoucherDetails(context, voucher, tenant),
                       child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                         padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -315,22 +315,22 @@ class RewardsScreen extends ConsumerWidget {
                         child: Row(
                           children: [
                             Container(
-                              width: 60.w,
-                              height: 60.w,
+                              width: 48.w,
+                              height: 48.w,
                               decoration: BoxDecoration(
                                 color: tenant.primaryColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
-                              child: Icon(Icons.confirmation_number_outlined, color: tenant.primaryColor, size: 30.w),
+                              child: Icon(Icons.confirmation_number_outlined, color: tenant.primaryColor, size: 24.w),
                             ),
-                            SizedBox(width: 16.w),
+                            SizedBox(width: 12.w),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     voucher.code,
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(

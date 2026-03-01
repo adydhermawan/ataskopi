@@ -130,7 +130,7 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                           'Scan Meja',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 18.sp,
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
@@ -150,11 +150,11 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                     children: [
                       // Hollow Square
                       Container(
-                        width: 280.w,
-                        height: 280.w,
+                        width: 240.w,
+                        height: 240.w,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.white.withOpacity(0.2), width: 2.w),
-                          borderRadius: BorderRadius.circular(24.r),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
                       ),
                       // Corner Brackets
@@ -168,7 +168,7 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                         animation: _scannerAnimationController,
                         builder: (context, child) {
                           return Positioned(
-                            top: 20.w + (240.w * _scannerAnimationController.value),
+                            top: 20.w + (200.w * _scannerAnimationController.value),
                             left: 20.w,
                             right: 20.w,
                             child: Container(
@@ -191,7 +191,7 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                       // Ghosted QR Icon
                       Icon(
                         Icons.qr_code_2_rounded,
-                        size: 160.w,
+                        size: 120.w,
                         color: Colors.white.withOpacity(0.2),
                       ),
                     ],
@@ -209,18 +209,18 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                         'Arahkan kamera ke QR code yang ada di meja',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 22.sp,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           height: 1.3,
                         ),
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: 8.h),
                       Text(
                         'Atau masukkan nomor meja secara manual',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 15.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w500,
                           color: Colors.white.withOpacity(0.7),
                         ),
@@ -240,13 +240,13 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildControlButton(Icons.flashlight_on_rounded, () {}),
-                          SizedBox(width: 32.w),
+                          SizedBox(width: 24.w),
                           _buildMainButton(tenant.primaryColor, () => _onTableConfirmed('05')), // Mock scan
-                          SizedBox(width: 32.w),
+                          SizedBox(width: 24.w),
                           _buildControlButton(Icons.edit_note_rounded, _showManualInput),
                         ],
                       ),
-                      SizedBox(height: 32.h),
+                      SizedBox(height: 24.h),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: Container(
@@ -261,7 +261,7 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
                           child: Text(
                             'Batal',
                             style: TextStyle(
-                              fontSize: 16.sp,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                             ),
@@ -337,8 +337,8 @@ class _DineInScannerScreenState extends ConsumerState<DineInScannerScreen> with 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 80.w,
-        height: 80.w,
+        width: 64.w,
+        height: 64.w,
         padding: EdgeInsets.all(4.w),
         decoration: const BoxDecoration(
           color: Colors.white,

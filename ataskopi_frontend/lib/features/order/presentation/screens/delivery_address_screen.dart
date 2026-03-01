@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,9 +8,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:ataskopi_frontend/core/utils/platform_geolocation.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:math';
 
 import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -23,29 +24,37 @@ class DeliveryAddressScreen extends ConsumerStatefulWidget {
   const DeliveryAddressScreen({super.key});
 
   @override
-  ConsumerState<DeliveryAddressScreen> createState() => _DeliveryAddressScreenState();
+  ConsumerState<DeliveryAddressScreen> createState() =>
+      _DeliveryAddressScreenState();
 }
 
-class _DeliveryAddressScreenState extends ConsumerState<DeliveryAddressScreen> {
+class _DeliveryAddressScreenState
+    extends ConsumerState<DeliveryAddressScreen> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
-  
-  // Default to Monas Jakarta if no loc
+
+  // Default Monas Jakarta until GPS is ready
   LatLng _center = const LatLng(-6.175392, 106.827153);
-  double _currentZoom = 15.0;
-  String _addressText = 'Pin Location on Map';
-  String _cityText = 'Jakarta, Indonesia';
-  bool _isLoading = false;
+  double _currentZoom = 14.0;
+  String _addressText = 'Menentukan lokasi...';
+  String _cityText = '';
+  bool _isLocating = false;
   bool _isSearching = false;
-  
-  // Pin offset from screen center (half of the bottom padding)
-  double get _pinOffsetY => 110.h;
+  bool _locationFailed = false;
+  bool _showLocationPrompt = false;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    if (kIsWeb) {
+      // Safari iOS requires a user gesture. Wait for user to tap the banner.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _showLocationPrompt = true);
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
+    }
   }
 
   @override
@@ -55,276 +64,212 @@ class _DeliveryAddressScreenState extends ConsumerState<DeliveryAddressScreen> {
     _mapController.dispose();
     super.dispose();
   }
-  
-  /// Gets the LatLng at the visual pin's tip position (offset from screen center)
-  LatLng _getLatLngAtPin() {
-    final camera = _mapController.camera;
-    final screenSize = camera.nonRotatedSize;
-    final pinScreenPoint = Offset(screenSize.x / 2, screenSize.y / 2 - _pinOffsetY);
-    return camera.pointToLatLng(Point(pinScreenPoint.dx, pinScreenPoint.dy));
-  }
 
+  // ── GPS ──────────────────────────────────────────────────────────────────
 
   Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+    if (!mounted) return;
+    setState(() {
+      _showLocationPrompt = false; // Hide banner once initiated
+      _isLocating = true;
+      _locationFailed = false;
+      _addressText = 'Menentukan lokasi...';
+      _cityText = '';
+    });
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled.')));
-      return;
-    }
+    try {
+      bool serviceEnabled = await PlatformGeolocation.isLocationServiceEnabled();
 
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are denied')));
+      if (!serviceEnabled) {
+        _onLocationFailed('Layanan lokasi tidak aktif');
         return;
       }
-    }
-    
-    if (permission == LocationPermission.deniedForever) {
+
+      LocationPermission perm = await PlatformGeolocation.checkPermission();
+      
+      if (perm == LocationPermission.denied) {
+        perm = await PlatformGeolocation.requestPermission();
+      }
+
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        _onLocationFailed('Izin lokasi ditolak');
+        return;
+      }
+
+      Position pos = await PlatformGeolocation.getCurrentPosition();
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied, we cannot request permissions.')));
-      return;
-    } 
-
-    setState(() => _isLoading = true);
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      final targetLatLng = LatLng(position.latitude, position.longitude);
-      _moveMapToPinLocation(targetLatLng, 17.0);
-      await _getAddressFromLatLng(targetLatLng);
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      setState(() => _center = latLng);
+      _mapController.move(latLng, 17.0);
+      await _reverseGeocode(latLng);
     } catch (e) {
-
+      _onLocationFailed('Error: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLocating = false);
     }
   }
-  
-  /// Moves the map so that the given target LatLng is under the pin's tip
-  void _moveMapToPinLocation(LatLng target, double zoom) {
-    // We need to offset the map center so the target lands under the pin
-    // The pin is above center by _pinOffsetY pixels
-    final camera = _mapController.camera;
-    final metersPerPixel = 156543.03392 * cos(target.latitude * pi / 180) / pow(2, zoom);
-    final offsetMeters = _pinOffsetY * metersPerPixel;
-    final offsetDegrees = offsetMeters / 111320; // approx meters per degree latitude
-    final adjustedCenter = LatLng(target.latitude - offsetDegrees, target.longitude);
-    _mapController.move(adjustedCenter, zoom);
+
+  void _onLocationFailed(String msg) {
+    if (!mounted) return;
     setState(() {
-      _center = target;
-      _currentZoom = zoom;
+      _isLocating = false;
+      _locationFailed = true;
+      _addressText = msg;
+      _cityText = 'Tap ikon lokasi untuk coba lagi';
     });
   }
 
+  // ── Geocoding ─────────────────────────────────────────────────────────────
 
-  Future<void> _getAddressFromLatLng(LatLng point) async {
-    // Attempt standard geocoding first (best for accurate street names)
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        point.latitude,
-        point.longitude,
-      );
-
-      if (placemarks.isNotEmpty && mounted) {
-        Placemark place = placemarks[0];
-        setState(() {
-          _addressText = '${place.street}, ${place.subLocality}';
-          _cityText = '${place.locality}, ${place.country}';
-        });
-        return;
+  Future<void> _reverseGeocode(LatLng point) async {
+    // On web, native geocoding package is unavailable — use OSM directly
+    if (!kIsWeb) {
+      try {
+        final marks = await placemarkFromCoordinates(
+            point.latitude, point.longitude);
+        if (marks.isNotEmpty && mounted) {
+          final p = marks[0];
+          final street = [p.street, p.subLocality]
+              .where((s) => s != null && s!.isNotEmpty)
+              .join(', ');
+          final city = [p.locality, p.country]
+              .where((s) => s != null && s!.isNotEmpty)
+              .join(', ');
+          setState(() {
+            _addressText = street.isEmpty ? 'Lokasi terpilih' : street;
+            _cityText = city;
+          });
+          return;
+        }
+      } catch (_) {
+        // fall through to OSM
       }
-    } catch (e) {
-      // Fallback to OSM Nominatim if native geocoding fails (e.g. no Google Play Services)
-      _getAddressFromOsm(point);
     }
+    await _reverseGeocodeOsm(point);
   }
 
-  Future<void> _getAddressFromOsm(LatLng point) async {
+  Future<void> _reverseGeocodeOsm(LatLng point) async {
     try {
       final url = Uri.parse(
-          'https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}&zoom=18&addressdetails=1');
-      
-      final response = await http.get(url, headers: {'User-Agent': 'com.ataskopi.app'});
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final address = data['address'];
-        
-        if (mounted) {
-          setState(() {
-            _addressText = data['display_name'].split(',').take(2).join(',');
-            String city = address['city'] ?? address['town'] ?? address['village'] ?? address['county'] ?? '';
-            String country = address['country'] ?? '';
-            _cityText = [city, country].where((e) => e.isNotEmpty).join(', ');
-          });
-        }
+        'https://nominatim.openstreetmap.org/reverse'
+        '?format=json'
+        '&lat=${point.latitude}'
+        '&lon=${point.longitude}'
+        '&zoom=18'
+        '&addressdetails=1',
+      );
+      final res =
+          await http.get(url, headers: {'User-Agent': 'com.ataskopi.app'});
+      if (res.statusCode == 200 && mounted) {
+        final data = json.decode(res.body) as Map<String, dynamic>;
+        final addr = data['address'] as Map<String, dynamic>? ?? {};
+        final displayParts =
+            (data['display_name'] as String? ?? '').split(',');
+        final street = displayParts.take(2).join(',').trim();
+        final city = (addr['city'] ??
+                addr['town'] ??
+                addr['village'] ??
+                addr['county'] ??
+                '') as String;
+        final country = (addr['country'] ?? '') as String;
+        setState(() {
+          _addressText = street.isEmpty ? 'Lokasi terpilih' : street;
+          _cityText =
+              [city, country].where((s) => s.isNotEmpty).join(', ');
+        });
       }
-    } catch (e) {
-
+    } catch (_) {
       if (mounted) {
-         setState(() {
-          _addressText = 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}';
-          _cityText = 'Unknown Location';
+        setState(() {
+          _addressText =
+              '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
+          _cityText = '';
         });
       }
     }
   }
 
+  // ── Search ────────────────────────────────────────────────────────────────
+
   Future<void> _searchAddress(String query) async {
-    if (query.isEmpty) return;
-    
+    if (query.trim().isEmpty) return;
     setState(() => _isSearching = true);
     try {
       final url = Uri.parse(
-          'https://nominatim.openstreetmap.org/search?format=json&q=$query&limit=1&addressdetails=1');
-      
-      final response = await http.get(url, headers: {'User-Agent': 'com.ataskopi.app'});
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data is List && data.isNotEmpty) {
-          final result = data.first;
-          final lat = double.parse(result['lat']);
-          final lon = double.parse(result['lon']);
-          final targetLatLng = LatLng(lat, lon);
-          
-          _moveMapToPinLocation(targetLatLng, 17.0);
-          await _getAddressFromLatLng(targetLatLng);
-        } else {
-           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Lokasi tidak ditemukan')),
-            );
-          }
+        'https://nominatim.openstreetmap.org/search'
+        '?format=json'
+        '&q=${Uri.encodeComponent(query)}'
+        '&limit=1',
+      );
+      final res =
+          await http.get(url, headers: {'User-Agent': 'com.ataskopi.app'});
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body) as List;
+        if (data.isNotEmpty) {
+          final lat = double.parse(data[0]['lat'] as String);
+          final lon = double.parse(data[0]['lon'] as String);
+          final latLng = LatLng(lat, lon);
+          setState(() => _center = latLng);
+          _mapController.move(latLng, 16.0);
+          await _reverseGeocode(latLng);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lokasi tidak ditemukan')),
+          );
         }
       }
-    } catch (e) {
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mencari lokasi: $e')),
-        );
-      }
-    } finally {
+    } catch (_) {} finally {
       if (mounted) setState(() => _isSearching = false);
     }
   }
 
+  // ── Map Events ────────────────────────────────────────────────────────────
 
-  void _onMapPositionChanged(MapPosition position, bool hasGesture) {
-      if (position.center != null) {
-        setState(() {
-          _currentZoom = position.zoom ?? _currentZoom;
-        });
-        
-        // Get the actual location under the pin tip
-        final pinLatLng = _getLatLngAtPin();
-        setState(() {
-          _center = pinLatLng;
-        });
-
-        // Check for nearby saved addresses to auto-fill details
-        final existingAddresses = ref.read(addressesProvider).value ?? [];
-        UserAddress? nearbyAddress;
-        
-        for (var addr in existingAddresses) {
-           final distance = Geolocator.distanceBetween(
-            pinLatLng.latitude, 
-            pinLatLng.longitude, 
-            addr.latitude, 
-            addr.longitude
-          );
-          if (distance < 50) { // 50m radius
-            nearbyAddress = addr;
-            break; 
-          }
-        }
-
-        if (nearbyAddress != null) {
-          if (_notesController.text.isEmpty && nearbyAddress.notes != null) {
-              _notesController.text = nearbyAddress.notes!;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Lokasi tersimpan ditemukan: ${nearbyAddress.label}'),
-                  duration: const Duration(seconds: 1),
-                  backgroundColor: const Color(0xFF10B981),
-                ),
-              );
-          }
-        }
-      }
+  void _onMapMoved(MapPosition position, bool hasGesture) {
+    if (position.center != null) {
+      setState(() {
+        _center = position.center!;
+        _currentZoom = position.zoom ?? _currentZoom;
+      });
+    }
   }
 
-
-  void _zoomIn() {
-    setState(() {
-      _currentZoom = (_currentZoom + 1).clamp(2.0, 18.0);
-    });
-    _mapController.move(_center, _currentZoom);
+  void _onMapMoveEnd(MapEvent event) {
+    if (event is MapEventMoveEnd) {
+      _reverseGeocode(_center);
+    }
   }
 
-  void _zoomOut() {
-    setState(() {
-      _currentZoom = (_currentZoom - 1).clamp(2.0, 18.0);
-    });
-    _mapController.move(_center, _currentZoom);
-  }
+  // ── Confirm ───────────────────────────────────────────────────────────────
 
   void _onConfirm() async {
-    final fullAddress = _addressText + (_notesController.text.isNotEmpty ? ' (${_notesController.text})' : '');
-    
-    // Check if address already exists nearby (within 50 meters)
-    // Ensure addresses are loaded for check
-    final addressState = ref.read(addressesProvider);
-    var existingAddresses = addressState.value ?? [];
-    
-    // If empty and not loaded/error, try to refresh or just proceed without duplicate check logic
-    if (existingAddresses.isEmpty && !addressState.isLoading && !addressState.hasError) {
-      // In a real app we might await ref.refresh(addressesProvider.future)
-      // For now, proceed.
-    }
+    final fullAddress = _addressText +
+        (_notesController.text.isNotEmpty
+            ? ' (${_notesController.text})'
+            : '');
 
-    bool isDuplicate = false;
-
-    for (var addr in existingAddresses) {
-      final distance = Geolocator.distanceBetween(
-        _center.latitude, 
-        _center.longitude, 
-        addr.latitude, 
-        addr.longitude
-      );
-      
-      // If within 50 meters, consider it same location
-      if (distance < 50) {
-        isDuplicate = true;
-        break;
-      }
-    }
-
-    // Only save if not duplicate
-    if (!isDuplicate) {
-      try {
+    // Auto-save if not duplicate (fire-and-forget)
+    try {
+      final existing = ref.read(addressesProvider).value ?? [];
+      final isDup = existing.any((a) =>
+          Geolocator.distanceBetween(
+              _center.latitude, _center.longitude, a.latitude, a.longitude) <
+          50);
+      if (!isDup) {
         await ref.read(addressesProvider.notifier).addAddress(
-          label: 'Alamat Pengiriman',
-          address: fullAddress,
-          latitude: _center.latitude,
-          longitude: _center.longitude,
-          notes: _notesController.text,
-          isDefault: false,
-        );
-      } catch (e) {
-
-        // Continue anyway, don't block user
+              label: 'Alamat Pengiriman',
+              address: fullAddress,
+              latitude: _center.latitude,
+              longitude: _center.longitude,
+              notes: _notesController.text,
+              isDefault: false,
+            );
       }
-    }
+    } catch (_) {}
 
+    if (!mounted) return;
     final address = UserAddress(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       label: 'Alamat Pengiriman',
@@ -334,386 +279,319 @@ class _DeliveryAddressScreenState extends ConsumerState<DeliveryAddressScreen> {
       notes: _notesController.text,
       isDefault: false,
     );
-
     ref.read(orderFlowProvider.notifier).setMode(OrderMode.delivery);
     ref.read(orderFlowProvider.notifier).setDeliveryAddress(address);
-    
-    if (mounted) {
-      ref.read(orderFlowProvider.notifier).setMode(OrderMode.delivery);
-      ref.read(orderFlowProvider.notifier).setDeliveryAddress(address);
-    
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
-      );
-    }
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const MenuCatalogScreen()));
   }
 
   void _selectSavedAddress() async {
     final selected = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AddressListScreen(isSelectionMode: true)),
+      MaterialPageRoute(
+          builder: (_) => const AddressListScreen(isSelectionMode: true)),
     );
-    if (selected != null && selected is UserAddress) {
+    if (selected is UserAddress && mounted) {
       ref.read(orderFlowProvider.notifier).setMode(OrderMode.delivery);
       ref.read(orderFlowProvider.notifier).setDeliveryAddress(selected);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
-      );
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const MenuCatalogScreen()));
     }
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
+    final pinColor =
+        _locationFailed ? Colors.red.shade400 : tenant.primaryColor;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      appBar: const AppTopBar(
-        title: 'Atur Alamat',
-      ),
-      body: Stack(
+      appBar: const AppTopBar(title: 'Atur Alamat'),
+      body: Column(
         children: [
-          // Flutter Map OSM
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _center,
-              initialZoom: _currentZoom,
-              onPositionChanged: _onMapPositionChanged,
-              onMapEvent: (event) {
-                if (event is MapEventMoveEnd && !event.source.name.contains('fitCamera')) {
-                   final pinLatLng = _getLatLngAtPin();
-                   _getAddressFromLatLng(pinLatLng);
-                }
-              },
-
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.ataskopi.app',
-                // maxZoom: 19,
-              ),
-            ],
-          ),
-          
-          // Search Bar
-          Positioned(
-            top: 20.h,
-            left: 16.w,
-            right: 16.w,
-            child: Container(
-              height: 48.h,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
+          // ── Map area ────────────────────────────────────────────────────
+          Expanded(
+            child: Stack(
+              children: [
+                // Map
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _center,
+                    initialZoom: _currentZoom,
+                    onPositionChanged: _onMapMoved,
+                    onMapEvent: _onMapMoveEnd,
                   ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onSubmitted: _searchAddress,
-                decoration: InputDecoration(
-                  hintText: 'Cari lokasi (cth: Monas)',
-                  hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13.sp),
-                  prefixIcon: Icon(Icons.search_rounded, color: const Color(0xFF94A3B8), size: 18.w),
-                  suffixIcon: _isSearching 
-                    ? SizedBox(width: 12.w, height: 12.w, child: const Center(child: CircularProgressIndicator(strokeWidth: 2)))
-                    : IconButton(
-                        icon: Icon(Icons.close_rounded, color: const Color(0xFF94A3B8), size: 18.w),
-                        onPressed: () {
-                          _searchController.clear();
-                          FocusScope.of(context).unfocus();
-                        },
-                      ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                ),
-              ),
-            ),
-          ),
-
-          // Central Pin
-          // Central Pin Icon (Correctly centered at bottom tip)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 220.h), // Account for bottom sheet height
-              child: Icon(
-                Icons.location_on_rounded,
-                color: tenant.primaryColor,
-                size: 56.w,
-              ),
-            ),
-          ),
-          
-          // Floating Label (Above Pin)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: 300.h), // adjusted to be above the new pin position
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.ataskopi.app',
                     ),
                   ],
                 ),
-                child: Text(
-                  'Geser peta untuk mengubah',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1E293B),
-                  ),
-                ),
-              ),
-            ),
-          ),
 
-          // Zoom Controls (Moved higher to side)
-          Positioned(
-            right: 16.w,
-            top: 100.h,
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: _zoomIn,
-                  child: Container(
-                    width: 40.w,
-                    height: 40.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(8.r),
-                        topRight: Radius.circular(8.r),
+                // Centre pin — fixed in screen space, tip at exact centre
+                // Icon(location_on) renders with its visual tip at the
+                // bottom-centre of the bounding box, so we nudge it up by
+                // half its height so the tip lands on the map centre.
+                IgnorePointer(
+                  child: Center(
+                    child: Transform.translate(
+                      offset: const Offset(0, -24), // half of 48px icon
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: pinColor,
+                        size: 48,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: Icon(Icons.add_rounded, color: const Color(0xFF475569), size: 24.w),
                   ),
                 ),
-                Container(width: 40.w, height: 1.h, color: const Color(0xFFF1F5F9)),
-                GestureDetector(
-                  onTap: _zoomOut,
-                  child: Container(
-                    width: 40.w,
-                    height: 40.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(8.r),
-                        bottomRight: Radius.circular(8.r),
+
+                // Search bar
+                Positioned(
+                  top: 12.h,
+                  left: 12.w,
+                  right: 12.w,
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 46.h,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: _searchAddress,
+                          decoration: InputDecoration(
+                            hintText: 'Cari lokasi...',
+                            hintStyle: TextStyle(
+                                color: const Color(0xFF94A3B8), fontSize: 13.sp),
+                            prefixIcon: Icon(Icons.search_rounded,
+                                color: const Color(0xFF94A3B8), size: 20.w),
+                            suffixIcon: _isSearching
+                                ? Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: tenant.primaryColor),
+                                    ),
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16.w, vertical: 13.h),
+                          ),
+                        ),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                      
+                      // Location Prompt Banner (Web only — Safari iOS requires user gesture)
+                      if (_showLocationPrompt) ...[
+                        SizedBox(height: 12.h),
+                        GestureDetector(
+                          onTap: _getCurrentLocation,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F172A),
+                              borderRadius: BorderRadius.circular(12.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.my_location_rounded, color: Colors.white, size: 20.w),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    'Tap untuk gunakan lokasi GPS Anda',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14.w),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
+                    ],
+                  ),
+                ),
+
+                // My-location FAB
+                Positioned(
+                  right: 12.w,
+                  bottom: 16.h,
+                  child: Material(
+                    color: Colors.white,
+                    elevation: 4,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: _isLocating ? null : _getCurrentLocation,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: _isLocating
+                            ? SizedBox(
+                                width: 22.w,
+                                height: 22.w,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: tenant.primaryColor),
+                              )
+                            : Icon(
+                                _locationFailed
+                                    ? Icons.location_off_rounded
+                                    : Icons.my_location_rounded,
+                                size: 22.w,
+                                color: _locationFailed
+                                    ? Colors.red
+                                    : const Color(0xFF475569),
+                              ),
+                      ),
                     ),
-                    child: Icon(Icons.remove_rounded, color: const Color(0xFF475569), size: 24.w),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Map Controls (Recenter - Moved higher to side)
-          Positioned(
-            right: 16.w,
-            top: 200.h,
-            child: GestureDetector(
-              onTap: _getCurrentLocation,
-              child: Container(
-                width: 44.w,
-                height: 44.w,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          // ── Bottom panel ──────────────────────────────────────────────────
+          Container(
+            padding:
+                EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.07),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
                 ),
-                child: _isLoading 
-                  ? Padding(padding: EdgeInsets.all(12.w), child: const CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.my_location_rounded, color: const Color(0xFF475569), size: 22.w),
-              ),
+              ],
             ),
-          ),
-
-          // Bottom Sheet
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 32.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 48.w,
-                    height: 5.h,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2E8F0),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 44.w,
-                        height: 44.w,
-                        decoration: BoxDecoration(
-                          color: tenant.primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.pin_drop_rounded, color: tenant.primaryColor, size: 24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Address row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40.w,
+                      height: 40.w,
+                      decoration: BoxDecoration(
+                        color: tenant.primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'LOKASI TERPILIH',
-                              style: TextStyle(
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF94A3B8),
-                                letterSpacing: 1.2,
-                              ),
+                      child: Icon(Icons.pin_drop_rounded,
+                          color: tenant.primaryColor, size: 20.w),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _addressText.isEmpty
+                                ? 'Geser peta untuk memilih lokasi'
+                                : _addressText,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
                             ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              _addressText,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 17.sp,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
+                          ),
+                          if (_cityText.isNotEmpty) ...[
                             SizedBox(height: 2.h),
                             Text(
-                              _cityText, // Mock city for now
+                              _cityText,
                               style: TextStyle(
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 color: const Color(0xFF64748B),
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  Container(
-                    height: 1.h,
-                    color: const Color(0xFFF1F5F9),
-                  ),
-                  SizedBox(height: 24.h),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.edit_note_rounded, color: const Color(0xFF94A3B8), size: 20.w),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Detail Alamat (Opsional)',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF475569),
-                            ),
-                          ),
                         ],
                       ),
-                      SizedBox(height: 12.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: TextField(
-                          controller: _notesController,
-                          decoration: InputDecoration(
-                            hintText: 'Contoh: Gedung A, Lt. 5, Pagar hitam',
-                            hintStyle: TextStyle(color: const Color(0xFF94A3B8), fontSize: 14.sp, fontWeight: FontWeight.w400),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.all(16.w),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+
+                // Notes
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
-                  SizedBox(height: 24.h),
-                  // Button to select saved address
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48.h,
-                    child: OutlinedButton.icon(
-                      onPressed: _selectSavedAddress,
-                      icon: Icon(Icons.bookmark_border_rounded, size: 20.w),
-                      label: Text(
-                        'Pilih Alamat Tersimpan',
-                        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: tenant.primaryColor,
-                        side: BorderSide(color: tenant.primaryColor, width: 1.5.w),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
-                      ),
+                  child: TextField(
+                    controller: _notesController,
+                    decoration: InputDecoration(
+                      hintText: 'Detail alamat (Gedung, lantai, dll.)',
+                      hintStyle: TextStyle(
+                          color: const Color(0xFF94A3B8), fontSize: 13.sp),
+                      prefixIcon: Icon(Icons.edit_note_rounded,
+                          color: const Color(0xFF94A3B8), size: 20.w),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 12.h),
                     ),
                   ),
-                  SizedBox(height: 12.h),
-                  AppButton(
-                    text: 'Simpan & Lanjutkan',
-                    onPressed: _onConfirm,
+                ),
+                SizedBox(height: 10.h),
+
+                // Saved address button
+                SizedBox(
+                  width: double.infinity,
+                  height: 42.h,
+                  child: OutlinedButton.icon(
+                    onPressed: _selectSavedAddress,
+                    icon: Icon(Icons.bookmark_border_rounded, size: 18.w),
+                    label: Text(
+                      'Pilih Alamat Tersimpan',
+                      style: TextStyle(
+                          fontSize: 13.sp, fontWeight: FontWeight.w700),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tenant.primaryColor,
+                      side: BorderSide(color: tenant.primaryColor),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r)),
+                    ),
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: 10.h),
+                AppButton(text: 'Simpan & Lanjutkan', onPressed: _onConfirm),
+              ],
             ),
           ),
         ],

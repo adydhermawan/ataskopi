@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,8 +18,20 @@ class QrScannerScreen extends ConsumerStatefulWidget {
 }
 
 class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsBindingObserver {
-  final MobileScannerController controller = MobileScannerController();
+  late final MobileScannerController controller;
   bool _isProcessing = false;
+  bool _isCameraStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = MobileScannerController(
+      autoStart: !kIsWeb, // Do not auto-start on Web to avoid Safari autoplay block
+    );
+    if (!kIsWeb) {
+      _isCameraStarted = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -140,6 +153,25 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
           MobileScanner(
             controller: controller,
             onDetect: _onDetect,
+            errorBuilder: (context, error, child) {
+              return Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.error_outline_rounded, color: Colors.white, size: 48.w),
+                      SizedBox(height: 16.h),
+                      const Text(
+                        'Akses kamera ditolak atau tidak tersedia.\nSilakan izinkan akses kamera pada pengaturan browser/perangkat Anda.',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
             overlayBuilder: (context, constraints) {
                return Container(
                  decoration: ShapeDecoration(
@@ -148,12 +180,42 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
                      borderRadius: 10,
                      borderLength: 30,
                      borderWidth: 10,
-                     cutOutSize: 300.w,
+                     cutOutSize: 240.w,
                    ),
                  ),
                );
             },
           ),
+          if (!_isCameraStarted)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.camera_alt_rounded, color: Colors.white, size: 48.w),
+                    SizedBox(height: 16.h),
+                    const Text(
+                      'Ketuk untuk mengaktifkan kamera',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                      ),
+                      onPressed: () async {
+                        setState(() => _isCameraStarted = true);
+                        await controller.start();
+                      },
+                      child: const Text('Mulai Kamera', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (_isProcessing)
             Container(
               color: Colors.black54,
@@ -170,9 +232,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
               children: [
                 const Text(
                   'Arahkan kamera ke QR Code di meja',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 12.h),
                 TextButton(
                   onPressed: _showManualInputDialog,
                   style: TextButton.styleFrom(
@@ -185,7 +247,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
                   ),
                   child: const Text(
                     'Input Manual No. Meja',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
               ],

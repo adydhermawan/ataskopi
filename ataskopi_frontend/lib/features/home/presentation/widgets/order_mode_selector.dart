@@ -91,17 +91,17 @@ class OrderModeSelector extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24.r),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        height: isWide ? 110.h : 200.h,
+        height: isWide ? 100.h : 140.h,
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(20.r),
           boxShadow: [
             BoxShadow(
               color: iconColor.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -116,7 +116,7 @@ class OrderModeSelector extends StatelessWidget {
                 angle: 0.2,
                 child: Icon(
                   accentIcon,
-                  size: 110.w,
+                  size: 90.w,
                   color: iconColor.withOpacity(0.06),
                 ),
               ),
@@ -124,50 +124,50 @@ class OrderModeSelector extends StatelessWidget {
             // Content
             Positioned.fill(
               child: Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(12.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: isWide ? MainAxisAlignment.center : MainAxisAlignment.start,
                   children: [
                     if (!isWide) ...[
                       Container(
-                        width: 44.w,
-                        height: 44.w,
+                        width: 36.w,
+                        height: 36.w,
                         decoration: BoxDecoration(
                           color: iconBgColor,
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(10.r),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.06),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: Icon(icon, color: iconColor, size: 24.w),
+                        child: Icon(icon, color: iconColor, size: 20.w),
                       ),
-                      SizedBox(height: 24.h),
+                      SizedBox(height: 16.h),
                     ],
                     if (isWide)
                       Row(
                         children: [
                           Container(
-                            width: 44.w,
-                            height: 44.w,
+                            width: 36.w,
+                            height: 36.w,
                             decoration: BoxDecoration(
                               color: iconBgColor,
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(10.r),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.06),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: Icon(icon, color: iconColor, size: 24.w),
+                            child: Icon(icon, color: iconColor, size: 20.w),
                           ),
-                          SizedBox(width: 16.w),
+                          SizedBox(width: 12.w),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,7 +176,7 @@ class OrderModeSelector extends StatelessWidget {
                                 Text(
                                   title,
                                   style: TextStyle(
-                                    fontSize: 17.sp,
+                                    fontSize: 16.sp,
                                     fontWeight: FontWeight.w800,
                                     color: const Color(0xFF1E293B),
                                     letterSpacing: -0.5,
@@ -187,7 +187,7 @@ class OrderModeSelector extends StatelessWidget {
                                 Text(
                                   subtitle,
                                   style: TextStyle(
-                                    fontSize: 12.sp,
+                                    fontSize: 11.sp,
                                     color: const Color(0xFF64748B),
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -204,7 +204,7 @@ class OrderModeSelector extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          fontSize: 18.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF1E293B),
                           letterSpacing: -0.5,
@@ -213,7 +213,7 @@ class OrderModeSelector extends StatelessWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: 12.sp,
                           color: const Color(0xFF64748B),
                           fontWeight: FontWeight.w500,
                         ),
