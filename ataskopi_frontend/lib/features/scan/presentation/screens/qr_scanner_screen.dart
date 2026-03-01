@@ -25,6 +25,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
   @override
   void initState() {
     super.initState();
+    // Use unpkg mirror instead of jsdelivr which might be blocked in ID
+    if (kIsWeb) {
+      MobileScannerPlatform.instance.setBarcodeLibraryScriptUrl(
+        'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js',
+      );
+    }
     controller = MobileScannerController(
       autoStart: !kIsWeb, // Do not auto-start on Web to avoid Safari autoplay block
     );
@@ -150,41 +156,43 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-            errorBuilder: (context, error, child) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.w),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline_rounded, color: Colors.white, size: 48.w),
-                      SizedBox(height: 16.h),
-                      const Text(
-                        'Akses kamera ditolak atau tidak tersedia.\nSilakan izinkan akses kamera pada pengaturan browser/perangkat Anda.',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+          Positioned.fill(
+            child: MobileScanner(
+              controller: controller,
+              onDetect: _onDetect,
+              errorBuilder: (context, error, child) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.w),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.error_outline_rounded, color: Colors.white, size: 48.w),
+                        SizedBox(height: 16.h),
+                        Text(
+                          'Akses kamera ditolak atau tidak tersedia.\nError: ${error.errorCode?.name ?? error.toString()}\nSilakan gunakan input manual.',
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-            overlayBuilder: (context, constraints) {
-               return Container(
-                 decoration: ShapeDecoration(
-                   shape: QrScannerOverlayShape(
-                     borderColor: Colors.blue,
-                     borderRadius: 10,
-                     borderLength: 30,
-                     borderWidth: 10,
-                     cutOutSize: 240.w,
+                );
+              },
+              overlayBuilder: (context, constraints) {
+                 return Container(
+                   decoration: ShapeDecoration(
+                     shape: QrScannerOverlayShape(
+                       borderColor: Colors.blue,
+                       borderRadius: 10,
+                       borderLength: 30,
+                       borderWidth: 10,
+                       cutOutSize: 240.w,
+                     ),
                    ),
-                 ),
-               );
-            },
+                 );
+              },
+            ),
           ),
           if (!_isCameraStarted)
             Container(

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'outlet_selection_modal.dart';
+import 'package:ataskopi_frontend/core/providers/location_provider.dart';
 
-class OutletSelector extends StatelessWidget {
+class OutletSelector extends ConsumerWidget {
   final String outletName;
 
   const OutletSelector({super.key, required this.outletName});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => OutletSelectionModal.show(context),
+      onTap: () {
+        ref.read(userLocationProvider.notifier).refreshLocation();
+        OutletSelectionModal.show(context);
+      },
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
