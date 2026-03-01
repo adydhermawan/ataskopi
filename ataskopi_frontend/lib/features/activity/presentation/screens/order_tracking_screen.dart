@@ -238,7 +238,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       point: center,
                       width: 40.w,
                       height: 40.w,
-                      child: Icon(Icons.location_on_rounded, color: tenant.primaryColor, size: 40.w),
+                      alignment: Alignment.center,
+                      child: Transform.translate(
+                        offset: Offset(0, -20.w),
+                        child: Icon(Icons.location_on_rounded, color: tenant.primaryColor, size: 40.w),
+                      ),
                     ),
                   ],
                 ),

@@ -47,14 +47,7 @@ class _DeliveryAddressScreenState
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
-      // Safari iOS requires a user gesture. Wait for user to tap the banner.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _showLocationPrompt = true);
-      });
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
   }
 
   @override
@@ -400,44 +393,6 @@ class _DeliveryAddressScreenState
                         ),
                       ),
                       
-                      // Location Prompt Banner (Web only — Safari iOS requires user gesture)
-                      if (_showLocationPrompt) ...[
-                        SizedBox(height: 12.h),
-                        GestureDetector(
-                          onTap: _getCurrentLocation,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0F172A),
-                              borderRadius: BorderRadius.circular(12.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.my_location_rounded, color: Colors.white, size: 20.w),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Text(
-                                    'Tap untuk gunakan lokasi GPS Anda',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14.w),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),

@@ -49,9 +49,7 @@ class _AddressFormScreenState extends ConsumerState<AddressFormScreen> {
       _center = LatLng(widget.address!.latitude, widget.address!.longitude);
       _addressText = widget.address!.address;
     } else {
-      if (!kIsWeb) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) => _getCurrentLocation());
     }
   }
 

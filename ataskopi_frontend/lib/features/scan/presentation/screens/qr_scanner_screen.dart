@@ -32,6 +32,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
       );
     }
     controller = MobileScannerController(
+      facing: CameraFacing.back,
+      formats: const [BarcodeFormat.qrCode],
       autoStart: !kIsWeb, // Do not auto-start on Web to avoid Safari autoplay block
     );
     if (!kIsWeb) {
@@ -148,6 +150,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
         actions: [
           IconButton(
             color: Colors.white,
+            icon: const Icon(Icons.flip_camera_ios),
+            iconSize: 32.0,
+            onPressed: () => controller.switchCamera(),
+          ),
+          IconButton(
+            color: Colors.white,
             icon: const Icon(Icons.flash_on),
             iconSize: 32.0,
             onPressed: () => controller.toggleTorch(),
@@ -159,6 +167,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> with WidgetsB
           Positioned.fill(
             child: MobileScanner(
               controller: controller,
+              fit: BoxFit.cover,
               onDetect: _onDetect,
               errorBuilder: (context, error, child) {
                 return Center(

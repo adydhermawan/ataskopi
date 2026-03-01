@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pickup_time_modal.dart';
 import '../../../scan/presentation/screens/qr_scanner_screen.dart';
 import '../../../menu/presentation/screens/menu_catalog_screen.dart';
 import '../../../order/presentation/screens/delivery_address_screen.dart';
+import 'package:ataskopi_frontend/core/providers/location_provider.dart';
 
-class OrderModeSelector extends StatelessWidget {
+class OrderModeSelector extends ConsumerWidget {
   const OrderModeSelector({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
         Row(
@@ -39,6 +41,7 @@ class OrderModeSelector extends StatelessWidget {
                 iconColor: const Color(0xFFF97316),
                 accentIcon: Icons.moped_rounded,
                 onTap: () {
+                  ref.read(userLocationProvider.notifier).refreshLocation();
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const DeliveryAddressScreen()),
