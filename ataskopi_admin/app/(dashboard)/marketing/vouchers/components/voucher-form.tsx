@@ -81,12 +81,13 @@ export function VoucherForm({ initialData, onSuccess }: VoucherFormProps) {
         try {
             const apiData = {
                 ...values,
-                maxDiscount: values.maxDiscount || undefined,
-                minOrder: values.minOrder || undefined,
+                discountValue: values.discountValue ? Number(values.discountValue) : 0,
+                maxDiscount: values.maxDiscount ? Number(values.maxDiscount) : undefined,
+                minOrder: values.minOrder ? Number(values.minOrder) : undefined,
                 startDate: values.startDate || undefined,
                 endDate: values.endDate || undefined,
-                usageLimit: values.usageLimit || undefined,
-                userUsageLimit: values.userUsageLimit || undefined,
+                usageLimit: values.usageLimit ? Number(values.usageLimit) : undefined,
+                userUsageLimit: values.userUsageLimit ? Number(values.userUsageLimit) : undefined,
             }
 
             let result;

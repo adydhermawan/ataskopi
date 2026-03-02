@@ -4,6 +4,10 @@
 -- 0. Install Extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
+-- 0.1 Create Storage Bucket
+INSERT INTO storage.buckets (id, name) VALUES ('images', 'images')
+ON CONFLICT (id) DO NOTHING;
+
 -- 1. Create Tenant
 INSERT INTO public.tenants (id, business_name, tenant_slug, business_type, status, updated_at)
 VALUES ('d290f1ee-6c54-4b01-90e6-d701748f0851', 'AtasKopi', 'ataskopi', 'coffee_shop', 'active', now())
