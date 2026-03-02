@@ -21,12 +21,34 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 }) => {
     const [loading, setLoading] = useState(false);
 
+    const handleRemove = async (url: string) => {
+        setLoading(true);
+        try {
+            await fetch(`/api/upload?url=${encodeURIComponent(url)}`, {
+                method: 'DELETE',
+            });
+            onRemove(url);
+            toast.success("Image removed");
+        } catch (error) {
+            toast.error("Failed to remove image from storage");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setLoading(true);
         try {
+            // Delete the old image from Supabase first
+            if (value) {
+                await fetch(`/api/upload?url=${encodeURIComponent(value)}`, {
+                    method: 'DELETE',
+                });
+            }
+
             const formData = new FormData();
             formData.append('file', file);
 
@@ -56,7 +78,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 {value ? (
                     <div className="relative w-[200px] h-[200px] rounded-md overflow-hidden">
                         <div className="z-10 absolute top-2 right-2">
-                            <Button type="button" onClick={() => onRemove(value)} variant="destructive" size="sm">
+                            <Button disabled={loading} type="button" onClick={() => handleRemove(value)} variant="destructive" size="sm">
                                 <Trash className="h-4 w-4" />
                             </Button>
                         </div>

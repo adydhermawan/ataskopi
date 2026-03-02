@@ -59,3 +59,41 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message || 'Upload failed due to server error' }, { status: 500 });
     }
 }
+
+export async function DELETE(req: NextRequest) {
+    try {
+        if (!supabaseUrl || !supabaseKey) {
+            return NextResponse.json({ error: 'Supabase credentials missing' }, { status: 500 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const urlToDelete = searchParams.get('url');
+
+        if (!urlToDelete) {
+            return NextResponse.json({ error: 'No url provided' }, { status: 400 });
+        }
+
+        // Extract filename from URL (e.g., https://.../storage/v1/object/public/images/uuid.png)
+        const bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'images';
+        const urlParts = urlToDelete.split('/');
+        const filename = urlParts[urlParts.length - 1];
+
+        if (!filename) {
+            return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+        }
+
+        const { error } = await supabase.storage
+            .from(bucketName)
+            .remove([filename]);
+
+        if (error) {
+            console.error('Supabase delete error:', error);
+            return NextResponse.json({ error: `Delete from Supabase failed: ${error.message}` }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Server delete error:', error);
+        return NextResponse.json({ error: error.message || 'Delete failed due to server error' }, { status: 500 });
+    }
+}
