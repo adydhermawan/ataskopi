@@ -32,15 +32,6 @@
                     "value": "no-cache"
                 }
             ]
-        },
-        {
-            "source": "/(.*\\.(js|wasm|ttf|otf|png|jpg|jpeg|svg|ico|css))",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=31536000, immutable"
-                }
-            ]
         }
     ]
 }

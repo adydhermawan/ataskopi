@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
+import 'package:ataskopi_frontend/core/utils/web_safe_area.dart';
 import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
 import 'package:ataskopi_frontend/features/home/presentation/widgets/home_banner.dart';
 import 'package:ataskopi_frontend/features/home/presentation/widgets/outlet_selector.dart';
@@ -19,6 +20,8 @@ import 'package:ataskopi_frontend/features/home/presentation/providers/notificat
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/core/providers/pending_qr_provider.dart';
 import 'package:ataskopi_frontend/features/scan/presentation/controllers/scan_controller.dart';
+import 'package:http/http.dart' as http;
+import 'package:ataskopi_frontend/core/api/api_config.dart';
 
 class HomeMainScreen extends ConsumerStatefulWidget {
   const HomeMainScreen({super.key});
@@ -66,6 +69,9 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    
+    // Silent keep-alive ping to backend
+    http.get(Uri.parse(ApiConfig.healthEndpoint)).catchError((_) => http.Response('', 200));
   }
 
   @override
@@ -81,65 +87,93 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: IndexedStack(
-        index: bottomNavIndex,
+      body: Stack(
         children: [
-          _buildHomeContent(context, tenant),
-          const ActivityScreen(),
-          const RewardsScreen(),
-          const ProfileScreen(),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          height: 64.h,
-          padding: EdgeInsets.only(
-            left: 24.w,
-            right: 24.w,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
+          // On home tab: paint only the status bar area (safe area top) with the
+          // brand primary color, so it matches the hero banner when at scroll pos 0.
+          // This avoids setting Scaffold backgroundColor to blue (which bleeds through
+          // transparent gaps in the scroll view).
+          if (bottomNavIndex == 0)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.of(context).padding.top > 0 
+                  ? MediaQuery.of(context).padding.top 
+                  : WebSafeArea.top,
+              child: Container(color: tenant.primaryColor),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -4),
-              ),
+          IndexedStack(
+            index: bottomNavIndex,
+            children: [
+              _buildHomeContent(context, tenant),
+              const ActivityScreen(),
+              const RewardsScreen(),
+              const ProfileScreen(),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _HashNavIcon(
-              icon: LucideIcons.home,
-              isActive: bottomNavIndex == 0,
-              activeColor: tenant.primaryColor,
-              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
-            ),
-            _HashNavIcon(
-              icon: LucideIcons.history,
-              isActive: bottomNavIndex == 1,
-              activeColor: tenant.primaryColor,
-              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
-            ),
-            _HashNavIcon(
-              icon: LucideIcons.ticket,
-              isActive: bottomNavIndex == 2,
-              activeColor: tenant.primaryColor,
-              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
-            ),
-            _HashNavIcon(
-              icon: LucideIcons.user,
-              isActive: bottomNavIndex == 3,
-              activeColor: tenant.primaryColor,
-              onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: const Color(0xFFE2E8F0), width: 1.w),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-      ),
+        child: Builder(
+          builder: (context) {
+            final mqBottom = MediaQuery.of(context).padding.bottom;
+            final double bottomPad = mqBottom > 0 ? mqBottom : WebSafeArea.bottom;
+            
+            return Padding(
+              padding: EdgeInsets.only(bottom: bottomPad),
+              child: Container(
+                height: 64.h,
+                padding: EdgeInsets.only(
+                  left: 24.w,
+                  right: 24.w,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _HashNavIcon(
+                      icon: LucideIcons.home,
+                      isActive: bottomNavIndex == 0,
+                      activeColor: tenant.primaryColor,
+                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
+                    ),
+                    _HashNavIcon(
+                      icon: LucideIcons.history,
+                      isActive: bottomNavIndex == 1,
+                      activeColor: tenant.primaryColor,
+                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
+                    ),
+                    _HashNavIcon(
+                      icon: LucideIcons.ticket,
+                      isActive: bottomNavIndex == 2,
+                      activeColor: tenant.primaryColor,
+                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
+                    ),
+                    _HashNavIcon(
+                      icon: LucideIcons.user,
+                      isActive: bottomNavIndex == 3,
+                      activeColor: tenant.primaryColor,
+                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        ),
       ),
     );
   }
@@ -151,15 +185,21 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
     final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
     final unreadCount = unreadCountAsync.valueOrNull ?? 0;
 
-    return CustomScrollView(
-      slivers: [
-        // Banner with overlapping items
-        SliverToBoxAdapter(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              SizedBox(
-                height: (1.sw * 6 / 5) * 0.7,
+    final mqTop = MediaQuery.of(context).padding.top;
+    final double statusBarHeight = mqTop > 0 ? mqTop : WebSafeArea.top;
+
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: CustomScrollView(
+        slivers: [
+          // Banner with overlapping items
+          SliverToBoxAdapter(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                SizedBox(
+                  height: ((1.sw * 6 / 5) * 0.7) + statusBarHeight,
                 child: bannersAsync.when(
                   data: (banners) {
                     final List<dynamic> displayBanners = banners.isEmpty 
@@ -189,8 +229,8 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
                       },
                     );
                   },
-                  loading: () => Container(height: (1.sw * 6 / 5) * 0.7, color: Colors.grey[200]),
-                  error: (e, s) => Container(height: (1.sw * 6 / 5) * 0.7, color: Colors.grey[300]),
+                  loading: () => Container(height: ((1.sw * 6 / 5) * 0.7) + statusBarHeight, color: Colors.grey[200]),
+                  error: (e, s) => Container(height: ((1.sw * 6 / 5) * 0.7) + statusBarHeight, color: Colors.grey[300]),
                 ),
               ),
               
@@ -278,6 +318,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
         const SliverToBoxAdapter(child: ProductRecommendationList()),
         SliverToBoxAdapter(child: SizedBox(height: 40.h)),
       ],
+    ),
     );
   }
 }

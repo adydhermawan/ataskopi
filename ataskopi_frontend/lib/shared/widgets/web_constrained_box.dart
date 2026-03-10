@@ -50,7 +50,15 @@ class WebConstrainedBox extends StatelessWidget {
                 ],
               ),
             child: ClipRect(
-              child: child,
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top,
+                    bottom: MediaQuery.of(context).padding.bottom,
+                  ),
+                ),
+                child: child,
+              ),
             ),
         ),
       ),

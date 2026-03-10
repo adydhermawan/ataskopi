@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'core/providers/tenant_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/web_safe_area.dart';
 import 'features/auth/presentation/screens/auth_entry_screen.dart';
 import 'features/scan/presentation/controllers/scan_controller.dart';
 import 'core/providers/pending_qr_provider.dart';
@@ -13,6 +14,8 @@ import 'features/home/presentation/screens/home_main_screen.dart';
 
 void main() async {
   // API Connection test removed to prevent startup delay/errors on Web
+  WidgetsFlutterBinding.ensureInitialized();
+  WebSafeArea.init();
 
   runApp(
     const ProviderScope(
