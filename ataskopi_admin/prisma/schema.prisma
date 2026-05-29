@@ -273,6 +273,7 @@ model Order {
   scheduledTime       DateTime?            @map("scheduled_time")
   serviceFee          Decimal              @default(0) @map("service_fee") @db.Decimal(10, 2)
   tableId             String?              @map("table_id")
+  guestName           String?              @map("guest_name")
   voucherCode         String?              @map("voucher_code")
   loyaltyTransactions LoyaltyTransaction[]
   items               OrderItem[]
@@ -409,12 +410,13 @@ model DailySalesSummary {
 }
 
 model OrderModeSetting {
-  id        String   @id @default(uuid())
-  dineIn    Boolean  @default(true) @map("dine_in")
-  pickup    Boolean  @default(true) @map("pickup")
-  delivery  Boolean  @default(true) @map("delivery")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  dineIn       Boolean  @default(true) @map("dine_in")
+  pickup       Boolean  @default(true) @map("pickup")
+  delivery     Boolean  @default(true) @map("delivery")
+  dineInMethod String   @default("SCAN_ONLY") @map("dine_in_method")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("order_mode_settings")
 }

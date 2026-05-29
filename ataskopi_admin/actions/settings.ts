@@ -16,6 +16,7 @@ export async function getOrderModeSettings() {
                 dineIn: true,
                 pickup: true,
                 delivery: true,
+                dineInMethod: 'SCAN_ONLY',
             }
         })
     }
@@ -27,6 +28,7 @@ export async function updateOrderModeSettings(data: {
     dineIn: boolean
     pickup: boolean
     delivery: boolean
+    dineInMethod: string
 }) {
     await requirePermission('settings', 'update')
 
@@ -40,6 +42,7 @@ export async function updateOrderModeSettings(data: {
                     dineIn: data.dineIn,
                     pickup: data.pickup,
                     delivery: data.delivery,
+                    dineInMethod: data.dineInMethod,
                 }
             })
         } else {
@@ -48,6 +51,7 @@ export async function updateOrderModeSettings(data: {
                     dineIn: data.dineIn,
                     pickup: data.pickup,
                     delivery: data.delivery,
+                    dineInMethod: data.dineInMethod,
                 }
             })
         }

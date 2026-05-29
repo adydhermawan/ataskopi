@@ -7,6 +7,7 @@ class OrderFlowState {
   final String? tableNumber; // Display only
   final DateTime? pickupTime;
   final UserAddress? deliveryAddress; // Structured address
+  final String? guestName;
 
   OrderFlowState({
     this.mode,
@@ -14,6 +15,7 @@ class OrderFlowState {
     this.tableNumber,
     this.pickupTime,
     this.deliveryAddress,
+    this.guestName,
   });
 
   OrderFlowState copyWith({
@@ -22,6 +24,7 @@ class OrderFlowState {
     String? tableNumber,
     DateTime? pickupTime,
     UserAddress? deliveryAddress,
+    String? guestName,
   }) {
     return OrderFlowState(
       mode: mode ?? this.mode,
@@ -29,6 +32,7 @@ class OrderFlowState {
       tableNumber: tableNumber ?? this.tableNumber,
       pickupTime: pickupTime ?? this.pickupTime,
       deliveryAddress: deliveryAddress ?? this.deliveryAddress,
+      guestName: guestName ?? this.guestName,
     );
   }
 }
@@ -37,15 +41,23 @@ class OrderFlowNotifier extends StateNotifier<OrderFlowState> {
   OrderFlowNotifier() : super(OrderFlowState());
 
   void setMode(OrderMode mode) {
-    // Reset other fields when mode changes, or keep them? 
-    // Usually cleaner to reset if switching context.
+    // Reset other fields when mode changes
     state = OrderFlowState(mode: mode);
   }
 
   void setDineInData({required String tableId, required String tableNumber}) {
     state = state.copyWith(
       tableId: tableId, 
-      tableNumber: tableNumber
+      tableNumber: tableNumber,
+      guestName: null,
+    );
+  }
+
+  void setGuestName(String guestName) {
+    state = state.copyWith(
+      guestName: guestName,
+      tableId: null,
+      tableNumber: null,
     );
   }
 

@@ -270,6 +270,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
                     userId: user.id,
                     outletId: outlet.id,
                     tableId: data.tableId,
+                    guestName: data.guestName,
                     orderNumber,
                     orderType: data.orderType,
                     scheduledTime: data.scheduledTime ? new Date(data.scheduledTime) : null,

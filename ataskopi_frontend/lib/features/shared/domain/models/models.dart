@@ -652,11 +652,13 @@ class OrderModeSettings {
   final bool dineInEnabled;
   final bool pickupEnabled;
   final bool deliveryEnabled;
+  final String dineInMethod;
 
   const OrderModeSettings({
     required this.dineInEnabled,
     required this.pickupEnabled,
     required this.deliveryEnabled,
+    required this.dineInMethod,
   });
 
   factory OrderModeSettings.fromJson(Map<String, dynamic> json) {
@@ -664,6 +666,7 @@ class OrderModeSettings {
       dineInEnabled: json['dineInEnabled'] == true,
       pickupEnabled: json['pickupEnabled'] == true,
       deliveryEnabled: json['deliveryEnabled'] == true,
+      dineInMethod: json['dineInMethod'] ?? 'SCAN_ONLY',
     );
   }
 
@@ -672,6 +675,7 @@ class OrderModeSettings {
       'dineInEnabled': dineInEnabled,
       'pickupEnabled': pickupEnabled,
       'deliveryEnabled': deliveryEnabled,
+      'dineInMethod': dineInMethod,
     };
   }
 }

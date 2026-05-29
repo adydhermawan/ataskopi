@@ -13,6 +13,7 @@ export const createOrderSchema = z.object({
 
     // Optional fields: Accept null/undefined/string freely
     tableId: z.any().optional(),
+    guestName: z.any().optional(),
     scheduledTime: z.any().optional(),
     deliveryAddress: z.any().optional(),
     paymentMethod: z.string(),

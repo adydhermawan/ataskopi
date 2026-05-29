@@ -97,7 +97,9 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                             ? 'METODE PESANAN'
                             : (orderFlow.mode == OrderMode.delivery 
                                 ? 'LOKASI PENGIRIMAN' 
-                                : (orderFlow.mode == OrderMode.dineIn ? 'NOMOR MEJA' : 'LOKASI PENGAMBILAN')),
+                                : (orderFlow.mode == OrderMode.dineIn 
+                                    ? (orderFlow.guestName != null ? 'NAMA GUEST' : 'NOMOR MEJA')
+                                    : 'LOKASI PENGAMBILAN')),
                         style: TextStyle(
                           fontSize: 10.sp,
                           fontWeight: FontWeight.w800,
@@ -133,7 +135,9 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     )
                   else if (orderFlow.mode == OrderMode.dineIn)
                     Text(
-                      'Meja ${orderFlow.tableNumber ?? "-"}',
+                      orderFlow.guestName != null && orderFlow.guestName!.isNotEmpty
+                          ? 'Nama: ${orderFlow.guestName}'
+                          : 'Meja ${orderFlow.tableNumber ?? "-"}',
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
@@ -738,10 +742,12 @@ class CheckoutSummaryScreen extends ConsumerWidget {
           return;
         }
       } else if (orderFlow.mode == OrderMode.dineIn) {
-        if (orderFlow.tableNumber == null || orderFlow.tableNumber!.isEmpty) {
+        final hasTable = orderFlow.tableNumber != null && orderFlow.tableNumber!.isNotEmpty;
+        final hasGuest = orderFlow.guestName != null && orderFlow.guestName!.isNotEmpty;
+        if (!hasTable && !hasGuest) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Mohon scan nomor meja terlebih dahulu'),
+              content: Text('Mohon masukkan nama atau scan meja terlebih dahulu'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -830,6 +836,10 @@ class CheckoutSummaryScreen extends ConsumerWidget {
         payload['tableId'] = orderFlow.tableId;
       }
       
+      if (orderFlow.guestName != null && orderFlow.guestName!.isNotEmpty) {
+        payload['guestName'] = orderFlow.guestName;
+      }
+      
       if (orderFlow.mode == OrderMode.delivery && orderFlow.deliveryAddress != null) {
          payload['deliveryAddress'] = {
            'latitude': orderFlow.deliveryAddress?.latitude ?? 0,
@@ -851,6 +861,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
         orderType: payload['orderType'] as String,
         scheduledTime: payload['scheduledTime'] as String?,
         tableId: payload['tableId'] as String?,
+        guestName: payload['guestName'] as String?,
         deliveryAddress: payload['deliveryAddress'], 
         paymentMethod: payload['paymentMethod'] as String,
         voucherCode: payload['voucherCode'] as String?,

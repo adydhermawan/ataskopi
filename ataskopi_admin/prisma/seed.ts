@@ -163,6 +163,7 @@ async function main() {
                 dineIn: true,
                 pickup: true,
                 delivery: true,
+                dineInMethod: 'SCAN_ONLY',
             }
         })
     }

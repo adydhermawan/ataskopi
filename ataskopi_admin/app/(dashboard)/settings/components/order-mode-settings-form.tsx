@@ -14,6 +14,13 @@ import {
     FormLabel,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateOrderModeSettings } from "@/actions/settings";
 import { toast } from "sonner";
@@ -25,6 +32,7 @@ const formSchema = z.object({
     dineIn: z.boolean(),
     pickup: z.boolean(),
     delivery: z.boolean(),
+    dineInMethod: z.string(),
 });
 
 interface OrderModeSettingsFormProps {
@@ -40,6 +48,7 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
             dineIn: initialData?.dineIn ?? true,
             pickup: initialData?.pickup ?? true,
             delivery: initialData?.delivery ?? true,
+            dineInMethod: initialData?.dineInMethod ?? 'SCAN_ONLY',
         },
     });
 
@@ -76,7 +85,7 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
                                 Allow customers to order and eat directly at tables by scanning a QR Code.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex items-center justify-between pt-0">
+                        <CardContent className="space-y-4 pt-0">
                             <FormField
                                 control={form.control}
                                 name="dineIn"
@@ -94,6 +103,30 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
                                     </FormItem>
                                 )}
                             />
+
+                            {form.watch('dineIn') && (
+                                <FormField
+                                    control={form.control}
+                                    name="dineInMethod"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-1">
+                                            <FormLabel className="text-sm font-medium">Metode Identifikasi Meja</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Pilih metode" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="SCAN_ONLY">Hanya Scan QR Meja</SelectItem>
+                                                    <SelectItem value="GUEST_NAME_ONLY">Hanya Nama Pelanggan</SelectItem>
+                                                    <SelectItem value="BOTH">Scan QR atau Tulis Nama</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </CardContent>
                     </Card>
 
