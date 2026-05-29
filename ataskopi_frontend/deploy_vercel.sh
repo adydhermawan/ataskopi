@@ -42,7 +42,13 @@ if [ $? -eq 0 ]; then
   
   # Pindah ke direktori hasil build dan deploy pakai vercel cli
   cd build/web
-  vercel deploy --prod
+  
+  # Copy Vercel configurasi dari root agar deploy langsung ke project yang sudah ada
+  # (ataskopi-frontend) tanpa prompt interaktif
+  cp -r ../../.vercel .
+  cp ../../vercel.json .
+  
+  vercel deploy --prod --yes
   
   echo ""
   echo "✨ Deployment selesai!"

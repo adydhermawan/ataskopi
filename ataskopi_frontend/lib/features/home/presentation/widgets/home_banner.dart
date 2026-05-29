@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ataskopi_frontend/core/api/api_config.dart';
-import 'package:ataskopi_frontend/core/utils/web_safe_area.dart';
 
 class HomeBanner extends StatelessWidget {
   final String imageUrl;
@@ -23,8 +22,7 @@ class HomeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mqTop = MediaQuery.of(context).padding.top;
-    final double statusBarHeight = mqTop > 0 ? mqTop : WebSafeArea.top;
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
     
     return SizedBox(
       width: 1.sw,

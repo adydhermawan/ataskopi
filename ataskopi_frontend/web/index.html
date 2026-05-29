@@ -22,9 +22,7 @@
   <meta name="description" content="A new Flutter project.">
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1E3A5F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ataskopi">
@@ -37,13 +35,6 @@
   <link rel="manifest" href="manifest.json">
 
   <style>
-    :root {
-      --sat: env(safe-area-inset-top);
-      --sab: env(safe-area-inset-bottom);
-      --sal: env(safe-area-inset-left);
-      --sar: env(safe-area-inset-right);
-    }
-
     body {
       margin: 0;
       padding: 0;
@@ -88,51 +79,7 @@
     </div>
   </div>
 
-  <script>
-    // Read CSS env() safe area insets and expose as global JS variables
-    // Flutter Web cannot read these via MediaQuery, so we pass them manually
-    function updateSafeAreaInsets() {
-      // Create a hidden div to compute the CSS env variables
-      var div = document.createElement('div');
-      div.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'width:1px',
-        'height:1px',
-        'padding-top:env(safe-area-inset-top)',
-        'padding-bottom:env(safe-area-inset-bottom)',
-        'padding-left:env(safe-area-inset-left)',
-        'padding-right:env(safe-area-inset-right)',
-        'pointer-events:none',
-        'visibility:hidden',
-      ].join(';');
-      document.body.appendChild(div);
 
-      // Compute actual pixels
-      var cs = getComputedStyle(div);
-      var topVal = parseFloat(cs.paddingTop) || 0;
-      var bottomVal = parseFloat(cs.paddingBottom) || 0;
-      var leftVal = parseFloat(cs.paddingLeft) || 0;
-      var rightVal = parseFloat(cs.paddingRight) || 0;
-
-      // Store in window globals for Dart to read
-      window._safeAreaTop = topVal;
-      window._safeAreaBottom = bottomVal;
-      window._safeAreaLeft = leftVal;
-      window._safeAreaRight = rightVal;
-
-      document.body.removeChild(div);
-      console.log('Safe Area Updated:', topVal, bottomVal);
-    }
-
-    // Initial call
-    updateSafeAreaInsets();
-
-    // Update on resize or orientation change
-    window.addEventListener('resize', updateSafeAreaInsets);
-    window.addEventListener('orientationchange', updateSafeAreaInsets);
-  </script>
 
   <script src="flutter_bootstrap.js" async></script>
 </body>

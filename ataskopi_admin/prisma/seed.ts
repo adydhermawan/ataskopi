@@ -27,6 +27,7 @@ async function main() {
     await prisma.user.deleteMany()
     await prisma.membershipTier.deleteMany() // Added tier cleanup
     await prisma.loyaltySetting.deleteMany() // Added loyalty settings cleanup
+    await prisma.orderModeSetting.deleteMany() // Added order mode settings cleanup
     await prisma.promo.deleteMany() // Added promo cleanup
     // await prisma.tenant.deleteMany() // Tenant table removed
     console.log('✨ Database cleaned')
@@ -153,6 +154,20 @@ async function main() {
     }
 
     console.log('✅ Loyalty settings seeded')
+
+    // 4.5.1 Create Order Mode Settings (Single Record)
+    const existingOrderModeSettings = await prisma.orderModeSetting.findFirst()
+    if (!existingOrderModeSettings) {
+        await prisma.orderModeSetting.create({
+            data: {
+                dineIn: true,
+                pickup: true,
+                delivery: true,
+            }
+        })
+    }
+
+    console.log('✅ Order mode settings seeded')
 
     // 4.6 Create Membership Tiers
     const tiers = await Promise.all([

@@ -647,3 +647,31 @@ class UserAddress {
     );
   }
 }
+
+class OrderModeSettings {
+  final bool dineInEnabled;
+  final bool pickupEnabled;
+  final bool deliveryEnabled;
+
+  const OrderModeSettings({
+    required this.dineInEnabled,
+    required this.pickupEnabled,
+    required this.deliveryEnabled,
+  });
+
+  factory OrderModeSettings.fromJson(Map<String, dynamic> json) {
+    return OrderModeSettings(
+      dineInEnabled: json['dineInEnabled'] == true,
+      pickupEnabled: json['pickupEnabled'] == true,
+      deliveryEnabled: json['deliveryEnabled'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'dineInEnabled': dineInEnabled,
+      'pickupEnabled': pickupEnabled,
+      'deliveryEnabled': deliveryEnabled,
+    };
+  }
+}

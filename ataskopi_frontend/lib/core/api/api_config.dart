@@ -39,6 +39,7 @@ class ApiConfig {
   static String get redeemRewardEndpoint => '$baseUrl/api/rewards/redeem';
   static String get profileEndpoint => '$baseUrl/api/me/profile';
   static String get notificationsEndpoint => '$baseUrl/api/notifications';
+  static String get settingsEndpoint => '$baseUrl/api/settings';
 
   // Default tenant for development
   static const String defaultTenantId = 'demo';

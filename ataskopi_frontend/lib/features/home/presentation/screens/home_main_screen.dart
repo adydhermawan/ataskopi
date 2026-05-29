@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
-import 'package:ataskopi_frontend/core/utils/web_safe_area.dart';
 import 'package:ataskopi_frontend/shared/widgets/app_top_bar.dart';
 import 'package:ataskopi_frontend/features/home/presentation/widgets/home_banner.dart';
 import 'package:ataskopi_frontend/features/home/presentation/widgets/outlet_selector.dart';
@@ -89,20 +88,6 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // On home tab: paint only the status bar area (safe area top) with the
-          // brand primary color, so it matches the hero banner when at scroll pos 0.
-          // This avoids setting Scaffold backgroundColor to blue (which bleeds through
-          // transparent gaps in the scroll view).
-          if (bottomNavIndex == 0)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).padding.top > 0 
-                  ? MediaQuery.of(context).padding.top 
-                  : WebSafeArea.top,
-              child: Container(color: tenant.primaryColor),
-            ),
           IndexedStack(
             index: bottomNavIndex,
             children: [
@@ -128,51 +113,44 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
             ),
           ],
         ),
-        child: Builder(
-          builder: (context) {
-            final mqBottom = MediaQuery.of(context).padding.bottom;
-            final double bottomPad = mqBottom > 0 ? mqBottom : WebSafeArea.bottom;
-            
-            return Padding(
-              padding: EdgeInsets.only(bottom: bottomPad),
-              child: Container(
-                height: 64.h,
-                padding: EdgeInsets.only(
-                  left: 24.w,
-                  right: 24.w,
+        child: SafeArea(
+          top: false,
+          child: Container(
+            height: 64.h,
+            padding: EdgeInsets.only(
+              left: 24.w,
+              right: 24.w,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _HashNavIcon(
+                  icon: LucideIcons.home,
+                  isActive: bottomNavIndex == 0,
+                  activeColor: tenant.primaryColor,
+                  onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _HashNavIcon(
-                      icon: LucideIcons.home,
-                      isActive: bottomNavIndex == 0,
-                      activeColor: tenant.primaryColor,
-                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 0,
-                    ),
-                    _HashNavIcon(
-                      icon: LucideIcons.history,
-                      isActive: bottomNavIndex == 1,
-                      activeColor: tenant.primaryColor,
-                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
-                    ),
-                    _HashNavIcon(
-                      icon: LucideIcons.ticket,
-                      isActive: bottomNavIndex == 2,
-                      activeColor: tenant.primaryColor,
-                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
-                    ),
-                    _HashNavIcon(
-                      icon: LucideIcons.user,
-                      isActive: bottomNavIndex == 3,
-                      activeColor: tenant.primaryColor,
-                      onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
-                    ),
-                  ],
+                _HashNavIcon(
+                  icon: LucideIcons.history,
+                  isActive: bottomNavIndex == 1,
+                  activeColor: tenant.primaryColor,
+                  onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
                 ),
-              ),
-            );
-          }
+                _HashNavIcon(
+                  icon: LucideIcons.ticket,
+                  isActive: bottomNavIndex == 2,
+                  activeColor: tenant.primaryColor,
+                  onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
+                ),
+                _HashNavIcon(
+                  icon: LucideIcons.user,
+                  isActive: bottomNavIndex == 3,
+                  activeColor: tenant.primaryColor,
+                  onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -185,8 +163,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
     final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
     final unreadCount = unreadCountAsync.valueOrNull ?? 0;
 
-    final mqTop = MediaQuery.of(context).padding.top;
-    final double statusBarHeight = mqTop > 0 ? mqTop : WebSafeArea.top;
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     return MediaQuery.removePadding(
       context: context,
