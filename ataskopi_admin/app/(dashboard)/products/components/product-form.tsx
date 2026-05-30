@@ -28,6 +28,7 @@ import { useState } from "react";
 import { Category } from "@prisma/client";
 import { createProduct, updateProduct } from "@/actions/product-actions";
 import { Plus, Trash2, X } from "lucide-react";
+import ImageUpload from "@/components/ui/image-upload";
 
 const productFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -207,12 +208,17 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                     name="imageUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Image URL</FormLabel>
+                            <FormLabel>Gambar Produk</FormLabel>
                             <FormControl>
-                                <Input placeholder="https://..." {...field} />
+                                <ImageUpload
+                                    value={field.value || ''}
+                                    disabled={loading}
+                                    onChange={(url) => field.onChange(url)}
+                                    onRemove={() => field.onChange("")}
+                                />
                             </FormControl>
                             <FormDescription>
-                                Direct link to product image (Supabase Storage).
+                                Unggah foto atau gambar produk kopi/makanan.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
