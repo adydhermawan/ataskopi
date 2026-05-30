@@ -29,6 +29,7 @@ import { Category } from "@prisma/client";
 import { createProduct, updateProduct } from "@/actions/product-actions";
 import { Plus, Trash2, X } from "lucide-react";
 import ImageUpload from "@/components/ui/image-upload";
+import { toast } from "sonner";
 
 const productFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -114,21 +115,29 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
         try {
             if (initialData) {
                 await updateProduct(initialData.id, data);
+                toast.success("Produk berhasil diperbarui");
             } else {
                 await createProduct(data);
+                toast.success("Produk berhasil dibuat");
             }
             router.push("/products");
             router.refresh();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            toast.error(error?.message || "Gagal menyimpan produk");
         } finally {
             setLoading(false);
         }
     }
 
+    const onError = (errors: any) => {
+        console.error("Form validation errors:", errors);
+        toast.error("Gagal menyimpan: Periksa kembali kolom nama, varian, atau modifier yang wajib diisi!");
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
                 {/* Basic Product Info */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <FormField
@@ -305,6 +314,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                                 <FormControl>
                                                     <Input placeholder="Nama Opsi" {...field} />
                                                 </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -367,15 +377,20 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
 
                                 <div className="space-y-3">
                                     {form.watch(`options.${optIndex}.values`)?.map((valItem, valIndex) => (
-                                        <div key={valIndex} className="flex items-center gap-4">
+                                        <div key={valIndex} className="flex items-start gap-4">
                                             <div className="flex-1">
                                                 <Input
                                                     placeholder="Nama Varian (e.g. Regular, Ice, No Sugar)"
                                                     value={form.watch(`options.${optIndex}.values.${valIndex}.name`) || ""}
                                                     onChange={(e) => {
                                                         form.setValue(`options.${optIndex}.values.${valIndex}.name`, e.target.value);
+                                                        form.trigger(`options.${optIndex}.values.${valIndex}.name`);
                                                     }}
+                                                    className={(form.formState.errors.options as any)?.[optIndex]?.values?.[valIndex]?.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                                                 />
+                                                {(form.formState.errors.options as any)?.[optIndex]?.values?.[valIndex]?.name && (
+                                                    <p className="text-[11px] text-red-500 mt-1">Nama varian wajib diisi</p>
+                                                )}
                                             </div>
                                             <div className="w-40">
                                                 <Input
@@ -455,6 +470,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                                 <FormControl>
                                                     <Input placeholder="Nama Tambahan (e.g. Extra Shot)" {...field} />
                                                 </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
