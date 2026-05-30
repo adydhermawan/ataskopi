@@ -6,6 +6,19 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
     const params = await props.params;
     const product = await db.product.findUnique({
         where: { id: params.id },
+        include: {
+            options: {
+                include: {
+                    values: {
+                        orderBy: { sortOrder: 'asc' }
+                    }
+                },
+                orderBy: { sortOrder: 'asc' }
+            },
+            modifiers: {
+                orderBy: { sortOrder: 'asc' }
+            }
+        }
     });
 
     if (!product) {
@@ -16,6 +29,24 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
     const serializedProduct = {
         ...product,
         basePrice: Number(product.basePrice),
+        options: product.options.map(opt => ({
+            id: opt.id,
+            name: opt.name,
+            minSelect: opt.minSelect,
+            maxSelect: opt.maxSelect,
+            values: opt.values.map(val => ({
+                id: val.id,
+                name: val.name,
+                priceModifier: Number(val.priceModifier),
+                isDefault: val.isDefault,
+            }))
+        })),
+        modifiers: product.modifiers.map(mod => ({
+            id: mod.id,
+            name: mod.name,
+            price: Number(mod.price),
+            isAvailable: mod.isAvailable,
+        }))
     };
 
     const categories = await db.category.findMany();

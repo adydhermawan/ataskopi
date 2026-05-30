@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Category } from "@prisma/client";
 import { createProduct, updateProduct } from "@/actions/product-actions";
-import { toast } from "sonner"; // Assuming sonner or similar toast lib is installed/setup
+import { Plus, Trash2, X } from "lucide-react";
 
 const productFormSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
@@ -37,6 +37,27 @@ const productFormSchema = z.object({
     imageUrl: z.string().optional(),
     isAvailable: z.any(),
     isRecommended: z.any(),
+    options: z.array(
+        z.object({
+            name: z.string().min(1, "Option name is required"),
+            minSelect: z.coerce.number().default(1),
+            maxSelect: z.coerce.number().default(1),
+            values: z.array(
+                z.object({
+                    name: z.string().min(1, "Value name is required"),
+                    priceModifier: z.coerce.number().default(0),
+                    isDefault: z.boolean().default(false),
+                })
+            ).min(1, "At least one value is required"),
+        })
+    ),
+    modifiers: z.array(
+        z.object({
+            name: z.string().min(1, "Modifier name is required"),
+            price: z.coerce.number().default(0),
+            isAvailable: z.boolean().default(true),
+        })
+    ),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -51,7 +72,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
     const [loading, setLoading] = useState(false);
 
     const form = useForm<ProductFormValues>({
-        resolver: zodResolver(productFormSchema),
+        resolver: zodResolver(productFormSchema) as any,
         defaultValues: initialData
             ? {
                 name: initialData.name,
@@ -61,6 +82,8 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                 imageUrl: initialData.imageUrl || "",
                 isAvailable: initialData.isAvailable,
                 isRecommended: initialData.isRecommended,
+                options: initialData.options || [],
+                modifiers: initialData.modifiers || [],
             }
             : {
                 name: "",
@@ -70,7 +93,19 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                 imageUrl: "",
                 isAvailable: true,
                 isRecommended: false,
+                options: [],
+                modifiers: [],
             },
+    });
+
+    const { fields: optionsFields, append: appendOption, remove: removeOption } = useFieldArray({
+        control: form.control,
+        name: "options",
+    });
+
+    const { fields: modifiersFields, append: appendModifier, remove: removeModifier } = useFieldArray({
+        control: form.control,
+        name: "modifiers",
     });
 
     async function onSubmit(data: ProductFormValues) {
@@ -78,16 +113,13 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
         try {
             if (initialData) {
                 await updateProduct(initialData.id, data);
-                // toast.success("Product updated"); 
             } else {
                 await createProduct(data);
-                // toast.success("Product created");
             }
             router.push("/products");
             router.refresh();
         } catch (error) {
             console.error(error);
-            // toast.error("Something went wrong");
         } finally {
             setLoading(false);
         }
@@ -96,6 +128,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                {/* Basic Product Info */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <FormField
                         control={form.control}
@@ -230,7 +263,241 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                     />
                 </div>
 
-                <Button type="submit" disabled={loading}>
+                {/* Options Section */}
+                <div className="space-y-6 rounded-lg border p-6 bg-slate-50/50 dark:bg-slate-900/10">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold">Opsi Produk (Varian/Size/Sugar/dll.)</h3>
+                            <p className="text-sm text-muted-foreground">Opsi pilihan produk di mana customer bisa memilih salah satu (single select) atau beberapa (multi select).</p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => appendOption({ name: "", minSelect: 1, maxSelect: 1, values: [{ name: "", priceModifier: 0, isDefault: false }] })}
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Tambah Opsi
+                        </Button>
+                    </div>
+
+                    {optionsFields.length === 0 && (
+                        <div className="text-center py-6 border border-dashed rounded-lg text-muted-foreground text-sm bg-white dark:bg-slate-900/20">
+                            Belum ada opsi produk yang ditambahkan.
+                        </div>
+                    )}
+
+                    {optionsFields.map((optField, optIndex) => (
+                        <div key={optField.id} className="p-5 border rounded-lg bg-white dark:bg-slate-900/40 space-y-5 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="grid gap-4 md:grid-cols-3 flex-1">
+                                    <FormField
+                                        control={form.control}
+                                        name={`options.${optIndex}.name`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold">Nama Opsi (e.g. Pilih Varian)</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Nama Opsi" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name={`options.${optIndex}.minSelect`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold">Minimal Pilihan</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name={`options.${optIndex}.maxSelect`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold">Maksimal Pilihan</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:text-red-700 mt-7"
+                                    onClick={() => removeOption(optIndex)}
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+
+                            {/* Option Values Nested Array */}
+                            <div className="pl-6 border-l-2 border-slate-100 dark:border-slate-800 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pilihan Nilai / Varian</h4>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800"
+                                        onClick={() => {
+                                            const currentValues = form.getValues(`options.${optIndex}.values`) || [];
+                                            form.setValue(`options.${optIndex}.values`, [
+                                                ...currentValues,
+                                                { name: "", priceModifier: 0, isDefault: false }
+                                            ]);
+                                        }}
+                                    >
+                                        <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Pilihan Varian
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {form.watch(`options.${optIndex}.values`)?.map((valItem, valIndex) => (
+                                        <div key={valIndex} className="flex items-center gap-4">
+                                            <div className="flex-1">
+                                                <Input
+                                                    placeholder="Nama Varian (e.g. Regular, Ice, No Sugar)"
+                                                    value={form.watch(`options.${optIndex}.values.${valIndex}.name`) || ""}
+                                                    onChange={(e) => {
+                                                        form.setValue(`options.${optIndex}.values.${valIndex}.name`, e.target.value);
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="w-40">
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Harga Tambahan (Rp)"
+                                                    value={form.watch(`options.${optIndex}.values.${valIndex}.priceModifier`) ?? ""}
+                                                    onChange={(e) => {
+                                                        form.setValue(`options.${optIndex}.values.${valIndex}.priceModifier`, parseFloat(e.target.value) || 0);
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox
+                                                    checked={form.watch(`options.${optIndex}.values.${valIndex}.isDefault`) || false}
+                                                    onCheckedChange={(checked) => {
+                                                        form.setValue(`options.${optIndex}.values.${valIndex}.isDefault`, checked === true);
+                                                    }}
+                                                />
+                                                <span className="text-xs text-muted-foreground font-medium">Default</span>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-red-500 hover:text-red-700 h-9 w-9"
+                                                disabled={(form.watch(`options.${optIndex}.values`) || []).length <= 1}
+                                                onClick={() => {
+                                                    const currentValues = form.getValues(`options.${optIndex}.values`) || [];
+                                                    form.setValue(
+                                                        `options.${optIndex}.values`,
+                                                        currentValues.filter((_, idx) => idx !== valIndex)
+                                                    );
+                                                }}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Modifiers Section */}
+                <div className="space-y-6 rounded-lg border p-6 bg-slate-50/50 dark:bg-slate-900/10">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold">Tambahan / Modifiers (Opsional)</h3>
+                            <p className="text-sm text-muted-foreground">Daftar item tambahan yang bersifat opsional untuk dibeli (Contoh: Extra Shot, Jelly Aren, dll.).</p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => appendModifier({ name: "", price: 0, isAvailable: true })}
+                        >
+                            <Plus className="w-4 h-4 mr-2" /> Tambah Tambahan
+                        </Button>
+                    </div>
+
+                    {modifiersFields.length === 0 && (
+                        <div className="text-center py-6 border border-dashed rounded-lg text-muted-foreground text-sm bg-white dark:bg-slate-900/20">
+                            Belum ada modifier/tambahan yang ditambahkan.
+                        </div>
+                    )}
+
+                    <div className="space-y-3">
+                        {modifiersFields.map((modField, modIndex) => (
+                            <div key={modField.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white dark:bg-slate-900/40 shadow-sm">
+                                <div className="flex-1">
+                                    <FormField
+                                        control={form.control}
+                                        name={`modifiers.${modIndex}.name`}
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-0.5">
+                                                <FormControl>
+                                                    <Input placeholder="Nama Tambahan (e.g. Extra Shot)" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="w-48">
+                                    <FormField
+                                        control={form.control}
+                                        name={`modifiers.${modIndex}.price`}
+                                        render={({ field }) => (
+                                            <FormItem className="space-y-0.5">
+                                                <FormControl>
+                                                    <Input type="number" placeholder="Harga (Rp)" {...field} />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name={`modifiers.${modIndex}.isAvailable`}
+                                        render={({ field }) => (
+                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="text-xs text-muted-foreground font-medium">Tersedia</FormLabel>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-red-500 hover:text-red-700 h-9 w-9"
+                                    onClick={() => removeModifier(modIndex)}
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <Button type="submit" disabled={loading} className="w-full md:w-auto px-6 py-2">
                     {loading ? "Saving..." : initialData ? "Save Changes" : "Create Product"}
                 </Button>
             </form>
