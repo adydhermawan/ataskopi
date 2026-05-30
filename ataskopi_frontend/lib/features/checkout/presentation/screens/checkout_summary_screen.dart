@@ -47,28 +47,50 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (settingsAsync.hasValue) {
         final settings = settingsAsync.value!;
+        final isInitialized = ref.read(isPaymentMethodInitializedProvider);
         final current = ref.read(selectedPaymentMethodProvider);
         
         bool qrisActive = settings.qrisEnabled;
         bool cashActive = settings.cashEnabled && (orderFlow.mode == OrderMode.dineIn || orderFlow.mode == OrderMode.pickup);
 
-        bool currentValid = true;
-        if (current == 'qris' && !qrisActive) currentValid = false;
-        if (current == 'tunai' && !cashActive) currentValid = false;
-
-        if (!currentValid) {
-          String fallback = settings.defaultPaymentMethod == 'cash' || settings.defaultPaymentMethod == 'tunai' 
+        if (!isInitialized) {
+          // Initialize for the first time using backend settings' defaultPaymentMethod
+          String initialMethod = settings.defaultPaymentMethod == 'cash' || settings.defaultPaymentMethod == 'tunai' 
               ? 'tunai' 
               : 'qris';
           
-          if (fallback == 'qris' && !qrisActive) {
-            fallback = 'tunai';
-          } else if (fallback == 'tunai' && !cashActive) {
-            fallback = 'qris';
+          // Check if the initial choice is active/valid
+          if (initialMethod == 'tunai' && !cashActive) {
+            initialMethod = 'qris';
+          } else if (initialMethod == 'qris' && !qrisActive) {
+            initialMethod = 'tunai';
           }
+          
+          // Update provider states
+          ref.read(selectedPaymentMethodProvider.notifier).state = initialMethod;
+          ref.read(isPaymentMethodInitializedProvider.notifier).state = true;
+        } else {
+          // It's already initialized, just validate the current selection.
+          // (e.g. if order mode changes to Delivery, Cash is no longer active)
+          bool currentValid = true;
+          if (current == 'qris' && !qrisActive) currentValid = false;
+          if (current == 'tunai' && !cashActive) currentValid = false;
 
-          if (current != fallback) {
-            ref.read(selectedPaymentMethodProvider.notifier).state = fallback;
+          if (!currentValid) {
+            String fallback = 'qris';
+            if (current == 'qris') {
+              fallback = 'tunai';
+            } else {
+              fallback = 'qris';
+            }
+            // Double check fallback is active
+            if (fallback == 'qris' && !qrisActive) {
+              // Both invalid or inactive, keep current
+            } else if (fallback == 'tunai' && !cashActive) {
+              // Both invalid or inactive, keep current
+            } else {
+              ref.read(selectedPaymentMethodProvider.notifier).state = fallback;
+            }
           }
         }
       }
@@ -95,6 +117,9 @@ class CheckoutSummaryScreen extends ConsumerWidget {
         }
         if (ref.read(pointsToRedeemProvider) != 0) {
           ref.read(pointsToRedeemProvider.notifier).state = 0;
+        }
+        if (ref.read(isPaymentMethodInitializedProvider)) {
+          ref.read(isPaymentMethodInitializedProvider.notifier).state = false;
         }
       });
     }

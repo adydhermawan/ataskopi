@@ -90,6 +90,7 @@ final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
 final selectedVoucherProvider = StateProvider<Voucher?>((ref) => null);
 final pointsToRedeemProvider = StateProvider<int>((ref) => 0);
 final selectedPaymentMethodProvider = StateProvider<String>((ref) => 'qris');
+final isPaymentMethodInitializedProvider = StateProvider<bool>((ref) => false);
 
 final orderCalculationProvider = Provider((ref) {
   final cart = ref.watch(cartProvider);
