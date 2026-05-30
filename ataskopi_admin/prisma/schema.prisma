@@ -124,14 +124,15 @@ model ProductVariant {
 }
 
 model ProductOption {
-  id        String               @id @default(uuid())
-  productId String               @map("product_id")
-  name      String
-  minSelect Int                  @default(1) @map("min_select")
-  maxSelect Int                  @default(1) @map("max_select")
-  sortOrder Int                  @default(0) @map("sort_order")
-  values    ProductOptionValue[]
-  product   Product              @relation(fields: [productId], references: [id])
+  id          String               @id @default(uuid())
+  productId   String               @map("product_id")
+  name        String
+  minSelect   Int                  @default(1) @map("min_select")
+  maxSelect   Int                  @default(1) @map("max_select")
+  sortOrder   Int                  @default(0) @map("sort_order")
+  isAvailable Boolean              @default(true) @map("is_available")
+  values      ProductOptionValue[]
+  product     Product              @relation(fields: [productId], references: [id])
 
   @@map("product_options")
 }
@@ -143,6 +144,7 @@ model ProductOptionValue {
   priceModifier    Decimal           @default(0) @map("price_modifier") @db.Decimal(10, 2)
   isDefault        Boolean           @default(false) @map("is_default")
   sortOrder        Int               @default(0) @map("sort_order")
+  isAvailable      Boolean           @default(true) @map("is_available")
   orderItemOptions OrderItemOption[]
   option           ProductOption     @relation(fields: [optionId], references: [id])
 

@@ -84,8 +84,10 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
                     },
                 },
                 options: {
+                    where: { isAvailable: true },
                     include: {
                         values: {
+                            where: { isAvailable: true },
                             orderBy: { sortOrder: 'asc' },
                         },
                     },

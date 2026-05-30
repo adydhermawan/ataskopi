@@ -94,48 +94,135 @@ export async function updateProduct(id: string, data: any) {
                 where: { productId: id },
             });
 
-            // 3. Delete old option values and options
-            const oldOptions = await tx.productOption.findMany({
+            // 3. Diff and update options and values to avoid foreign key errors on ordered items
+            const existingOptions = await tx.productOption.findMany({
                 where: { productId: id },
-                select: { id: true },
+                include: { values: true },
             });
-            const oldOptionIds = oldOptions.map(o => o.id);
-            
-            if (oldOptionIds.length > 0) {
-                await tx.productOptionValue.deleteMany({
-                    where: { optionId: { in: oldOptionIds } },
-                });
-                await tx.productOption.deleteMany({
-                    where: { id: { in: oldOptionIds } },
-                });
+
+            const incomingOptionIds = new Set(options.map((o: any) => o.id).filter(Boolean));
+            const incomingValueIds = new Set(
+                options.flatMap((o: any) => o.values || []).map((v: any) => v.id).filter(Boolean)
+            );
+
+            // Deletions / Soft-deletions of old options
+            for (const extOpt of existingOptions) {
+                if (!incomingOptionIds.has(extOpt.id)) {
+                    // Option was removed. Check if any value has been ordered.
+                    const valIds = extOpt.values.map(v => v.id);
+                    const orderCount = valIds.length > 0 ? await tx.orderItemOption.count({
+                        where: { optionValueId: { in: valIds } }
+                    }) : 0;
+
+                    if (orderCount > 0) {
+                        // Soft delete
+                        await tx.productOption.update({
+                            where: { id: extOpt.id },
+                            data: { isAvailable: false },
+                        });
+                        await tx.productOptionValue.updateMany({
+                            where: { optionId: extOpt.id },
+                            data: { isAvailable: false },
+                        });
+                    } else {
+                        // Hard delete
+                        if (valIds.length > 0) {
+                            await tx.productOptionValue.deleteMany({
+                                where: { id: { in: valIds } },
+                            });
+                        }
+                        await tx.productOption.delete({
+                            where: { id: extOpt.id },
+                        });
+                    }
+                } else {
+                    // Option is kept. Check if any value was removed.
+                    for (const extVal of extOpt.values) {
+                        if (!incomingValueIds.has(extVal.id)) {
+                            // Value was removed. Check if ordered.
+                            const orderCount = await tx.orderItemOption.count({
+                                where: { optionValueId: extVal.id }
+                            });
+                            if (orderCount > 0) {
+                                // Soft delete value
+                                await tx.productOptionValue.update({
+                                    where: { id: extVal.id },
+                                    data: { isAvailable: false },
+                                });
+                            } else {
+                                // Hard delete value
+                                await tx.productOptionValue.delete({
+                                    where: { id: extVal.id },
+                                });
+                            }
+                        }
+                    }
+                }
             }
 
-            // 4. Create new options and values
+            // Create or update incoming options
             if (options && options.length > 0) {
                 for (let i = 0; i < options.length; i++) {
                     const opt = options[i];
-                    const createdOption = await tx.productOption.create({
-                        data: {
-                            productId: id,
-                            name: opt.name,
-                            minSelect: Number(opt.minSelect || 1),
-                            maxSelect: Number(opt.maxSelect || 1),
-                            sortOrder: i,
-                        }
-                    });
-                    
+                    let optionId = opt.id;
+
+                    if (optionId) {
+                        // Update existing option
+                        await tx.productOption.update({
+                            where: { id: optionId },
+                            data: {
+                                name: opt.name,
+                                minSelect: Number(opt.minSelect || 1),
+                                maxSelect: Number(opt.maxSelect || 1),
+                                sortOrder: i,
+                                isAvailable: true,
+                            }
+                        });
+                    } else {
+                        // Create new option
+                        const createdOption = await tx.productOption.create({
+                            data: {
+                                productId: id,
+                                name: opt.name,
+                                minSelect: Number(opt.minSelect || 1),
+                                maxSelect: Number(opt.maxSelect || 1),
+                                sortOrder: i,
+                                isAvailable: true,
+                            }
+                        });
+                        optionId = createdOption.id;
+                    }
+
+                    // Create or update values
                     if (opt.values && opt.values.length > 0) {
                         for (let j = 0; j < opt.values.length; j++) {
                             const val = opt.values[j];
-                            await tx.productOptionValue.create({
-                                data: {
-                                    optionId: createdOption.id,
-                                    name: val.name,
-                                    priceModifier: Number(val.priceModifier || 0),
-                                    isDefault: !!val.isDefault,
-                                    sortOrder: j,
-                                }
-                            });
+                            if (val.id) {
+                                // Update existing value
+                                await tx.productOptionValue.update({
+                                    where: { id: val.id },
+                                    data: {
+                                        optionId: optionId,
+                                        name: val.name,
+                                        priceModifier: Number(val.priceModifier || 0),
+                                        isDefault: !!val.isDefault,
+                                        sortOrder: j,
+                                        isAvailable: true,
+                                    }
+                                });
+                            } else {
+                                // Create new value
+                                await tx.productOptionValue.create({
+                                    data: {
+                                        optionId: optionId,
+                                        name: val.name,
+                                        priceModifier: Number(val.priceModifier || 0),
+                                        isDefault: !!val.isDefault,
+                                        sortOrder: j,
+                                        isAvailable: true,
+                                    }
+                                });
+                            }
                         }
                     }
                 }

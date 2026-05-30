@@ -8,8 +8,10 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
         where: { id: params.id },
         include: {
             options: {
+                where: { isAvailable: true },
                 include: {
                     values: {
+                        where: { isAvailable: true },
                         orderBy: { sortOrder: 'asc' }
                     }
                 },

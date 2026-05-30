@@ -23,8 +23,10 @@ export async function getProducts(searchQuery?: string) {
         include: {
             category: true,
             options: {
+                where: { isAvailable: true },
                 include: {
                     values: {
+                        where: { isAvailable: true },
                         orderBy: { sortOrder: 'asc' }
                     }
                 },
@@ -107,39 +109,142 @@ export async function updateProduct(id: string, data: any) {
                 }
             })
 
-            // Delete existing relations
-            const existingOptions = await tx.productOption.findMany({ where: { productId: id } })
-            for (const opt of existingOptions) {
-                await tx.productOptionValue.deleteMany({ where: { optionId: opt.id } })
-            }
-            await tx.productOption.deleteMany({ where: { productId: id } })
-            await tx.productModifier.deleteMany({ where: { productId: id } })
+            // Diff and update options and values to avoid foreign key errors on ordered items
+            const existingOptions = await tx.productOption.findMany({
+                where: { productId: id },
+                include: { values: true },
+            });
 
-            // Re-create Options
+            const incomingOptionIds = new Set((data.options || []).map((o: any) => o.id).filter(Boolean));
+            const incomingValueIds = new Set(
+                (data.options || []).flatMap((o: any) => o.values || []).map((v: any) => v.id).filter(Boolean)
+            );
+
+            // Deletions / Soft-deletions of old options
+            for (const extOpt of existingOptions) {
+                if (!incomingOptionIds.has(extOpt.id)) {
+                    // Option was removed. Check if any value has been ordered.
+                    const valIds = extOpt.values.map(v => v.id);
+                    const orderCount = valIds.length > 0 ? await tx.orderItemOption.count({
+                        where: { optionValueId: { in: valIds } }
+                    }) : 0;
+
+                    if (orderCount > 0) {
+                        // Soft delete
+                        await tx.productOption.update({
+                            where: { id: extOpt.id },
+                            data: { isAvailable: false },
+                        });
+                        await tx.productOptionValue.updateMany({
+                            where: { optionId: extOpt.id },
+                            data: { isAvailable: false },
+                        });
+                    } else {
+                        // Hard delete
+                        if (valIds.length > 0) {
+                            await tx.productOptionValue.deleteMany({
+                                where: { id: { in: valIds } },
+                            });
+                        }
+                        await tx.productOption.delete({
+                            where: { id: extOpt.id },
+                        });
+                    }
+                } else {
+                    // Option is kept. Check if any value was removed.
+                    for (const extVal of extOpt.values) {
+                        if (!incomingValueIds.has(extVal.id)) {
+                            // Value was removed. Check if ordered.
+                            const orderCount = await tx.orderItemOption.count({
+                                where: { optionValueId: extVal.id }
+                            });
+                            if (orderCount > 0) {
+                                // Soft delete value
+                                await tx.productOptionValue.update({
+                                    where: { id: extVal.id },
+                                    data: { isAvailable: false },
+                                });
+                            } else {
+                                // Hard delete value
+                                await tx.productOptionValue.delete({
+                                    where: { id: extVal.id },
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Create or update incoming options
             if (data.options && data.options.length > 0) {
                 for (let i = 0; i < data.options.length; i++) {
                     const opt = data.options[i];
-                    await tx.productOption.create({
-                        data: {
-                            productId: id,
-                            name: opt.name,
-                            minSelect: opt.minSelect,
-                            maxSelect: opt.maxSelect,
-                            sortOrder: i + 1,
-                            values: {
-                                create: opt.values.map((val: any, vIdx: number) => ({
-                                    name: val.name,
-                                    priceModifier: val.priceModifier,
-                                    sortOrder: vIdx + 1,
-                                    isDefault: val.isDefault || false
-                                }))
+                    let optionId = opt.id;
+
+                    if (optionId) {
+                        // Update existing option
+                        await tx.productOption.update({
+                            where: { id: optionId },
+                            data: {
+                                name: opt.name,
+                                minSelect: Number(opt.minSelect || 1),
+                                maxSelect: Number(opt.maxSelect || 1),
+                                sortOrder: i + 1,
+                                isAvailable: true,
+                            }
+                        });
+                    } else {
+                        // Create new option
+                        const createdOption = await tx.productOption.create({
+                            data: {
+                                productId: id,
+                                name: opt.name,
+                                minSelect: Number(opt.minSelect || 1),
+                                maxSelect: Number(opt.maxSelect || 1),
+                                sortOrder: i + 1,
+                                isAvailable: true,
+                            }
+                        });
+                        optionId = createdOption.id;
+                    }
+
+                    // Create or update values
+                    if (opt.values && opt.values.length > 0) {
+                        for (let j = 0; j < opt.values.length; j++) {
+                            const val = opt.values[j];
+                            if (val.id) {
+                                // Update existing value
+                                await tx.productOptionValue.update({
+                                    where: { id: val.id },
+                                    data: {
+                                        optionId: optionId,
+                                        name: val.name,
+                                        priceModifier: Number(val.priceModifier || 0),
+                                        isDefault: !!val.isDefault,
+                                        sortOrder: j + 1,
+                                        isAvailable: true,
+                                    }
+                                });
+                            } else {
+                                // Create new value
+                                await tx.productOptionValue.create({
+                                    data: {
+                                        optionId: optionId,
+                                        name: val.name,
+                                        priceModifier: Number(val.priceModifier || 0),
+                                        isDefault: !!val.isDefault,
+                                        sortOrder: j + 1,
+                                        isAvailable: true,
+                                    }
+                                });
                             }
                         }
-                    })
+                    }
                 }
             }
 
             // Re-create Modifiers
+            await tx.productModifier.deleteMany({ where: { productId: id } })
             if (data.modifiers && data.modifiers.length > 0) {
                 for (let i = 0; i < data.modifiers.length; i++) {
                     const mod = data.modifiers[i];

@@ -41,11 +41,13 @@ const productFormSchema = z.object({
     isRecommended: z.any(),
     options: z.array(
         z.object({
+            id: z.string().optional(),
             name: z.string().min(1, "Option name is required"),
             minSelect: z.coerce.number().default(1),
             maxSelect: z.coerce.number().default(1),
             values: z.array(
                 z.object({
+                    id: z.string().optional(),
                     name: z.string().min(1, "Value name is required"),
                     priceModifier: z.coerce.number().default(0),
                     isDefault: z.boolean().default(false),
