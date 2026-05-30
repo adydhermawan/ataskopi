@@ -171,54 +171,6 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                         isLoading: _isLoading,
                         onPressed: _handleContinue,
                       ),
-                      SizedBox(height: 24.h),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            child: Text(
-                              'atau masuk dengan',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-                      SizedBox(height: 24.h),
-                      // Google Login
-                      OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: Size(double.infinity, 56.h),
-                          side: const BorderSide(color: Color(0xFFE2E8F0)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
-                              width: 24.w,
-                              height: 24.w,
-                              errorBuilder: (context, error, stackTrace) => 
-                                  Icon(Icons.g_mobiledata_rounded, size: 32.w, color: Colors.blue),
-                            ),
-                            SizedBox(width: 12.w),
-                            Text(
-                              'Google',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                       const Spacer(),
                       // Footer
                       Text.rich(
