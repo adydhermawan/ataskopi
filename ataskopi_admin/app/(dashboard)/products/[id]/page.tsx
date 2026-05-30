@@ -25,10 +25,16 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
         notFound();
     }
 
-    // Convert Decimal to plain number for serialization to Client Component
+    // Convert Decimal and non-serializable fields to plain types for Client Component
     const serializedProduct = {
-        ...product,
+        id: product.id,
+        name: product.name,
+        description: product.description || "",
+        categoryId: product.categoryId,
         basePrice: Number(product.basePrice),
+        imageUrl: product.imageUrl || "",
+        isAvailable: product.isAvailable,
+        isRecommended: product.isRecommended,
         options: product.options.map(opt => ({
             id: opt.id,
             name: opt.name,
