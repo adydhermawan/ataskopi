@@ -82,9 +82,9 @@ export async function createProduct(data: any) {
         })
         revalidatePath('/products')
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to create product:", error)
-        return { success: false, error: "Failed to create product" }
+        return { success: false, error: error?.message || "Failed to create product" }
     }
 }
 
@@ -159,9 +159,9 @@ export async function updateProduct(id: string, data: any) {
         revalidatePath('/products')
         revalidatePath(`/products/${id}`)
         return { success: true }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to update product:", error)
-        return { success: false, error: "Failed to update product" }
+        return { success: false, error: error?.message || "Failed to update product" }
     }
 }
 

@@ -113,15 +113,21 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
     async function onSubmit(data: ProductFormValues) {
         setLoading(true);
         try {
+            let result;
             if (initialData) {
-                await updateProduct(initialData.id, data);
-                toast.success("Produk berhasil diperbarui");
+                result = await updateProduct(initialData.id, data);
             } else {
-                await createProduct(data);
-                toast.success("Produk berhasil dibuat");
+                result = await createProduct(data);
             }
-            router.push("/products");
-            router.refresh();
+            
+            if (result && !result.success) {
+                console.error("Failed to save product:", result.error);
+                toast.error(result.error || "Gagal menyimpan produk");
+            } else {
+                toast.success(initialData ? "Produk berhasil diperbarui" : "Produk berhasil dibuat");
+                router.push("/products");
+                router.refresh();
+            }
         } catch (error: any) {
             console.error(error);
             toast.error(error?.message || "Gagal menyimpan produk");
