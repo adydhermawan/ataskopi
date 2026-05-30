@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
                     pickup: true,
                     delivery: true,
                     dineInMethod: 'SCAN_ONLY',
+                    taxEnabled: true,
                 }
             });
         }
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
             pickupEnabled: setting.pickup,
             deliveryEnabled: setting.delivery,
             dineInMethod: setting.dineInMethod,
+            taxEnabled: setting.taxEnabled,
         });
     } catch (error) {
         console.error('GET /api/settings error:', error);

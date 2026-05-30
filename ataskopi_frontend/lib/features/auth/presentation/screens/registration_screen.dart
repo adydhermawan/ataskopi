@@ -17,7 +17,6 @@ class RegistrationScreen extends ConsumerStatefulWidget {
 
 class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -70,14 +69,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               controller: _nameController,
               hint: 'e.g. Budi Santoso',
             ),
-            SizedBox(height: 24.h),
-            _buildLabel('Email'),
-            SizedBox(height: 8.h),
-            _buildTextField(
-              controller: _emailController,
-              hint: 'nama@email.com',
-              keyboardType: TextInputType.emailAddress,
-            ),
           ],
         ),
       ),
@@ -101,7 +92,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 builder: (_) => PinEntryScreen(
                   phoneNumber: widget.phoneNumber,
                   name: name,
-                  email: _emailController.text.isEmpty ? null : _emailController.text.trim(),
+                  email: null,
                   isRegistration: true,
                 ),
               ),

@@ -21,6 +21,7 @@ final orderModeSettingsProvider = FutureProvider<OrderModeSettings>((ref) async 
       pickupEnabled: true,
       deliveryEnabled: true,
       dineInMethod: 'SCAN_ONLY',
+      taxEnabled: true,
     );
   }
 });

@@ -63,6 +63,9 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
             return errorResponse('Outlet not found or inactive', 404);
         }
 
+        const orderModeSetting = await prisma.orderModeSetting.findFirst();
+        const taxEnabled = orderModeSetting?.taxEnabled ?? true;
+
         // Validate order type specific requirements
         if (data.orderType === 'dine_in' && data.tableId) {
             const table = await prisma.table.findFirst({
@@ -231,7 +234,7 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
         }
 
         // Calculate tax and total
-        const taxRate = 0.11; // 11% PPN
+        const taxRate = taxEnabled ? 0.11 : 0.0; // 11% PPN if enabled
         const tax = subtotal * taxRate;
         const total = subtotal + tax - discount - pointsDiscount;
 

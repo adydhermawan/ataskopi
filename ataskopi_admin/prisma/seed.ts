@@ -164,6 +164,7 @@ async function main() {
                 pickup: true,
                 delivery: true,
                 dineInMethod: 'SCAN_ONLY',
+                taxEnabled: true,
             }
         })
     }

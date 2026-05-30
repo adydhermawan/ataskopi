@@ -415,6 +415,7 @@ model OrderModeSetting {
   pickup       Boolean  @default(true) @map("pickup")
   delivery     Boolean  @default(true) @map("delivery")
   dineInMethod String   @default("SCAN_ONLY") @map("dine_in_method")
+  taxEnabled   Boolean  @default(true) @map("tax_enabled")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

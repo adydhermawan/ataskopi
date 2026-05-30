@@ -25,7 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { updateOrderModeSettings } from "@/actions/settings";
 import { toast } from "sonner";
 import { OrderModeSetting } from "@prisma/client";
-import { Loader2, Utensils, ShoppingBag, Truck } from "lucide-react";
+import { Loader2, Utensils, ShoppingBag, Truck, Percent } from "lucide-react";
 
 // Schema
 const formSchema = z.object({
@@ -33,6 +33,7 @@ const formSchema = z.object({
     pickup: z.boolean(),
     delivery: z.boolean(),
     dineInMethod: z.string(),
+    taxEnabled: z.boolean(),
 });
 
 interface OrderModeSettingsFormProps {
@@ -49,6 +50,7 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
             pickup: initialData?.pickup ?? true,
             delivery: initialData?.delivery ?? true,
             dineInMethod: initialData?.dineInMethod ?? 'SCAN_ONLY',
+            taxEnabled: initialData?.taxEnabled ?? true,
         },
     });
 
@@ -71,7 +73,7 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     {/* Dine In */}
                     <Card className="flex flex-col justify-between">
                         <CardHeader>
@@ -185,6 +187,40 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 w-full bg-slate-50/50 dark:bg-slate-900/20">
                                         <div className="space-y-0.5">
                                             <FormLabel className="text-sm font-medium">Status Layanan</FormLabel>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Pajak (Tax) */}
+                    <Card className="flex flex-col justify-between">
+                        <CardHeader>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
+                                    <Percent className="w-5 h-5" />
+                                </span>
+                                <CardTitle className="text-lg">Pajak (PPN 11%)</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Aktifkan atau nonaktifkan biaya pajak PPN sebesar 11% untuk setiap transaksi pesanan.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between pt-0">
+                            <FormField
+                                control={form.control}
+                                name="taxEnabled"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 w-full bg-slate-50/50 dark:bg-slate-900/20">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-sm font-medium">Aktifkan Pajak</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch

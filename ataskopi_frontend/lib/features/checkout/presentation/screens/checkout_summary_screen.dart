@@ -473,8 +473,10 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     SizedBox(height: 12.h),
                     _buildPriceRow('Diskon Poin', '- Rp ${(calculation['pointsDiscount']! / 1000).toInt()}.000', isDiscount: true),
                   ],
-                  SizedBox(height: 12.h),
-                  _buildPriceRow('Pajak (11%)', 'Rp ${(calculation['tax']! / 1000).toInt()}.000'),
+                  if (calculation['tax']! > 0) ...[
+                    SizedBox(height: 12.h),
+                    _buildPriceRow('Pajak (11%)', 'Rp ${(calculation['tax']! / 1000).toInt()}.000'),
+                  ],
                   SizedBox(height: 20.h),
                   Container(height: 1.h, color: const Color(0xFFF1F5F9)),
                   SizedBox(height: 16.h),

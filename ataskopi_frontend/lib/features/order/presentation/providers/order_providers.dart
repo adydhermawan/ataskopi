@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/core/providers/api_providers.dart';
 import 'package:ataskopi_frontend/core/providers/auth_provider.dart';
+import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
 
 class CartItem {
   final Product product;
@@ -94,6 +95,9 @@ final orderCalculationProvider = Provider((ref) {
   final cart = ref.watch(cartProvider);
   final voucher = ref.watch(selectedVoucherProvider);
   final points = ref.watch(pointsToRedeemProvider);
+  final settingsAsync = ref.watch(orderModeSettingsProvider);
+  
+  final taxEnabled = settingsAsync.value?.taxEnabled ?? true;
   
   double subtotal = cart.fold(0, (sum, item) => sum + item.totalPrice);
   double discount = 0;
@@ -119,7 +123,7 @@ final orderCalculationProvider = Provider((ref) {
   }
   
   double pointsDiscount = points * 1000.0; // Assume 1 point = Rp 1000
-  double tax = subtotal * 0.11;
+  double tax = taxEnabled ? subtotal * 0.11 : 0.0;
   double total = subtotal + tax - discount - pointsDiscount;
   if (total < 0) total = 0;
   
