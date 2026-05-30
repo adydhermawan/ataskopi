@@ -43,11 +43,6 @@ export default function LoginPage() {
         }
     }
 
-    // Quick login buttons for testing
-    const quickLogin = (testPhone: string, testPin: string) => {
-        setPhone(testPhone)
-        setPin(testPin)
-    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-800 p-4">
@@ -101,42 +96,7 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    {/* Test Users Quick Login */}
-                    <div className="mt-6 pt-6 border-t">
-                        <p className="text-xs text-muted-foreground mb-3 text-center">Quick Login (Testing)</p>
-                        <div className="space-y-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => quickLogin("+6281234567891", "123456")}
-                            >
-                                <span className="font-semibold mr-2">Admin</span>
-                                <span className="text-xs text-muted-foreground">Full Access</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => quickLogin("+6281234567892", "123456")}
-                            >
-                                <span className="font-semibold mr-2">Kasir</span>
-                                <span className="text-xs text-muted-foreground">Orders Only</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => quickLogin("+6281234567890", "123456")}
-                            >
-                                <span className="font-semibold mr-2">Customer</span>
-                                <span className="text-xs text-muted-foreground">Customer App</span>
-                            </Button>
-                        </div>
-                    </div>
+
                 </CardContent>
             </Card>
         </div>

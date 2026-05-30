@@ -161,20 +161,6 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                       ),
 
                       SizedBox(height: 16.h),
-                      TextButton(
-                        onPressed: () {
-                          ref.read(authProvider.notifier).devLogin();
-                        },
-                        child: Text(
-                          '[DEV] Auto Login',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.red.shade400,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
                       // Phone Input
                       _buildPhoneInput(tenant),
                       SizedBox(height: 24.h),
