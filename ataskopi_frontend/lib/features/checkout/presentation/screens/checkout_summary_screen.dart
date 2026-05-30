@@ -234,14 +234,18 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  ...cart.map((item) => _buildOrderItem(
-                        item.product.name,
-                        'Rp ${(item.totalPrice / 1000).toInt()}.000',
-                        [...item.selectedOptions.map((e) => e.name), ...item.selectedModifiers.map((e) => e.name)].join(', '),
-                        item.quantity,
-                        item.product.imageUrl ?? 'https://static.okomura.com/placeholder_coffee.png',
-                        isLast: cart.indexOf(item) == cart.length - 1,
-                      )),
+                  ...cart.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    return _buildOrderItem(
+                      context,
+                      ref,
+                      index,
+                      item,
+                      tenant,
+                      isLast: index == cart.length - 1,
+                    );
+                  }),
                 ],
               ),
             ),
@@ -958,13 +962,27 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOrderItem(String name, String price, String options, int qty, String imageUrl, {bool isLast = false}) {
+  Widget _buildOrderItem(
+    BuildContext context,
+    WidgetRef ref,
+    int index,
+    CartItem item,
+    TenantConfig tenant, {
+    bool isLast = false,
+  }) {
+    final name = item.product.name;
+    final price = 'Rp ${(item.totalPrice / 1000).toInt()}.000';
+    final options = [...item.selectedOptions.map((e) => e.name), ...item.selectedModifiers.map((e) => e.name)].join(', ');
+    final qty = item.quantity;
+    final imageUrl = item.product.imageUrl ?? 'https://static.okomura.com/placeholder_coffee.png';
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         border: isLast ? null : Border(bottom: BorderSide(color: const Color(0xFFF1F5F9), width: 1.w)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 72.w,
@@ -993,6 +1011,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
@@ -1002,7 +1021,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w700, 
                           color: const Color(0xFF0F172A),
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1017,29 +1036,207 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 6.h),
-                Text(
-                  options,
-                  style: TextStyle(
-                    fontSize: 13.sp, 
-                    color: const Color(0xFF64748B),
-                    fontWeight: FontWeight.w500,
+                if (options.isNotEmpty) ...[
+                  SizedBox(height: 6.h),
+                  Text(
+                    options,
+                    style: TextStyle(
+                      fontSize: 13.sp, 
+                      color: const Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                SizedBox(height: 6.h),
-                Text(
-                  'x$qty',
-                  style: TextStyle(
-                    fontSize: 13.sp, 
-                    fontWeight: FontWeight.w800, 
-                    color: const Color(0xFF1250A5),
-                  ),
+                ],
+                SizedBox(height: 12.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Kuantitas',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Container(
+                      height: 32.h,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        borderRadius: BorderRadius.circular(20.r),
+                        color: Colors.white,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              qty > 1 ? Icons.remove_rounded : Icons.delete_outline_rounded,
+                              size: 14.w,
+                              color: qty > 1 ? const Color(0xFF64748B) : const Color(0xFFEF4444),
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(maxWidth: 32.w, maxHeight: 32.h),
+                            onPressed: () {
+                              if (qty > 1) {
+                                ref.read(cartProvider.notifier).updateQuantity(index, qty - 1);
+                              } else {
+                                _showDeleteConfirmationDialog(context, ref, index, name);
+                              }
+                            },
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                            child: Text(
+                              '$qty',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.add_rounded,
+                              size: 14.w,
+                              color: tenant.primaryColor,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: BoxConstraints(maxWidth: 32.w, maxHeight: 32.h),
+                            onPressed: () {
+                              ref.read(cartProvider.notifier).updateQuantity(index, qty + 1);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, WidgetRef ref, int index, String productName) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+          elevation: 10,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 28.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.delete_outline_rounded,
+                    color: const Color(0xFFEF4444),
+                    size: 40.w,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  'Hapus dari Keranjang?',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12.h),
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: const Color(0xFF64748B),
+                      height: 1.5,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Apakah Anda yakin ingin menghapus '),
+                      TextSpan(
+                        text: productName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                      ),
+                      const TextSpan(text: ' dari daftar pesanan Anda?'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48.h,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE2E8F0)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text(
+                            'Batal',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48.h,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            ref.read(cartProvider.notifier).removeItem(index);
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'Hapus',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
