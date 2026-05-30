@@ -50,7 +50,7 @@ class CheckoutSummaryScreen extends ConsumerWidget {
         final current = ref.read(selectedPaymentMethodProvider);
         
         bool qrisActive = settings.qrisEnabled;
-        bool cashActive = settings.cashEnabled && orderFlow.mode == OrderMode.dineIn;
+        bool cashActive = settings.cashEnabled && (orderFlow.mode == OrderMode.dineIn || orderFlow.mode == OrderMode.pickup);
 
         bool currentValid = true;
         if (current == 'qris' && !qrisActive) currentValid = false;

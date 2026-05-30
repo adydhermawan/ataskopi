@@ -82,7 +82,7 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
                             icon: Icons.qr_code_scanner_rounded,
                             tenant: tenant,
                           ),
-                        if (cashEnabled && orderFlow.mode == OrderMode.dineIn) ...[
+                        if (cashEnabled && (orderFlow.mode == OrderMode.dineIn || orderFlow.mode == OrderMode.pickup)) ...[
                           if (qrisEnabled) SizedBox(height: 16.h),
                           _buildPaymentOption(
                             id: 'tunai',
