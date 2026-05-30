@@ -5,6 +5,7 @@ import '../../../../core/providers/tenant_provider.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../home/presentation/screens/home_main_screen.dart';
+import '../../../home/presentation/providers/home_providers.dart';
 import '../../../../core/providers/auth_provider.dart';
 
 class PinEntryScreen extends ConsumerStatefulWidget {
@@ -80,6 +81,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     }
 
     if (mounted) {
+      ref.read(homeTabIndexProvider.notifier).state = 0;
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeMainScreen()),

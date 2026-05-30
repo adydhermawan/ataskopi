@@ -9,6 +9,7 @@ import 'package:ataskopi_frontend/core/providers/tenant_provider.dart';
 import 'package:ataskopi_frontend/features/auth/presentation/screens/pin_entry_screen.dart';
 import 'package:ataskopi_frontend/features/auth/presentation/screens/registration_screen.dart';
 import 'package:ataskopi_frontend/features/home/presentation/screens/home_main_screen.dart';
+import 'package:ataskopi_frontend/features/home/presentation/providers/home_providers.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 
 class AuthEntryScreen extends ConsumerStatefulWidget {
@@ -95,6 +96,7 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.user != null) {
+        ref.read(homeTabIndexProvider.notifier).state = 0;
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomeMainScreen()),
           (route) => false,
