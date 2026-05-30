@@ -18,6 +18,10 @@ export async function getOrderModeSettings() {
                 delivery: true,
                 dineInMethod: 'SCAN_ONLY',
                 taxEnabled: true,
+                qrisEnabled: true,
+                cashEnabled: true,
+                defaultPaymentMethod: 'qris',
+                qrisQrCodeUrl: null,
             }
         })
     }
@@ -31,6 +35,10 @@ export async function updateOrderModeSettings(data: {
     delivery: boolean
     dineInMethod: string
     taxEnabled: boolean
+    qrisEnabled: boolean
+    cashEnabled: boolean
+    defaultPaymentMethod: string
+    qrisQrCodeUrl: string | null
 }) {
     await requirePermission('settings', 'update')
 
@@ -46,6 +54,10 @@ export async function updateOrderModeSettings(data: {
                     delivery: data.delivery,
                     dineInMethod: data.dineInMethod,
                     taxEnabled: data.taxEnabled,
+                    qrisEnabled: data.qrisEnabled,
+                    cashEnabled: data.cashEnabled,
+                    defaultPaymentMethod: data.defaultPaymentMethod,
+                    qrisQrCodeUrl: data.qrisQrCodeUrl,
                 }
             })
         } else {
@@ -56,6 +68,10 @@ export async function updateOrderModeSettings(data: {
                     delivery: data.delivery,
                     dineInMethod: data.dineInMethod,
                     taxEnabled: data.taxEnabled,
+                    qrisEnabled: data.qrisEnabled,
+                    cashEnabled: data.cashEnabled,
+                    defaultPaymentMethod: data.defaultPaymentMethod,
+                    qrisQrCodeUrl: data.qrisQrCodeUrl,
                 }
             })
         }

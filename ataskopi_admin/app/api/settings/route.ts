@@ -17,6 +17,10 @@ export async function GET(req: NextRequest) {
                     delivery: true,
                     dineInMethod: 'SCAN_ONLY',
                     taxEnabled: true,
+                    qrisEnabled: true,
+                    cashEnabled: true,
+                    defaultPaymentMethod: 'qris',
+                    qrisQrCodeUrl: null,
                 }
             });
         }
@@ -27,6 +31,10 @@ export async function GET(req: NextRequest) {
             deliveryEnabled: setting.delivery,
             dineInMethod: setting.dineInMethod,
             taxEnabled: setting.taxEnabled,
+            qrisEnabled: setting.qrisEnabled,
+            cashEnabled: setting.cashEnabled,
+            defaultPaymentMethod: setting.defaultPaymentMethod,
+            qrisQrCodeUrl: setting.qrisQrCodeUrl,
         });
     } catch (error) {
         console.error('GET /api/settings error:', error);

@@ -6,6 +6,7 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../shared/domain/models/models.dart';
 import '../../../order/presentation/providers/order_providers.dart';
 import '../../../order/presentation/providers/order_state.dart' as flow;
+import '../../../../core/providers/settings_provider.dart';
 
 class PaymentMethodScreen extends ConsumerStatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -18,10 +19,23 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
   String _selectedMethod = 'qris';
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _selectedMethod = ref.read(selectedPaymentMethodProvider);
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
     final calculation = ref.watch(orderCalculationProvider);
     final orderFlow = ref.watch(flow.orderFlowProvider);
+    final settingsAsync = ref.watch(orderModeSettingsProvider);
+    final qrisEnabled = settingsAsync.value?.qrisEnabled ?? true;
+    final cashEnabled = settingsAsync.value?.cashEnabled ?? true;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -60,15 +74,16 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 24.w),
                     child: Column(
                       children: [
-                        _buildPaymentOption(
-                          id: 'qris',
-                          title: 'QRIS',
-                          subtitle: 'ShopeePay, GoPay, Dana, dll',
-                          icon: Icons.qr_code_scanner_rounded,
-                          tenant: tenant,
-                        ),
-                        if (orderFlow.mode == OrderMode.dineIn) ...[
-                          SizedBox(height: 16.h),
+                        if (qrisEnabled)
+                          _buildPaymentOption(
+                            id: 'qris',
+                            title: 'QRIS',
+                            subtitle: 'ShopeePay, GoPay, Dana, dll',
+                            icon: Icons.qr_code_scanner_rounded,
+                            tenant: tenant,
+                          ),
+                        if (cashEnabled && orderFlow.mode == OrderMode.dineIn) ...[
+                          if (qrisEnabled) SizedBox(height: 16.h),
                           _buildPaymentOption(
                             id: 'tunai',
                             title: 'Tunai',

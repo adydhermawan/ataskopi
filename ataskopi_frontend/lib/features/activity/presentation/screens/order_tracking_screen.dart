@@ -133,7 +133,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           // 2. Specific Info Card (Delivery Map / Pickup Time / Table Info)
           if (order.orderType == 'delivery' && order.deliveryAddress != null)
              _buildDeliveryMapCard(order, tenant)
-          else if (order.orderType == 'dine_in' && order.table != null)
+          else if (order.orderType == 'dine_in')
              _buildDineInInfo(order, tenant)
           else if (order.orderType == 'pickup')
             _buildPickupInfo(order, tenant),
@@ -287,6 +287,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   Widget _buildDineInInfo(Order order, TenantConfig tenant) {
+    final hasTable = order.table != null;
+    final hasGuest = order.guestName != null && order.guestName!.isNotEmpty;
+
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -305,23 +308,31 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               color: const Color(0xFFFDF4FF),
               borderRadius: BorderRadius.circular(16.r),
             ),
-            child: Icon(Icons.table_restaurant_rounded, color: const Color(0xFFC026D3), size: 28.w),
+            child: Icon(
+              hasTable ? Icons.table_restaurant_rounded : Icons.person_rounded,
+              color: const Color(0xFFC026D3),
+              size: 28.w,
+            ),
           ),
           SizedBox(width: 16.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('NOMOR MEJA', style: _labelStyle),
-              SizedBox(height: 4.h),
-              Text(
-                'Meja ${order.table?.tableNumber ?? '-'}',
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-              ),
-              Text(
-                order.outlet?.name ?? 'Outlet',
-                style: TextStyle(fontSize: 12.sp, color: const Color(0xFF64748B)),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(hasTable ? 'NOMOR MEJA' : 'NAMA TAMU', style: _labelStyle),
+                SizedBox(height: 4.h),
+                Text(
+                  hasTable 
+                      ? 'Meja ${order.table!.tableNumber}' 
+                      : (hasGuest ? order.guestName! : '-'),
+                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                ),
+                Text(
+                  order.outlet?.name ?? 'Outlet',
+                  style: TextStyle(fontSize: 12.sp, color: const Color(0xFF64748B)),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -175,11 +175,21 @@ export function OrderDetailsSheet({
                                         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Service</h4>
                                     </div>
                                     <div className="space-y-2">
-                                        {order.orderType === 'dine_in' && order.table && (
-                                            <div className="flex items-center justify-between text-sm">
-                                                <span className="text-muted-foreground text-xs font-medium">Table</span>
-                                                <span className="font-bold text-slate-900">{order.table.tableNumber}</span>
-                                            </div>
+                                        {order.orderType === 'dine_in' && (
+                                            <>
+                                                {order.table && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-muted-foreground text-xs font-medium">Table</span>
+                                                        <span className="font-bold text-slate-900">{order.table.tableNumber}</span>
+                                                    </div>
+                                                )}
+                                                {order.guestName && (
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-muted-foreground text-xs font-medium">Nama Tamu</span>
+                                                        <span className="font-bold text-slate-900">{order.guestName}</span>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                         {order.orderType === 'pickup' && order.scheduledTime && (
                                             <div className="flex items-center justify-between text-sm">

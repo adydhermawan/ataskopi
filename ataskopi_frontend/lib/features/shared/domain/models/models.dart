@@ -253,6 +253,7 @@ class Order {
   final List<OrderItem> items;
   final Store? outlet;
   final TableModel? table;
+  final String? guestName;
   final UserAddress? deliveryAddress;
   final String? paymentMethod;
 
@@ -272,6 +273,7 @@ class Order {
     this.items = const [],
     this.outlet,
     this.table,
+    this.guestName,
     this.deliveryAddress,
     this.paymentMethod,
   });
@@ -295,6 +297,7 @@ class Order {
           .toList(),
       outlet: json['outlet'] != null ? Store.fromJson(json['outlet']) : null,
       table: json['table'] != null ? TableModel.fromJson(json['table']) : null,
+      guestName: json['guestName'],
       deliveryAddress: json['deliveryAddress'] != null ? UserAddress.fromJson(json['deliveryAddress']) : null,
       paymentMethod: json['paymentMethod'],
     );
@@ -654,6 +657,10 @@ class OrderModeSettings {
   final bool deliveryEnabled;
   final String dineInMethod;
   final bool taxEnabled;
+  final bool qrisEnabled;
+  final bool cashEnabled;
+  final String defaultPaymentMethod;
+  final String? qrisQrCodeUrl;
 
   const OrderModeSettings({
     required this.dineInEnabled,
@@ -661,6 +668,10 @@ class OrderModeSettings {
     required this.deliveryEnabled,
     required this.dineInMethod,
     required this.taxEnabled,
+    this.qrisEnabled = true,
+    this.cashEnabled = true,
+    this.defaultPaymentMethod = 'qris',
+    this.qrisQrCodeUrl,
   });
 
   factory OrderModeSettings.fromJson(Map<String, dynamic> json) {
@@ -670,6 +681,10 @@ class OrderModeSettings {
       deliveryEnabled: json['deliveryEnabled'] == true,
       dineInMethod: json['dineInMethod'] ?? 'SCAN_ONLY',
       taxEnabled: json['taxEnabled'] ?? true,
+      qrisEnabled: json['qrisEnabled'] ?? true,
+      cashEnabled: json['cashEnabled'] ?? true,
+      defaultPaymentMethod: json['defaultPaymentMethod'] ?? 'qris',
+      qrisQrCodeUrl: json['qrisQrCodeUrl'] != null ? ApiConfig.fullImageUrl(json['qrisQrCodeUrl']) : null,
     );
   }
 
@@ -680,6 +695,10 @@ class OrderModeSettings {
       'deliveryEnabled': deliveryEnabled,
       'dineInMethod': dineInMethod,
       'taxEnabled': taxEnabled,
+      'qrisEnabled': qrisEnabled,
+      'cashEnabled': cashEnabled,
+      'defaultPaymentMethod': defaultPaymentMethod,
+      'qrisQrCodeUrl': qrisQrCodeUrl,
     };
   }
 }

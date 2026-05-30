@@ -19,6 +19,7 @@ import '../../../order/presentation/screens/delivery_address_screen.dart';
 import '../../../home/presentation/widgets/pickup_time_modal.dart';
 import '../../../scan/presentation/controllers/scan_controller.dart';
 import '../../../scan/presentation/screens/qr_scanner_screen.dart';
+import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
 import 'package:ataskopi_frontend/core/providers/location_provider.dart';
 
 class CheckoutSummaryScreen extends ConsumerWidget {
@@ -33,11 +34,43 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     final loyaltyInfo = ref.watch(loyaltyInfoProvider).value;
     final orderFlow = ref.watch(orderFlowProvider);
     final paymentMethod = ref.watch(selectedPaymentMethodProvider);
+    final settingsAsync = ref.watch(orderModeSettingsProvider);
 
     // Auto-prompt if mode is not selected
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (orderFlow.mode == null && cart.isNotEmpty) {
         _showOrderModeSelectorModal(context, ref);
+      }
+    });
+
+    // Auto-initialize and validate payment method based on settings
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (settingsAsync.hasValue) {
+        final settings = settingsAsync.value!;
+        final current = ref.read(selectedPaymentMethodProvider);
+        
+        bool qrisActive = settings.qrisEnabled;
+        bool cashActive = settings.cashEnabled && orderFlow.mode == OrderMode.dineIn;
+
+        bool currentValid = true;
+        if (current == 'qris' && !qrisActive) currentValid = false;
+        if (current == 'tunai' && !cashActive) currentValid = false;
+
+        if (!currentValid) {
+          String fallback = settings.defaultPaymentMethod == 'cash' || settings.defaultPaymentMethod == 'tunai' 
+              ? 'tunai' 
+              : 'qris';
+          
+          if (fallback == 'qris' && !qrisActive) {
+            fallback = 'tunai';
+          } else if (fallback == 'tunai' && !cashActive) {
+            fallback = 'qris';
+          }
+
+          if (current != fallback) {
+            ref.read(selectedPaymentMethodProvider.notifier).state = fallback;
+          }
+        }
       }
     });
 

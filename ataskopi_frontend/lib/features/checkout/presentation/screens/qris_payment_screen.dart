@@ -7,6 +7,7 @@ import 'package:ataskopi_frontend/shared/widgets/app_button.dart';
 import 'package:ataskopi_frontend/features/activity/presentation/screens/order_tracking_screen.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart';
+import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
 
 class QrisPaymentScreen extends ConsumerWidget {
   final Order order;
@@ -15,6 +16,8 @@ class QrisPaymentScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tenant = ref.watch(tenantProvider);
+    final settingsAsync = ref.watch(orderModeSettingsProvider);
+    final qrisQrUrl = settingsAsync.value?.qrisQrCodeUrl;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -67,7 +70,9 @@ class QrisPaymentScreen extends ConsumerWidget {
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Image.network(
-                          'https://static.okomura.com/qris_placeholder.png', // Placeholder or dynamic if available
+                          qrisQrUrl != null && qrisQrUrl!.isNotEmpty
+                              ? qrisQrUrl!
+                              : 'https://static.okomura.com/qris_placeholder.png',
                           fit: BoxFit.contain,
                           errorBuilder: (c, e, s) => const Center(child: Text('QRIS CODE')),
                         ),

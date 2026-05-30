@@ -22,6 +22,10 @@ final orderModeSettingsProvider = FutureProvider<OrderModeSettings>((ref) async 
       deliveryEnabled: true,
       dineInMethod: 'SCAN_ONLY',
       taxEnabled: true,
+      qrisEnabled: true,
+      cashEnabled: true,
+      defaultPaymentMethod: 'qris',
+      qrisQrCodeUrl: null,
     );
   }
 });

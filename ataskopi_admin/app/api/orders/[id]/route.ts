@@ -142,6 +142,7 @@ export const GET = withAuth(async (
                 longitude: order.outlet.longitude ? Number(order.outlet.longitude) : null,
             },
             table: order.table,
+            guestName: order.guestName,
             scheduledTime: order.scheduledTime?.toISOString(),
             deliveryAddress: order.deliveryAddress,
             items: formattedItems,

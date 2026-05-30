@@ -485,6 +485,7 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
                         },
                     },
                 },
+                table: true,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -538,6 +539,11 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
                     latitude: order.outlet.latitude ? Number(order.outlet.latitude) : null,
                     longitude: order.outlet.longitude ? Number(order.outlet.longitude) : null,
                 },
+                table: order.table ? {
+                    id: order.table.id,
+                    tableNumber: order.table.tableNumber,
+                } : null,
+                guestName: order.guestName,
                 createdAt: order.createdAt.toISOString(),
             };
         });

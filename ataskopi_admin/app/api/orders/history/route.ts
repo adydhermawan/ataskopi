@@ -45,7 +45,8 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
                         product: true
                     }
                 },
-                outlet: true
+                outlet: true,
+                table: true
             }
         });
 
@@ -103,7 +104,11 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
                     latitude: order.outlet.latitude ? Number(order.outlet.latitude) : null,
                     longitude: order.outlet.longitude ? Number(order.outlet.longitude) : null,
                 } : null,
-                table: null,
+                table: order.table ? {
+                    id: order.table.id,
+                    tableNumber: order.table.tableNumber,
+                } : null,
+                guestName: order.guestName,
                 deliveryAddress: null
             };
         });
