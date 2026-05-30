@@ -425,3 +425,14 @@ model OrderModeSetting {
 
   @@map("order_mode_settings")
 }
+
+model ServerErrorLog {
+  id        String   @id @default(uuid())
+  digest    String   @unique
+  message   String
+  stack     String?  @db.Text
+  path      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("server_error_logs")
+}

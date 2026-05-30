@@ -63,7 +63,11 @@ export async function createProduct(data: any) {
             }
         });
 
-        revalidatePath("/products");
+        try {
+            revalidatePath("/products");
+        } catch (revalError) {
+            console.error("Revalidation failed for /products:", revalError);
+        }
         return { success: true };
     } catch (error: any) {
         console.error("Error creating product:", error);
@@ -154,8 +158,12 @@ export async function updateProduct(id: string, data: any) {
             }
         });
 
-        revalidatePath("/products");
-        revalidatePath(`/products/${id}`);
+        try {
+            revalidatePath("/products");
+            revalidatePath(`/products/${id}`);
+        } catch (revalError) {
+            console.error(`Revalidation failed for /products and /products/${id}:`, revalError);
+        }
         return { success: true };
     } catch (error: any) {
         console.error("Error updating product:", error);
