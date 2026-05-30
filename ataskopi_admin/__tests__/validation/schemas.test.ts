@@ -280,6 +280,16 @@ describe('Validation Schemas', () => {
             const result = productQuerySchema.safeParse(validQuery);
             expect(result.success).toBe(true);
         });
+
+        it('should parse categoryId filter correctly', () => {
+            const validQuery = {
+                categoryId: '123e4567-e89b-12d3-a456-426614174000',
+            };
+
+            const result = productQuerySchema.safeParse(validQuery);
+            expect(result.success).toBe(true);
+            expect(result.data?.categoryId).toBe('123e4567-e89b-12d3-a456-426614174000');
+        });
     });
 
     describe('orderQuerySchema', () => {

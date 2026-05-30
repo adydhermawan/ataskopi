@@ -374,57 +374,154 @@ async function main() {
 
     // --- COFFEE ---
 
-    // Aren Latte
+    // Kopsu Atas Aren
     await createProduct(
         'coffee',
-        'Aren Latte (Signature)',
+        'Kopsu Atas Aren',
         'Kopi susu gula aren asli, rasa creamy dan pas.',
-        25000,
+        12000,
         '/images/products/aren-latte.jpg',
         [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
             { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
             { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
             { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
         ],
         [
-            { name: 'Extra Shot', price: 5000 },
-            { name: 'Oatmilk Upgrade', price: 8000 },
-            { name: 'Jelly Aren', price: 4000 },
+            { name: 'Extra Shot Espresso', price: 3000 },
         ]
     )
 
-    // Caramel Macchiato
+    // Sweet Caramel Latte
     await createProduct(
         'coffee',
-        'Caramel Macchiato',
+        'Sweet Caramel Latte',
         'Espresso dengan susu dan sirup caramel premium.',
-        35000,
+        12000,
         '/images/products/caramel-macchiato.jpg',
         [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
             { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
             { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
+            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
         ],
         [
-            { name: 'Extra Caramel Sauce', price: 3000 },
-            { name: 'Whipped Cream', price: 5000 },
+            { name: 'Extra Shot Espresso', price: 3000 },
         ]
     )
 
-    // Americano
+    // Ice Black Coffee
     await createProduct(
         'coffee',
-        'Americano',
-        'Double shot espresso dengan air mineral.',
-        20000,
+        'Ice Black Coffee',
+        'Double shot espresso dengan air mineral dan es batu.',
+        8000,
         '/images/products/americano.jpg',
         [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
             { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 5000 }] },
         ],
         [
-            { name: 'Extra Shot', price: 5000 },
+            { name: 'Extra Shot Espresso', price: 3000 },
+        ]
+    )
+
+    // Filter Coffee V60
+    await createProduct(
+        'coffee',
+        'Filter Coffee V60',
+        'Kopi filter V60 dengan aroma floral dan rasa yang clean.',
+        12000,
+        '/images/products/filter-coffee-v60.png',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Size', values: [{ name: 'Regular' }] }
+        ],
+        []
+    )
+
+    // Cold Brew Specialty
+    await createProduct(
+        'coffee',
+        'Cold Brew Specialty',
+        'Kopi cold brew specialty yang diseduh dingin selama 12 jam.',
+        12000,
+        '/images/products/cold-brew-specialty.png',
+        [
+            { name: 'Size', values: [{ name: 'Regular' }] },
+            { name: 'Sugar', values: [{ name: 'No Sugar' }, { name: 'Normal' }, { name: 'Less' }] }
+        ],
+        []
+    )
+
+    // Salted caramel americano
+    await createProduct(
+        'coffee',
+        'Salted caramel americano',
+        'Americano klasik berpadu dengan gurih manis saus salted caramel.',
+        10000,
+        '/images/products/salted-caramel-americano.png',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
+            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
+            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
+            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
+        ],
+        [
+            { name: 'Extra Shot Espresso', price: 3000 }
+        ]
+    )
+
+    // Ice Cappuccino
+    await createProduct(
+        'coffee',
+        'Ice Cappuccino',
+        'Cappuccino dingin dengan espresso mantap dan foam susu tebal.',
+        12000,
+        '/images/products/ice-cappuccino.png',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
+            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
+            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
+            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
+        ],
+        [
+            { name: 'Extra Shot Espresso', price: 3000 }
+        ]
+    )
+
+    // Kopitiam Coffee Milk
+    await createProduct(
+        'coffee',
+        'Kopitiam Coffee Milk',
+        'Kopi susu tradisional khas Kopitiam dengan susu kental manis gurih.',
+        10000,
+        '/images/products/kopitiam-coffee-milk.png',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
+            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
+            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
+            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
+        ],
+        [
+            { name: 'Extra Shot Espresso', price: 3000 }
+        ]
+    )
+
+    // Flat White
+    await createProduct(
+        'coffee',
+        'Flat White',
+        'Espresso double shot dengan susu kukus bertekstur halus beludru.',
+        10000,
+        '/images/products/flat-white.png',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Size', values: [{ name: 'Regular' }] },
+            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] }
+        ],
+        [
+            { name: 'Extra Shot Espresso', price: 3000 }
         ]
     )
 
@@ -435,7 +532,7 @@ async function main() {
         'non-coffee',
         'Matcha Latte',
         'Matcha premium Jepang dipadu dengan susu segar.',
-        28000,
+        14000,
         '/images/products/matcha-latte.jpg',
         [
             { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
@@ -448,12 +545,29 @@ async function main() {
         ]
     )
 
-    // Classic Chocolate
+    // Dark Chocolate Sweet
     await createProduct(
         'non-coffee',
-        'Classic Chocolate',
-        'Cokelat dark kental dan kaya rasa.',
-        25000,
+        'Dark Chocolate Sweet',
+        'Cokelat dark kental manis dan kaya rasa.',
+        12000,
+        '/images/products/classic-chocolate.jpg',
+        [
+            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
+            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
+        ],
+        [
+            { name: 'Whipped Cream', price: 5000 },
+            { name: 'Marshmallow', price: 4000 },
+        ]
+    )
+
+    // Chocolate Latte
+    await createProduct(
+        'non-coffee',
+        'Chocolate Latte',
+        'Minuman cokelat premium dengan susu segar yang creamy.',
+        12000,
         '/images/products/classic-chocolate.jpg',
         [
             { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
@@ -522,7 +636,7 @@ async function main() {
 
     // 6. Create Test Orders for History
     // Get seeded products
-    const arenLatte = await prisma.product.findFirst({ where: { name: 'Aren Latte (Signature)' } })
+    const arenLatte = await prisma.product.findFirst({ where: { name: 'Kopsu Atas Aren' } })
     const nasiGoreng = await prisma.product.findFirst({ where: { name: 'Nasi Goreng Rempah' } })
 
     if (arenLatte && nasiGoreng) {

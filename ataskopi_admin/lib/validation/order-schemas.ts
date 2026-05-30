@@ -34,6 +34,7 @@ export const updateProfileSchema = z.object({
  */
 export const productQuerySchema = z.object({
     category: z.string().optional(),
+    categoryId: z.string().optional(),
     search: z.string().max(100, 'Search query must be 100 characters or less').optional(),
     recommended: z.enum(['true', 'false']).optional(),
     available: z.enum(['true', 'false']).optional(),

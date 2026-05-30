@@ -24,6 +24,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         const { searchParams } = new URL(req.url);
         const queryParams = {
             category: searchParams.get('category') || undefined,
+            categoryId: searchParams.get('categoryId') || undefined,
             search: searchParams.get('search') || undefined,
             recommended: searchParams.get('recommended') || undefined,
             available: searchParams.get('available') || 'true',
@@ -41,7 +42,7 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
         // Build where clause (Global, no tenant filter)
         const where: any = {};
 
-        // Filter by category
+        // Filter by category slug
         if (queryParams.category) {
             const category = await prisma.category.findFirst({
                 where: {
@@ -51,7 +52,14 @@ export const GET = withOptionalAuth(async (req: NextRequest) => {
             });
             if (category) {
                 where.categoryId = category.id;
+            } else {
+                where.categoryId = '00000000-0000-0000-0000-000000000000';
             }
+        }
+
+        // Filter by categoryId
+        if (queryParams.categoryId) {
+            where.categoryId = queryParams.categoryId;
         }
 
         // Search by product name
