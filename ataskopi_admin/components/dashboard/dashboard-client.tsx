@@ -103,7 +103,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             fetch('/api/outlets')
                 .then(res => res.json())
                 .then(json => {
-                    if (json.status === 'success') {
+                    if (json.success) {
                         setOutlets(json.data);
                     }
                 })
