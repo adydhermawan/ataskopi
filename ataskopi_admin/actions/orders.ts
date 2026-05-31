@@ -247,3 +247,56 @@ export async function updatePaymentStatus(id: string, status: string) {
     }
 }
 
+export async function deleteOrder(id: string) {
+    try {
+        const user = await getCurrentUser()
+        if (!user) throw new Error("Unauthorized")
+
+        if (user.role !== 'admin' && user.role !== 'owner') {
+            throw new Error("Forbidden: Only administrators and owners can delete orders")
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Get all order item IDs
+            const orderItems = await tx.orderItem.findMany({
+                where: { orderId: id },
+                select: { id: true }
+            })
+            const orderItemIds = orderItems.map(item => item.id)
+
+            // 2. Delete order item options and modifiers
+            if (orderItemIds.length > 0) {
+                await tx.orderItemOption.deleteMany({
+                    where: { orderItemId: { in: orderItemIds } }
+                })
+                await tx.orderItemModifier.deleteMany({
+                    where: { orderItemId: { in: orderItemIds } }
+                })
+            }
+
+            // 3. Delete order items
+            await tx.orderItem.deleteMany({ where: { orderId: id } })
+
+            // 4. Reset vouchers associated with this order
+            await tx.userVoucher.updateMany({
+                where: { orderId: id },
+                data: { isUsed: false, orderId: null, usedAt: null }
+            })
+
+            // 5. Delete loyalty transactions associated with this order
+            await tx.loyaltyTransaction.deleteMany({ where: { orderId: id } })
+
+            // 6. Finally, delete the order
+            await tx.order.delete({ where: { id } })
+        })
+
+        revalidatePath('/orders')
+        revalidatePath('/orders/live')
+        revalidatePath('/orders/history')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to delete order:", error)
+        return { success: false, error: error instanceof Error ? error.message : "Failed to delete order" }
+    }
+}
+

@@ -1,10 +1,14 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { Loader2, Calendar, User, ShoppingBag, CreditCard, FileText, MapPin, Phone, Mail, ExternalLink } from "lucide-react"
+import { Loader2, Calendar, User, ShoppingBag, CreditCard, FileText, MapPin, Phone, Mail, ExternalLink, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useCanPerform } from "@/hooks/use-current-user"
+import { deleteOrder } from "@/actions/orders"
 
 interface OrderDetailsSheetProps {
     order: any | null
@@ -29,7 +33,33 @@ export function OrderDetailsSheet({
     onPaymentUpdate,
     loadingId
 }: OrderDetailsSheetProps) {
+    const router = useRouter()
+    const canDelete = useCanPerform('delete', 'orders')
+    const [isDeleting, setIsDeleting] = useState(false)
+
     if (!order) return null
+
+    const handleDelete = async () => {
+        if (!confirm('Are you absolutely sure you want to delete this order? This will permanently delete the order and all related items/transactions.')) {
+            return
+        }
+
+        setIsDeleting(true)
+        try {
+            const result = await deleteOrder(order.id)
+            if (!result.success) {
+                alert(result.error || "Failed to delete order")
+            } else {
+                onOpenChange(false) // Close sheet
+                router.refresh()
+            }
+        } catch (error) {
+            console.error("Failed to delete order:", error)
+            alert("An error occurred while deleting the order")
+        } finally {
+            setIsDeleting(false)
+        }
+    }
 
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
@@ -132,7 +162,7 @@ export function OrderDetailsSheet({
                                                     {item.notes && (
                                                         <div className="mt-2 flex items-start gap-1.5 p-1.5 bg-amber-50 rounded border border-amber-100">
                                                             <FileText className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
-                                                            <p className="text-[11px] text-amber-900 italic font-medium leading-tight">"{item.notes}"</p>
+                                                            <p className="text-[11px] text-amber-900 italic font-medium leading-tight">&ldquo;{item.notes}&rdquo;</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -277,6 +307,25 @@ export function OrderDetailsSheet({
                                             <CreditCard className="w-4 h-4 mr-2" />
                                         )}
                                         CONFIRM PAID
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Admin/Owner Deletion Action */}
+                            {canDelete && (
+                                <div className="pt-2">
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full h-12 font-bold text-sm shadow-md rounded-xl transition-all active:scale-[0.98]"
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                    >
+                                        {isDeleting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                        )}
+                                        DELETE ORDER
                                     </Button>
                                 </div>
                             )}
