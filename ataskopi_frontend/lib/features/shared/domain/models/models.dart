@@ -679,7 +679,7 @@ class OrderModeSettings {
       dineInEnabled: json['dineInEnabled'] == true,
       pickupEnabled: json['pickupEnabled'] == true,
       deliveryEnabled: json['deliveryEnabled'] == true,
-      dineInMethod: json['dineInMethod'] ?? 'SCAN_ONLY',
+      dineInMethod: json['dineInMethod'] ?? 'GUEST_NAME_ONLY',
       taxEnabled: json['taxEnabled'] ?? true,
       qrisEnabled: json['qrisEnabled'] ?? true,
       cashEnabled: json['cashEnabled'] ?? true,

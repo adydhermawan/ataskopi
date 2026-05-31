@@ -90,7 +90,7 @@ class OrderModeSelector extends ConsumerWidget {
           isEnabled: isDineInEnabled,
           onTap: () async {
             if (isDineInEnabled) {
-              final method = settings?.dineInMethod ?? 'SCAN_ONLY';
+              final method = settings?.dineInMethod ?? 'GUEST_NAME_ONLY';
               if (method == 'GUEST_NAME_ONLY') {
                 _showGuestNameDialog(context, ref, tenant.primaryColor);
               } else if (method == 'BOTH') {

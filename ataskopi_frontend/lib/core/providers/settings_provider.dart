@@ -20,7 +20,7 @@ final orderModeSettingsProvider = FutureProvider<OrderModeSettings>((ref) async 
       dineInEnabled: true,
       pickupEnabled: true,
       deliveryEnabled: true,
-      dineInMethod: 'SCAN_ONLY',
+      dineInMethod: 'GUEST_NAME_ONLY',
       taxEnabled: true,
       qrisEnabled: true,
       cashEnabled: true,
