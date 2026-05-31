@@ -11,6 +11,12 @@ export const PERMISSIONS: Record<string, Permissions> = {
     dashboard: {
         view: ['admin', 'owner', 'kasir'],
     },
+    real_revenue: {
+        view: ['admin', 'owner', 'kasir'],
+        create: ['admin', 'owner', 'kasir'],
+        update: ['admin', 'owner', 'kasir'],
+        delete: ['admin', 'owner'],
+    },
     products: {
         view: ['admin', 'owner'],
         create: ['admin', 'owner'],

@@ -37,14 +37,20 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
         }
 
         // Fetch data in parallel
-        const [today, history] = await Promise.all([
+        const [today, history, todayRealRevenue, realRevenueHistory] = await Promise.all([
             DashboardService.getTodayRealtime(effectiveOutletId || null),
             DashboardService.getPeriodSummary(effectiveOutletId || null, days),
+            DashboardService.getTodayRealRevenue(effectiveOutletId || null),
+            DashboardService.getPeriodRealRevenue(effectiveOutletId || null, days),
         ]);
 
         return successResponse({
-            today,
+            today: {
+                ...today,
+                realRevenue: todayRealRevenue,
+            },
             history,
+            realRevenueHistory,
             period: {
                 days,
                 startDate: history.length > 0 ? history[0].date : null,

@@ -221,6 +221,7 @@ model Outlet {
   outletProducts OutletProduct[]
   tables         Table[]
   users          User[]
+  dailyRealRevenues DailyRealRevenue[]
 
   @@map("outlets")
 }
@@ -437,4 +438,18 @@ model ServerErrorLog {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("server_error_logs")
+}
+
+model DailyRealRevenue {
+  id        String   @id @default(uuid())
+  date      DateTime @db.Date
+  outletId  String   @map("outlet_id")
+  amount    Decimal  @db.Decimal(12, 2)
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+
+  @@unique([date, outletId])
+  @@map("daily_real_revenue")
 }

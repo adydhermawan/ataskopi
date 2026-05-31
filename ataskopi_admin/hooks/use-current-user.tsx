@@ -9,6 +9,7 @@ interface User {
     email?: string
     phone: string
     role: string
+    outletId?: string | null
 }
 
 interface UserContextType {
@@ -37,7 +38,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                         name: userData.name,
                         email: userData.email,
                         phone: userData.phone,
-                        role: userData.role
+                        role: userData.role,
+                        outletId: userData.outletId || null
                     })
                 }
             })

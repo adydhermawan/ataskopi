@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 email: true,
                 role: true,
+                outletId: true,
                 loyaltyPoints: true,
                 totalItemsPurchased: true,
                 createdAt: true,

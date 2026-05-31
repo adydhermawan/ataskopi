@@ -140,6 +140,32 @@ export class DashboardService {
         const endDate = endOfDay(new Date());
         const startDate = startOfDay(subDays(new Date(), days - 1));
 
+        // 1. Ensure all summaries exist in DB (self-healing mechanism)
+        try {
+            await this.ensureDailySummaries(startDate, endDate, outletId);
+        } catch (error) {
+            console.error("Failed to ensure daily summaries:", error);
+        }
+
+        // 2. Force sync today's summary to keep it completely real-time
+        try {
+            let outletsToSync: string[] = [];
+            if (outletId) {
+                outletsToSync = [outletId];
+            } else {
+                const activeOutlets = await db.outlet.findMany({
+                    where: { isActive: true },
+                    select: { id: true }
+                });
+                outletsToSync = activeOutlets.map(o => o.id);
+            }
+            for (const oid of outletsToSync) {
+                await this.syncDailySummary(new Date(), oid);
+            }
+        } catch (error) {
+            console.error("Failed to sync today's summary:", error);
+        }
+
         const summaries = await db.dailySalesSummary.findMany({
             where: {
                 ...(outletId ? { outletId } : {}),
@@ -154,6 +180,98 @@ export class DashboardService {
         });
 
         return summaries;
+    }
+
+    /**
+     * Helper to ensure DailySalesSummary records exist for all outlets in a period
+     */
+    static async ensureDailySummaries(startDate: Date, endDate: Date, outletId: string | null) {
+        // Get outlets to sync
+        let outlets: string[] = [];
+        if (outletId) {
+            outlets = [outletId];
+        } else {
+            const activeOutlets = await db.outlet.findMany({
+                where: { isActive: true },
+                select: { id: true }
+            });
+            outlets = activeOutlets.map(o => o.id);
+        }
+
+        // Loop over dates from startDate to endDate (inclusive)
+        const start = startOfDay(startDate);
+        const end = endOfDay(endDate);
+        const daysDiff = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+        for (let i = 0; i < daysDiff; i++) {
+            const currentDate = subDays(end, i);
+            const dateKey = new Date(format(currentDate, "yyyy-MM-dd") + "T00:00:00Z");
+
+            for (const oid of outlets) {
+                // Check if summary already exists
+                const existing = await db.dailySalesSummary.findUnique({
+                    where: {
+                        date_outletId: {
+                            date: dateKey,
+                            outletId: oid
+                        }
+                    }
+                });
+
+                if (!existing) {
+                    await this.syncDailySummary(currentDate, oid);
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets today's manually logged real revenue
+     */
+    static async getTodayRealRevenue(outletId: string | null) {
+        const now = new Date();
+        const dateKey = new Date(format(now, "yyyy-MM-dd") + "T00:00:00Z");
+
+        const records = await db.dailyRealRevenue.findMany({
+            where: {
+                ...(outletId ? { outletId } : {}),
+                date: dateKey
+            }
+        });
+
+        const totalAmount = records.reduce((sum, r) => sum.add(r.amount), new Prisma.Decimal(0));
+        return totalAmount.toNumber();
+    }
+
+    /**
+     * Gets manually logged real revenue for a period
+     */
+    static async getPeriodRealRevenue(outletId: string | null, days: number = 7) {
+        const endDate = endOfDay(new Date());
+        const startDate = startOfDay(subDays(new Date(), days - 1));
+
+        const records = await db.dailyRealRevenue.findMany({
+            where: {
+                ...(outletId ? { outletId } : {}),
+                date: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
+            orderBy: {
+                date: "asc"
+            }
+        });
+
+        return records.map(r => ({
+            id: r.id,
+            date: r.date,
+            outletId: r.outletId,
+            amount: r.amount.toNumber(),
+            notes: r.notes,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt
+        }));
     }
 
     /**
