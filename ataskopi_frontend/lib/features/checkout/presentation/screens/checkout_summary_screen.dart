@@ -43,54 +43,23 @@ class CheckoutSummaryScreen extends ConsumerWidget {
       }
     });
 
-    // Auto-initialize and validate payment method based on settings
+    // Validate payment method based on settings
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (settingsAsync.hasValue) {
         final settings = settingsAsync.value!;
-        final isInitialized = ref.read(isPaymentMethodInitializedProvider);
         final current = ref.read(selectedPaymentMethodProvider);
         
-        bool qrisActive = settings.qrisEnabled;
-        bool cashActive = settings.cashEnabled && (orderFlow.mode == OrderMode.dineIn || orderFlow.mode == OrderMode.pickup);
+        if (current.isNotEmpty) {
+          bool qrisActive = settings.qrisEnabled;
+          bool cashActive = settings.cashEnabled && (orderFlow.mode == OrderMode.dineIn || orderFlow.mode == OrderMode.pickup);
 
-        if (!isInitialized) {
-          // Initialize for the first time using backend settings' defaultPaymentMethod
-          String initialMethod = settings.defaultPaymentMethod == 'cash' || settings.defaultPaymentMethod == 'tunai' 
-              ? 'tunai' 
-              : 'qris';
-          
-          // Check if the initial choice is active/valid
-          if (initialMethod == 'tunai' && !cashActive) {
-            initialMethod = 'qris';
-          } else if (initialMethod == 'qris' && !qrisActive) {
-            initialMethod = 'tunai';
-          }
-          
-          // Update provider states
-          ref.read(selectedPaymentMethodProvider.notifier).state = initialMethod;
-          ref.read(isPaymentMethodInitializedProvider.notifier).state = true;
-        } else {
-          // It's already initialized, just validate the current selection.
-          // (e.g. if order mode changes to Delivery, Cash is no longer active)
           bool currentValid = true;
           if (current == 'qris' && !qrisActive) currentValid = false;
           if (current == 'tunai' && !cashActive) currentValid = false;
 
           if (!currentValid) {
-            String fallback = 'qris';
-            if (current == 'qris') {
-              fallback = 'tunai';
-            } else {
-              fallback = 'qris';
-            }
-            // Double check fallback is active
-            if (fallback == 'qris' && !qrisActive) {
-              // Both invalid or inactive, keep current
-            } else if (fallback == 'tunai' && !cashActive) {
-              // Both invalid or inactive, keep current
-            } else {
-              ref.read(selectedPaymentMethodProvider.notifier).state = fallback;
-            }
+            // Reset selection so customer is forced to select a valid one
+            ref.read(selectedPaymentMethodProvider.notifier).state = '';
           }
         }
       }
@@ -470,12 +439,20 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                         Container(
                           padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: paymentMethod.isEmpty 
+                                ? Colors.orange.withOpacity(0.1) 
+                                : const Color(0xFFF1F5F9),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            paymentMethod == 'tunai' ? Icons.payments_rounded : Icons.qr_code_scanner_rounded, 
-                            color: const Color(0xFF64748B), 
+                            paymentMethod == 'tunai' 
+                                ? Icons.payments_rounded 
+                                : (paymentMethod == 'qris' 
+                                    ? Icons.qr_code_scanner_rounded 
+                                    : Icons.account_balance_wallet_rounded), 
+                            color: paymentMethod.isEmpty 
+                                ? Colors.orange 
+                                : const Color(0xFF64748B), 
                             size: 18.w
                           ),
                         ),
@@ -493,11 +470,17 @@ class CheckoutSummaryScreen extends ConsumerWidget {
                                 ),
                               ),
                               Text(
-                                paymentMethod == 'tunai' ? 'Tunai (Cash)' : 'QRIS (ShopeePay, GoPay, dll)',
+                                paymentMethod == 'tunai' 
+                                    ? 'Tunai (Cash)' 
+                                    : (paymentMethod == 'qris' 
+                                        ? 'QRIS (ShopeePay, GoPay, dll)' 
+                                        : 'Belum dipilih - Ketuk untuk memilih'),
                                 style: TextStyle(
                                   fontSize: 12.sp, 
-                                  color: const Color(0xFF64748B),
-                                  fontWeight: FontWeight.w500,
+                                  color: paymentMethod.isEmpty 
+                                      ? Colors.orange 
+                                      : const Color(0xFF64748B),
+                                  fontWeight: paymentMethod.isEmpty ? FontWeight.bold : FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -784,6 +767,18 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     final orderFlow = ref.read(orderFlowProvider);
     
     if (selectedOutlet == null) return;
+
+    // Validate payment method selection
+    final paymentMethod = ref.read(selectedPaymentMethodProvider);
+    if (paymentMethod.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mohon pilih metode pembayaran terlebih dahulu'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     // Show loading
     showDialog(

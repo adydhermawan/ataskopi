@@ -16,7 +16,7 @@ class PaymentMethodScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
-  String _selectedMethod = 'qris';
+  String _selectedMethod = '';
 
   @override
   void initState() {
@@ -133,10 +133,15 @@ class _PaymentMethodScreenState extends ConsumerState<PaymentMethodScreen> {
               height: 58.h,
               child: ElevatedButton(
                 onPressed: () {
-                  // Here we would normally store the selected method
-                  // But for this refined flow, we just pop back since CheckoutSummaryScreen
-                  // is where the order is placed. 
-                  // In a real app, you'd use a provider to store the selection.
+                  if (_selectedMethod.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Mohon pilih metode pembayaran terlebih dahulu'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
                   Navigator.pop(context, _selectedMethod);
                 },
                 style: ElevatedButton.styleFrom(
