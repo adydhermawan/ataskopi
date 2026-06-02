@@ -8,6 +8,7 @@ import 'package:ataskopi_frontend/features/activity/presentation/screens/order_t
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
 import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart';
 import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
+import 'package:ataskopi_frontend/core/utils/file_helper.dart';
 
 class QrisPaymentScreen extends ConsumerWidget {
   final Order order;
@@ -70,8 +71,8 @@ class QrisPaymentScreen extends ConsumerWidget {
                           border: Border.all(color: const Color(0xFFF1F5F9)),
                         ),
                         child: Image.network(
-                          qrisQrUrl != null && qrisQrUrl!.isNotEmpty
-                              ? qrisQrUrl!
+                          qrisQrUrl != null && qrisQrUrl.isNotEmpty
+                              ? qrisQrUrl
                               : 'https://static.okomura.com/qris_placeholder.png',
                           fit: BoxFit.contain,
                           errorBuilder: (c, e, s) => const Center(child: Text('QRIS CODE')),
@@ -145,7 +146,17 @@ class QrisPaymentScreen extends ConsumerWidget {
             AppButton(
               text: 'Unduh QR',
               icon: Icons.download_rounded,
-              onPressed: () {},
+              onPressed: () {
+                final url = qrisQrUrl ?? 'https://static.okomura.com/qris_placeholder.png';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Mengunduh QR Code...'),
+                    backgroundColor: Color(0xFF1250A5),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                FileHelper.downloadImage(url, filename: 'qris_payment_${order.orderNumber.isNotEmpty ? order.orderNumber : order.id.substring(0, 8)}.png');
+              },
             ),
             SizedBox(height: 8.h),
             TextButton(
