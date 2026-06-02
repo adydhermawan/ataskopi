@@ -1,11 +1,11 @@
 {
-    "name": "ataskopi",
-    "short_name": "ataskopi",
+    "name": "AtasKopi",
+    "short_name": "AtasKopi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1E3A5F",
     "theme_color": "#1E3A5F",
-    "description": "A new Flutter project.",
+    "description": "AtasKopi - Coffee Shop & Resto Customer App",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

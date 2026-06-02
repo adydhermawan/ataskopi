@@ -11,7 +11,11 @@ import {
     Gift,
     Ticket,
     Megaphone,
-    ShieldCheck
+    ShieldCheck,
+    Package,
+    ClipboardList,
+    Receipt,
+    Wallet
 } from "lucide-react";
 
 export interface NavItem {
@@ -74,6 +78,30 @@ export const navItems: NavItem[] = [
         title: "Data Outlet",
         href: "/outlets",
         icon: Store,
+        roles: ["admin", "owner"],
+    },
+    {
+        title: "Bahan Baku",
+        href: "/inventory/materials",
+        icon: Package,
+        roles: ["admin", "owner", "kasir"],
+    },
+    {
+        title: "Stock Opname",
+        href: "/inventory/opname",
+        icon: ClipboardList,
+        roles: ["admin", "owner", "kasir"],
+    },
+    {
+        title: "Pengeluaran",
+        href: "/finance/expenses",
+        icon: Receipt,
+        roles: ["admin", "owner"],
+    },
+    {
+        title: "Aset & Balik Modal",
+        href: "/finance/assets",
+        icon: Wallet,
         roles: ["admin", "owner"],
     },
     {

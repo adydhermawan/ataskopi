@@ -22,6 +22,8 @@ import '../../../scan/presentation/screens/qr_scanner_screen.dart';
 import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
 import 'package:ataskopi_frontend/core/providers/location_provider.dart';
 
+final _hasPromptedOrderModeProvider = StateProvider.autoDispose<bool>((ref) => false);
+
 class CheckoutSummaryScreen extends ConsumerWidget {
   const CheckoutSummaryScreen({super.key});
 
@@ -38,7 +40,9 @@ class CheckoutSummaryScreen extends ConsumerWidget {
 
     // Auto-prompt if mode is not selected
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (orderFlow.mode == null && cart.isNotEmpty) {
+      final hasPrompted = ref.read(_hasPromptedOrderModeProvider);
+      if (orderFlow.mode == null && cart.isNotEmpty && !hasPrompted) {
+        ref.read(_hasPromptedOrderModeProvider.notifier).state = true;
         _showOrderModeSelectorModal(context, ref);
       }
     });
@@ -771,12 +775,13 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     // Validate payment method selection
     final paymentMethod = ref.read(selectedPaymentMethodProvider);
     if (paymentMethod.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mohon pilih metode pembayaran terlebih dahulu'),
-          backgroundColor: Colors.orange,
-        ),
+      final result = await Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (_) => const PaymentMethodScreen())
       );
+      if (result != null && result is String) {
+        ref.read(selectedPaymentMethodProvider.notifier).state = result;
+      }
       return;
     }
 
@@ -1317,6 +1322,9 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     );
   }
   void _showOrderModeSelectorModal(BuildContext context, WidgetRef ref) {
+    final tenant = ref.read(tenantProvider);
+    final settingsAsync = ref.read(orderModeSettingsProvider);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1348,10 +1356,19 @@ class CheckoutSummaryScreen extends ConsumerWidget {
               Colors.blue, 
               () async {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-                );
+                final settings = settingsAsync.value;
+                final method = settings?.dineInMethod ?? 'GUEST_NAME_ONLY';
+                if (method == 'GUEST_NAME_ONLY') {
+                  _showGuestNameDialog(context, ref, tenant.primaryColor);
+                } else if (method == 'BOTH') {
+                  _showDineInMethodChoiceDialog(context, ref, tenant.primaryColor);
+                } else {
+                  // Default: SCAN_ONLY
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                  );
+                }
               },
             ),
             _buildModeOption(
@@ -1387,6 +1404,352 @@ class CheckoutSummaryScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showGuestNameDialog(BuildContext context, WidgetRef ref, Color primaryColor) {
+    final textController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+          elevation: 10,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 28.h),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person_outline_rounded,
+                      color: primaryColor,
+                      size: 40.w,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Text(
+                    'Masukkan Nama / No. Meja',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'Silakan masukkan nama Anda atau deskripsi meja tempat Anda duduk.',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: const Color(0xFF64748B),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20.h),
+                  TextFormField(
+                    controller: textController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: Budi - Meja 5',
+                      hintStyle: TextStyle(fontSize: 14.sp, color: const Color(0xFF94A3B8)),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: BorderSide(color: primaryColor, width: 2),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                        borderSide: const BorderSide(color: Color(0xFFEF4444)),
+                      ),
+                    ),
+                    style: TextStyle(fontSize: 15.sp, color: const Color(0xFF1E293B)),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Nama / No. Meja tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 24.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 48.h,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14.r),
+                              ),
+                            ),
+                            child: Text(
+                              'Batal',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: SizedBox(
+                          height: 48.h,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (formKey.currentState!.validate()) {
+                                final name = textController.text.trim();
+                                ref.read(orderFlowProvider.notifier).setMode(OrderMode.dineIn);
+                                ref.read(orderFlowProvider.notifier).setGuestName(name);
+                                Navigator.pop(context); // Close dialog
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14.r),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Lanjut',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDineInMethodChoiceDialog(BuildContext context, WidgetRef ref, Color primaryColor) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24.r),
+          ),
+          elevation: 10,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 28.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.restaurant_rounded,
+                    color: primaryColor,
+                    size: 40.w,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  'Pilih Metode Makan di Sini',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'Pilih scan QR Code di meja Anda atau masukkan nama/meja secara manual.',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: const Color(0xFF64748B),
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 24.h),
+                // Scan QR Option
+                InkWell(
+                  onTap: () async {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(10.w),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            color: Color(0xFF1D4ED8),
+                          ),
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Scan QR Code Meja',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                'Pesan langsung terhubung dengan nomor meja',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                // Manual Entry Option
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context); // Close selection dialog
+                    _showGuestNameDialog(context, ref, primaryColor);
+                  },
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(10.w),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: const Icon(
+                            Icons.edit_note_rounded,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tulis Nama / No. Meja',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                'Masukkan identitas meja/nama Anda secara manual',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48.h,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

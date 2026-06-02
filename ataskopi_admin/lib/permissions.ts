@@ -57,6 +57,18 @@ export const PERMISSIONS: Record<string, Permissions> = {
         update: ['admin', 'owner'],
         delete: ['admin'],
     },
+    inventory: {
+        view: ['admin', 'owner', 'kasir'],
+        create: ['admin', 'owner', 'kasir'],
+        update: ['admin', 'owner', 'kasir'],
+        delete: ['admin', 'owner'],
+    },
+    finance: {
+        view: ['admin', 'owner'],
+        create: ['admin', 'owner'],
+        update: ['admin', 'owner'],
+        delete: ['admin', 'owner'],
+    }
 };
 
 /**
