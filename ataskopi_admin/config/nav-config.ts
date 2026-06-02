@@ -15,7 +15,8 @@ import {
     Package,
     ClipboardList,
     Receipt,
-    Wallet
+    Wallet,
+    TrendingUp
 } from "lucide-react";
 
 export interface NavItem {
@@ -96,6 +97,12 @@ export const navItems: NavItem[] = [
         title: "Pengeluaran",
         href: "/finance/expenses",
         icon: Receipt,
+        roles: ["admin", "owner"],
+    },
+    {
+        title: "Laporan Profit",
+        href: "/finance/profit",
+        icon: TrendingUp,
         roles: ["admin", "owner"],
     },
     {

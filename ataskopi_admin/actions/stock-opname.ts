@@ -55,12 +55,30 @@ export async function createStockOpname(data: { outletId: string; date: Date; st
                 }
             })
 
-            // If completed, update raw material stocks
+            // If completed, update raw material stocks and create expense for loss
             if (newOpname.status === 'COMPLETED') {
+                let totalLossValue = 0
                 for (const item of data.items) {
                     await tx.rawMaterial.update({
                         where: { id: item.rawMaterialId },
                         data: { currentStock: item.actualStock }
+                    })
+                    // Track loss (negative difference = missing stock)
+                    if (item.difference < 0) {
+                        totalLossValue += Math.abs(item.difference) * item.unitCost
+                    }
+                }
+
+                // Auto-create expense for stock loss if any
+                if (totalLossValue > 0) {
+                    await tx.expense.create({
+                        data: {
+                            outletId: data.outletId,
+                            date: data.date,
+                            category: 'STOCK_LOSS',
+                            amount: totalLossValue,
+                            description: `Stock opname - selisih stok (waste/loss)`
+                        }
                     })
                 }
             }
@@ -68,7 +86,8 @@ export async function createStockOpname(data: { outletId: string; date: Date; st
             return newOpname
         })
 
-        revalidatePath('/admin/inventory/opname')
+        revalidatePath('/inventory/opname')
+        revalidatePath('/finance/expenses')
         return { success: true, id: opname.id }
     } catch (error) {
         console.error("Failed to create stock opname:", error)
@@ -94,16 +113,34 @@ export async function updateStockOpnameStatus(id: string, status: string) {
             })
 
             if (status === 'COMPLETED') {
+                let totalLossValue = 0
                 for (const item of opname.items) {
                     await tx.rawMaterial.update({
                         where: { id: item.rawMaterialId },
                         data: { currentStock: item.actualStock }
                     })
+                    const diff = Number(item.difference)
+                    if (diff < 0) {
+                        totalLossValue += Math.abs(diff) * Number(item.unitCost)
+                    }
+                }
+
+                if (totalLossValue > 0) {
+                    await tx.expense.create({
+                        data: {
+                            outletId: opname.outletId,
+                            date: opname.date,
+                            category: 'STOCK_LOSS',
+                            amount: totalLossValue,
+                            description: `Stock opname - selisih stok (waste/loss)`
+                        }
+                    })
                 }
             }
         })
 
-        revalidatePath('/admin/inventory/opname')
+        revalidatePath('/inventory/opname')
+        revalidatePath('/finance/expenses')
         return { success: true }
     } catch (error) {
         console.error("Failed to update stock opname status:", error)
@@ -122,7 +159,7 @@ export async function deleteStockOpname(id: string) {
         await prisma.stockOpname.delete({
             where: { id }
         })
-        revalidatePath('/admin/inventory/opname')
+        revalidatePath('/inventory/opname')
         return { success: true }
     } catch (error) {
         console.error("Failed to delete stock opname:", error)

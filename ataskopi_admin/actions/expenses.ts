@@ -32,7 +32,7 @@ export async function createExpense(data: { outletId: string; date: Date; catego
                 description: data.description
             }
         })
-        revalidatePath('/admin/finance/expenses')
+        revalidatePath('/finance/expenses')
         return { success: true }
     } catch (error) {
         console.error("Failed to create expense:", error)
@@ -52,7 +52,7 @@ export async function updateExpense(id: string, data: { date: Date; category: st
                 description: data.description
             }
         })
-        revalidatePath('/admin/finance/expenses')
+        revalidatePath('/finance/expenses')
         return { success: true }
     } catch (error) {
         console.error("Failed to update expense:", error)
@@ -66,7 +66,7 @@ export async function deleteExpense(id: string) {
         await prisma.expense.delete({
             where: { id }
         })
-        revalidatePath('/admin/finance/expenses')
+        revalidatePath('/finance/expenses')
         return { success: true }
     } catch (error) {
         console.error("Failed to delete expense:", error)

@@ -25,7 +25,7 @@ export async function createRawMaterial(data: { outletId: string; name: string; 
                 averageCost: data.averageCost || 0
             }
         })
-        revalidatePath('/admin/inventory/materials')
+        revalidatePath('/inventory/materials')
         return { success: true }
     } catch (error) {
         console.error("Failed to create raw material:", error)
@@ -46,7 +46,7 @@ export async function updateRawMaterial(id: string, data: { name: string; sku?: 
                 averageCost: data.averageCost
             }
         })
-        revalidatePath('/admin/inventory/materials')
+        revalidatePath('/inventory/materials')
         return { success: true }
     } catch (error) {
         console.error("Failed to update raw material:", error)
@@ -60,7 +60,7 @@ export async function deleteRawMaterial(id: string) {
         await prisma.rawMaterial.delete({
             where: { id }
         })
-        revalidatePath('/admin/inventory/materials')
+        revalidatePath('/inventory/materials')
         return { success: true }
     } catch (error) {
         console.error("Failed to delete raw material:", error)

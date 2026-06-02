@@ -25,7 +25,7 @@ export async function createAsset(data: { outletId: string; name: string; purcha
                 notes: data.notes
             }
         })
-        revalidatePath('/admin/finance/assets')
+        revalidatePath('/finance/assets')
         return { success: true }
     } catch (error) {
         console.error("Failed to create asset:", error)
@@ -46,7 +46,7 @@ export async function updateAsset(id: string, data: { name: string; purchaseDate
                 notes: data.notes
             }
         })
-        revalidatePath('/admin/finance/assets')
+        revalidatePath('/finance/assets')
         return { success: true }
     } catch (error) {
         console.error("Failed to update asset:", error)
@@ -60,7 +60,7 @@ export async function deleteAsset(id: string) {
         await prisma.asset.delete({
             where: { id }
         })
-        revalidatePath('/admin/finance/assets')
+        revalidatePath('/finance/assets')
         return { success: true }
     } catch (error) {
         console.error("Failed to delete asset:", error)
