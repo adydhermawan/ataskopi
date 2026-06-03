@@ -428,7 +428,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             {/* Comparison Trend Chart */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 {/* Revenue Trend */}
-                <Card className="col-span-4 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -461,9 +461,9 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
-
+ 
                 {/* Top Products */}
-                <Card className="col-span-3 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Produk Terlaris</CardTitle>
                         <CardDescription>Berdasarkan kuantitas terjual via web</CardDescription>
@@ -493,47 +493,49 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                     </CardContent>
                 </Card>
             </div>
-
+ 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 {/* Payment Methods */}
-                <Card className="col-span-3 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Metode Pembayaran</CardTitle>
                         <CardDescription>Distribusi penggunaan pembayaran web</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[250px] flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={pieData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="ml-4 space-y-2">
+                    <CardContent className="h-auto min-h-[250px] flex flex-col sm:flex-row items-center justify-center gap-4 py-4">
+                        <div className="w-full h-[200px] flex-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="sm:ml-4 space-y-1.5 sm:space-y-2 flex flex-row sm:flex-col flex-wrap justify-center gap-x-4 gap-y-1 shrink-0">
                             {pieData.map((e, i) => (
                                 <div key={i} className="flex items-center gap-2 text-xs">
-                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                                    <span className="font-medium">{e.name}:</span>
-                                    <span>{e.value}</span>
+                                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                    <span className="font-medium whitespace-nowrap">{e.name}:</span>
+                                    <span className="whitespace-nowrap">{e.value}</span>
                                 </div>
                             ))}
                         </div>
                     </CardContent>
                 </Card>
-
+ 
                 {/* Weekly Orders Trend */}
-                <Card className="col-span-4 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm">
                     <CardHeader>
                         <CardTitle>Volume Pesanan</CardTitle>
                         <CardDescription>Jumlah transaksi harian via web</CardDescription>

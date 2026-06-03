@@ -278,7 +278,7 @@ export function ProfitDashboardClient() {
 
             {/* Charts row 1: Monthly Trend + Expense Breakdown */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm">
                     <CardHeader>
                         <CardTitle>Trend Profit Bulanan</CardTitle>
                         <CardDescription>Perbandingan Pendapatan, HPP (COGS), Opex + Penyusutan, dan Laba Bersih</CardDescription>
@@ -312,7 +312,7 @@ export function ProfitDashboardClient() {
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-3 shadow-sm">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Breakdown Opex + Penyusutan</CardTitle>
                         <CardDescription>Proporsi biaya operasional dan penyusutan bulan ini</CardDescription>

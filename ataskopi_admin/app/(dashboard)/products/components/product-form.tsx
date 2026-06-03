@@ -385,7 +385,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
 
                                 <div className="space-y-3">
                                     {form.watch(`options.${optIndex}.values`)?.map((valItem, valIndex) => (
-                                        <div key={valIndex} className="flex items-start gap-4">
+                                        <div key={valIndex} className="flex flex-col sm:flex-row items-stretch sm:items-start gap-2 sm:gap-4 p-3 sm:p-0 border sm:border-0 rounded-lg sm:rounded-none bg-slate-50/50 sm:bg-transparent">
                                             <div className="flex-1">
                                                 <Input
                                                     placeholder="Nama Varian (e.g. Regular, Ice, No Sugar)"
@@ -394,13 +394,13 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                                         form.setValue(`options.${optIndex}.values.${valIndex}.name`, e.target.value);
                                                         form.trigger(`options.${optIndex}.values.${valIndex}.name`);
                                                     }}
-                                                    className={(form.formState.errors.options as any)?.[optIndex]?.values?.[valIndex]?.name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                                                    className={(form.formState.errors.options as any)?.[optIndex]?.values?.[valIndex]?.name ? "border-red-500 focus-visible:ring-red-500 bg-white" : "bg-white dark:bg-transparent"}
                                                 />
                                                 {(form.formState.errors.options as any)?.[optIndex]?.values?.[valIndex]?.name && (
                                                     <p className="text-[11px] text-red-500 mt-1">Nama varian wajib diisi</p>
                                                 )}
                                             </div>
-                                            <div className="w-40">
+                                            <div className="w-full sm:w-40">
                                                 <Input
                                                     type="number"
                                                     placeholder="Harga Tambahan (Rp)"
@@ -408,33 +408,36 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                                     onChange={(e) => {
                                                         form.setValue(`options.${optIndex}.values.${valIndex}.priceModifier`, parseFloat(e.target.value) || 0);
                                                     }}
+                                                    className="bg-white dark:bg-transparent"
                                                 />
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <Checkbox
-                                                    checked={form.watch(`options.${optIndex}.values.${valIndex}.isDefault`) || false}
-                                                    onCheckedChange={(checked) => {
-                                                        form.setValue(`options.${optIndex}.values.${valIndex}.isDefault`, checked === true);
+                                            <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-2 h-9">
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <Checkbox
+                                                        checked={form.watch(`options.${optIndex}.values.${valIndex}.isDefault`) || false}
+                                                        onCheckedChange={(checked) => {
+                                                            form.setValue(`options.${optIndex}.values.${valIndex}.isDefault`, checked === true);
+                                                        }}
+                                                    />
+                                                    <span className="text-xs text-muted-foreground font-medium">Default</span>
+                                                </label>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-500 hover:text-red-700 h-9 w-9 sm:ml-auto"
+                                                    disabled={(form.watch(`options.${optIndex}.values`) || []).length <= 1}
+                                                    onClick={() => {
+                                                        const currentValues = form.getValues(`options.${optIndex}.values`) || [];
+                                                        form.setValue(
+                                                            `options.${optIndex}.values`,
+                                                            currentValues.filter((_, idx) => idx !== valIndex)
+                                                        );
                                                     }}
-                                                />
-                                                <span className="text-xs text-muted-foreground font-medium">Default</span>
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </Button>
                                             </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-red-500 hover:text-red-700 h-9 w-9"
-                                                disabled={(form.watch(`options.${optIndex}.values`) || []).length <= 1}
-                                                onClick={() => {
-                                                    const currentValues = form.getValues(`options.${optIndex}.values`) || [];
-                                                    form.setValue(
-                                                        `options.${optIndex}.values`,
-                                                        currentValues.filter((_, idx) => idx !== valIndex)
-                                                    );
-                                                }}
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </Button>
                                         </div>
                                     ))}
                                 </div>
@@ -468,7 +471,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
 
                     <div className="space-y-3">
                         {modifiersFields.map((modField, modIndex) => (
-                            <div key={modField.id} className="flex items-center gap-4 p-4 border rounded-lg bg-white dark:bg-slate-900/40 shadow-sm">
+                            <div key={modField.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4 border rounded-lg bg-white dark:bg-slate-900/40 shadow-sm">
                                 <div className="flex-1">
                                     <FormField
                                         control={form.control}
@@ -483,7 +486,7 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                         )}
                                     />
                                 </div>
-                                <div className="w-48">
+                                <div className="w-full sm:w-48">
                                     <FormField
                                         control={form.control}
                                         name={`modifiers.${modIndex}.price`}
@@ -496,32 +499,32 @@ export function ProductForm({ categories, initialData }: ProductFormProps) {
                                         )}
                                     />
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-4 h-9">
                                     <FormField
                                         control={form.control}
                                         name={`modifiers.${modIndex}.isAvailable`}
                                         render={({ field }) => (
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormItem className="flex items-center space-x-2 space-y-0 cursor-pointer select-none">
                                                 <FormControl>
                                                     <Checkbox
                                                         checked={field.value}
                                                         onCheckedChange={field.onChange}
                                                     />
                                                 </FormControl>
-                                                <FormLabel className="text-xs text-muted-foreground font-medium">Tersedia</FormLabel>
+                                                <FormLabel className="text-xs text-muted-foreground font-medium cursor-pointer">Tersedia</FormLabel>
                                             </FormItem>
                                         )}
                                     />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-red-500 hover:text-red-700 h-9 w-9 sm:ml-auto"
+                                        onClick={() => removeModifier(modIndex)}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
                                 </div>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-500 hover:text-red-700 h-9 w-9"
-                                    onClick={() => removeModifier(modIndex)}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
                             </div>
                         ))}
                     </div>

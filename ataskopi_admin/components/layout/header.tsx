@@ -47,7 +47,7 @@ export function Header() {
             <div className="flex items-center gap-2 lg:hidden">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="md:hidden">
+                        <Button variant="ghost" size="icon">
                             <Menu className="h-5 w-5" />
                             <span className="sr-only">Toggle Menu</span>
                         </Button>
@@ -135,7 +135,7 @@ export function Header() {
                     </SheetContent>
                 </Sheet>
                 {/* Mobile Logo Text only */}
-                <span className="font-bold text-lg md:hidden">AtasKopi</span>
+                <span className="font-bold text-lg lg:hidden">AtasKopi</span>
             </div>
 
             {/* Desktop/Tablet Breadcrumbs */}
