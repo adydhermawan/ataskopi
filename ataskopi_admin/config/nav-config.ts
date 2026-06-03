@@ -17,7 +17,8 @@ import {
     Wallet,
     TrendingUp,
     ShoppingCart,
-    FileText
+    FileText,
+    ArrowDownUp
 } from "lucide-react";
 
 export interface NavItem {
@@ -128,6 +129,12 @@ export const navItems: NavItem[] = [
                 title: "Laba Rugi",
                 href: "/finance/profit",
                 icon: TrendingUp,
+                roles: ["admin", "owner"],
+            },
+            {
+                title: "Arus Kas",
+                href: "/finance/cash-flow",
+                icon: ArrowDownUp,
                 roles: ["admin", "owner"],
             },
             {

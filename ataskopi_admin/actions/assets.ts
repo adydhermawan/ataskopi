@@ -12,20 +12,37 @@ export async function getAssets(outletId: string) {
     })
 }
 
-export async function createAsset(data: { outletId: string; name: string; purchaseDate: Date; purchasePrice: number; status?: string; notes?: string }) {
+export async function createAsset(data: {
+    outletId: string;
+    name: string;
+    purchaseDate: Date;
+    purchasePrice: number;
+    usefulLifeMonths?: number;
+    status?: string;
+    notes?: string;
+}) {
     await requirePermission('finance', 'create')
     try {
+        const usefulLifeMonths = data.usefulLifeMonths || 12
+        const monthlyDepreciation = data.purchasePrice / usefulLifeMonths
+
         await prisma.asset.create({
             data: {
                 outletId: data.outletId,
                 name: data.name,
                 purchaseDate: data.purchaseDate,
                 purchasePrice: data.purchasePrice,
+                usefulLifeMonths,
+                monthlyDepreciation,
                 status: data.status || 'ACTIVE',
                 notes: data.notes
             }
         })
         revalidatePath('/finance/assets')
+        revalidatePath('/finance/expenses')
+        revalidatePath('/finance/profit')
+        revalidatePath('/finance/balance-sheet')
+        revalidatePath('/finance/cash-flow')
         return { success: true }
     } catch (error) {
         console.error("Failed to create asset:", error)
@@ -33,20 +50,35 @@ export async function createAsset(data: { outletId: string; name: string; purcha
     }
 }
 
-export async function updateAsset(id: string, data: { name: string; purchaseDate: Date; purchasePrice: number; status: string; notes?: string }) {
+export async function updateAsset(id: string, data: {
+    name: string;
+    purchaseDate: Date;
+    purchasePrice: number;
+    usefulLifeMonths: number;
+    status: string;
+    notes?: string;
+}) {
     await requirePermission('finance', 'update')
     try {
+        const monthlyDepreciation = data.purchasePrice / data.usefulLifeMonths
+
         await prisma.asset.update({
             where: { id },
             data: {
                 name: data.name,
                 purchaseDate: data.purchaseDate,
                 purchasePrice: data.purchasePrice,
+                usefulLifeMonths: data.usefulLifeMonths,
+                monthlyDepreciation,
                 status: data.status,
                 notes: data.notes
             }
         })
         revalidatePath('/finance/assets')
+        revalidatePath('/finance/expenses')
+        revalidatePath('/finance/profit')
+        revalidatePath('/finance/balance-sheet')
+        revalidatePath('/finance/cash-flow')
         return { success: true }
     } catch (error) {
         console.error("Failed to update asset:", error)
@@ -61,6 +93,10 @@ export async function deleteAsset(id: string) {
             where: { id }
         })
         revalidatePath('/finance/assets')
+        revalidatePath('/finance/expenses')
+        revalidatePath('/finance/profit')
+        revalidatePath('/finance/balance-sheet')
+        revalidatePath('/finance/cash-flow')
         return { success: true }
     } catch (error) {
         console.error("Failed to delete asset:", error)

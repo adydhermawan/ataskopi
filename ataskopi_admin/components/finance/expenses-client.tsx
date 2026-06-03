@@ -12,6 +12,7 @@ import {
     updateExpense,
     deleteExpense,
 } from "@/actions/expenses";
+import { createAsset } from "@/actions/assets";
 import {
     Plus,
     Edit,
@@ -19,6 +20,8 @@ import {
     Loader2,
     Receipt,
     TrendingDown,
+    Wallet,
+    ArrowDownUp,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -32,6 +35,8 @@ interface Expense {
     description: string | null;
 }
 
+type EntryType = "OPEX" | "CAPEX";
+
 const EXPENSE_CATEGORIES = [
     { value: "OPERATIONAL", label: "Operasional" },
     { value: "SALARY", label: "Gaji Karyawan" },
@@ -40,12 +45,23 @@ const EXPENSE_CATEGORIES = [
     { value: "OTHER", label: "Lain-lain" },
 ];
 
+const USEFUL_LIFE_OPTIONS = [
+    { value: 3, label: "3 Bulan" },
+    { value: 6, label: "6 Bulan" },
+    { value: 12, label: "12 Bulan (1 Tahun)" },
+    { value: 24, label: "24 Bulan (2 Tahun)" },
+    { value: 36, label: "36 Bulan (3 Tahun)" },
+    { value: 48, label: "48 Bulan (4 Tahun)" },
+    { value: 60, label: "60 Bulan (5 Tahun)" },
+];
+
 const CATEGORY_COLORS: Record<string, string> = {
     OPERATIONAL: "bg-blue-100 text-blue-700",
     SALARY: "bg-purple-100 text-purple-700",
     UTILITY: "bg-amber-100 text-amber-700",
     RENT: "bg-cyan-100 text-cyan-700",
-    STOCK_LOSS: "bg-red-100 text-red-700", // For viewing older stock loss records
+    STOCK_LOSS: "bg-red-100 text-red-700",
+    DEPRECIATION: "bg-slate-100 text-slate-600",
     OTHER: "bg-slate-100 text-slate-700",
 };
 
@@ -67,10 +83,21 @@ export function ExpensesClient() {
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Expense | null>(null);
+    const [entryType, setEntryType] = useState<EntryType>("OPEX");
+
+    // OpEx form fields
     const [formDate, setFormDate] = useState("");
     const [formCategory, setFormCategory] = useState("OPERATIONAL");
     const [formAmount, setFormAmount] = useState("");
     const [formDescription, setFormDescription] = useState("");
+
+    // CapEx (Asset) form fields
+    const [formAssetName, setFormAssetName] = useState("");
+    const [formAssetDate, setFormAssetDate] = useState("");
+    const [formAssetPrice, setFormAssetPrice] = useState("");
+    const [formUsefulLife, setFormUsefulLife] = useState(12);
+    const [formAssetNotes, setFormAssetNotes] = useState("");
+
     const [formSubmitting, setFormSubmitting] = useState(false);
 
     useEffect(() => {
@@ -143,15 +170,24 @@ export function ExpensesClient() {
 
     const openCreateModal = () => {
         setEditingItem(null);
+        setEntryType("OPEX");
+        // Reset OpEx fields
         setFormDate(new Date().toLocaleDateString("en-CA"));
         setFormCategory("OPERATIONAL");
         setFormAmount("");
         setFormDescription("");
+        // Reset CapEx fields
+        setFormAssetName("");
+        setFormAssetDate(new Date().toLocaleDateString("en-CA"));
+        setFormAssetPrice("");
+        setFormUsefulLife(12);
+        setFormAssetNotes("");
         setIsModalOpen(true);
     };
 
     const openEditModal = (e: Expense) => {
         setEditingItem(e);
+        setEntryType("OPEX"); // Editing is always OpEx (assets are edited from asset page)
         setFormDate(format(new Date(e.date), "yyyy-MM-dd"));
         setFormCategory(e.category);
         setFormAmount(e.amount.toString());
@@ -165,14 +201,40 @@ export function ExpensesClient() {
         setFormSubmitting(true);
         try {
             let res;
-            if (editingItem) {
+            if (entryType === "CAPEX" && !editingItem) {
+                // Create asset (CapEx)
+                res = await createAsset({
+                    outletId,
+                    name: formAssetName,
+                    purchaseDate: new Date(formAssetDate + "T00:00:00Z"),
+                    purchasePrice: Number(formAssetPrice),
+                    usefulLifeMonths: formUsefulLife,
+                    notes: formAssetNotes || undefined,
+                });
+                if (res.success) {
+                    toast.success("Pembelian aset berhasil dicatat");
+                    setIsModalOpen(false);
+                    // Optionally refresh — CapEx doesn't show in expenses list
+                } else {
+                    toast.error(res.error || "Gagal mencatat aset");
+                }
+            } else if (editingItem) {
+                // Update existing expense (OpEx)
                 res = await updateExpense(editingItem.id, {
                     date: new Date(formDate + "T00:00:00Z"),
                     category: formCategory,
                     amount: Number(formAmount),
                     description: formDescription || undefined,
                 });
+                if (res.success) {
+                    toast.success("Pengeluaran berhasil diperbarui");
+                    setIsModalOpen(false);
+                    await fetchExpenses();
+                } else {
+                    toast.error(res.error || "Gagal menyimpan pengeluaran");
+                }
             } else {
+                // Create new expense (OpEx)
                 res = await createExpense({
                     outletId,
                     date: new Date(formDate + "T00:00:00Z"),
@@ -180,13 +242,13 @@ export function ExpensesClient() {
                     amount: Number(formAmount),
                     description: formDescription || undefined,
                 });
-            }
-            if (res.success) {
-                toast.success(editingItem ? "Pengeluaran berhasil diperbarui" : "Pengeluaran berhasil dicatat");
-                setIsModalOpen(false);
-                await fetchExpenses();
-            } else {
-                toast.error(res.error || "Gagal menyimpan pengeluaran");
+                if (res.success) {
+                    toast.success("Pengeluaran berhasil dicatat");
+                    setIsModalOpen(false);
+                    await fetchExpenses();
+                } else {
+                    toast.error(res.error || "Gagal menyimpan pengeluaran");
+                }
             }
         } catch (err) {
             console.error(err);
@@ -253,7 +315,7 @@ export function ExpensesClient() {
                     </div>
                 </div>
                 <Button onClick={openCreateModal} className="w-full sm:w-auto flex items-center justify-center gap-2">
-                    <Plus className="h-4 w-4" /> Catat Pengeluaran
+                    <Plus className="h-4 w-4" /> Catat Kas Keluar
                 </Button>
             </div>
 
@@ -261,11 +323,12 @@ export function ExpensesClient() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="border-l-4 border-l-red-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Pengeluaran (OpEx)</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{formatIDR(totalExpenses)}</div>
+                        <p className="text-xs text-muted-foreground">Biaya operasional periode ini</p>
                     </CardContent>
                 </Card>
                 {Object.entries(expensesByCategory)
@@ -290,10 +353,21 @@ export function ExpensesClient() {
                     ))}
             </div>
 
+            {/* Info banner */}
+            <div className="flex items-start gap-3 p-4 rounded-lg border bg-blue-50/50 dark:bg-blue-950/10 text-blue-800 dark:text-blue-300">
+                <ArrowDownUp className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                    <span className="font-semibold">OpEx vs CapEx:</span> Halaman ini menampilkan <strong>Biaya Operasional (OpEx)</strong> saja. 
+                    Pembelian aset (CapEx) dapat dicatat lewat tombol &quot;Catat Kas Keluar&quot; dan akan muncul di halaman{" "}
+                    <span className="font-semibold">Aset &amp; Balik Modal</span>.
+                    Biaya penyusutan aset otomatis masuk ke Laporan Laba Rugi.
+                </div>
+            </div>
+
             {/* Table */}
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
-                    <CardTitle>Riwayat Pengeluaran</CardTitle>
+                    <CardTitle>Riwayat Pengeluaran Operasional (OpEx)</CardTitle>
                     <CardDescription>Catat biaya operasional, utilitas, gaji karyawan, dan pengeluaran lainnya.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -312,7 +386,7 @@ export function ExpensesClient() {
                                 {expenses.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                                            Belum ada riwayat pengeluaran. Klik &quot;Catat Pengeluaran&quot; untuk mulai.
+                                            Belum ada riwayat pengeluaran. Klik &quot;Catat Kas Keluar&quot; untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
@@ -348,68 +422,178 @@ export function ExpensesClient() {
                 </CardContent>
             </Card>
 
-            {/* Modal */}
+            {/* Unified Kas Keluar Modal */}
             <Modal
-                title={editingItem ? "Edit Pengeluaran" : "Catat Pengeluaran"}
-                description={editingItem ? "Perbarui data pengeluaran." : "Masukkan catatan pengeluaran baru."}
+                title={editingItem ? "Edit Pengeluaran" : "Catat Kas Keluar"}
+                description={editingItem ? "Perbarui data pengeluaran operasional." : "Pilih jenis pengeluaran: Biaya Operasional (OpEx) atau Pembelian Aset (CapEx)."}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             >
-                <form onSubmit={handleFormSubmit} className="space-y-4 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Tanggal *</label>
-                            <input
-                                type="date"
-                                required
-                                value={formDate}
-                                onChange={(e) => setFormDate(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Kategori *</label>
-                            <select
-                                required
-                                value={formCategory}
-                                onChange={(e) => setFormCategory(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            >
-                                {EXPENSE_CATEGORIES.map((c) => (
-                                    <option key={c.value} value={c.value}>{c.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                {/* Segmented Control — only for new entries */}
+                {!editingItem && (
+                    <div className="flex rounded-lg border bg-slate-100 dark:bg-zinc-900 p-1 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => setEntryType("OPEX")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                                entryType === "OPEX"
+                                    ? "bg-white dark:bg-zinc-800 shadow-sm text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            <Receipt className="h-4 w-4" />
+                            Biaya Operasional
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEntryType("CAPEX")}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                                entryType === "CAPEX"
+                                    ? "bg-white dark:bg-zinc-800 shadow-sm text-foreground"
+                                    : "text-muted-foreground hover:text-foreground"
+                            }`}
+                        >
+                            <Wallet className="h-4 w-4" />
+                            Pembelian Aset
+                        </button>
                     </div>
+                )}
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Jumlah (Rp) *</label>
-                        <input
-                            type="number"
-                            required
-                            min="0"
-                            placeholder="Contoh: 500000"
-                            value={formAmount}
-                            onChange={(e) => setFormAmount(e.target.value)}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Keterangan (Opsional)</label>
-                        <textarea
-                            placeholder="Misal: Bayar listrik bulanan"
-                            value={formDescription}
-                            onChange={(e) => setFormDescription(e.target.value)}
-                            rows={2}
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                    </div>
+                <form onSubmit={handleFormSubmit} className="space-y-4 pt-2">
+                    {/* OpEx Form */}
+                    {(entryType === "OPEX" || editingItem) && (
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium">Tanggal *</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formDate}
+                                        onChange={(e) => setFormDate(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium">Kategori *</label>
+                                    <select
+                                        required
+                                        value={formCategory}
+                                        onChange={(e) => setFormCategory(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    >
+                                        {EXPENSE_CATEGORIES.map((c) => (
+                                            <option key={c.value} value={c.value}>{c.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Jumlah (Rp) *</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="0"
+                                    placeholder="Contoh: 500000"
+                                    value={formAmount}
+                                    onChange={(e) => setFormAmount(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Keterangan (Opsional)</label>
+                                <textarea
+                                    placeholder="Misal: Bayar listrik bulanan"
+                                    value={formDescription}
+                                    onChange={(e) => setFormDescription(e.target.value)}
+                                    rows={2}
+                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* CapEx Form */}
+                    {entryType === "CAPEX" && !editingItem && (
+                        <>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Nama Aset *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Contoh: Mesin Espresso, Grinder, Kulkas"
+                                    value={formAssetName}
+                                    onChange={(e) => setFormAssetName(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium">Tanggal Beli *</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formAssetDate}
+                                        onChange={(e) => setFormAssetDate(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium">Harga Beli (Rp) *</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        placeholder="10000000"
+                                        value={formAssetPrice}
+                                        onChange={(e) => setFormAssetPrice(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Masa Manfaat (Penyusutan) *</label>
+                                <select
+                                    required
+                                    value={formUsefulLife}
+                                    onChange={(e) => setFormUsefulLife(Number(e.target.value))}
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    {USEFUL_LIFE_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+                                {formAssetPrice && formUsefulLife > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Penyusutan/bulan: <strong>{formatIDR(Number(formAssetPrice) / formUsefulLife)}</strong>
+                                    </p>
+                                )}
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Catatan (Opsional)</label>
+                                <textarea
+                                    placeholder="Misal: Mesin espresso Breville 2-head"
+                                    value={formAssetNotes}
+                                    onChange={(e) => setFormAssetNotes(e.target.value)}
+                                    rows={2}
+                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+
+                            {/* CapEx info */}
+                            <div className="rounded-lg border bg-amber-50/50 dark:bg-amber-950/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                                <span className="font-semibold">ℹ️ Pembelian aset (CapEx)</span> tidak akan memotong Laba Bersih bulan ini secara utuh. 
+                                Sistemakan otomatis menyusutkan nilainya selama masa manfaat ke Laporan Laba Rugi.
+                            </div>
+                        </>
+                    )}
+
                     <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting}>
                             Batal
                         </Button>
                         <Button type="submit" disabled={formSubmitting}>
-                            {formSubmitting ? "Menyimpan..." : "Simpan"}
+                            {formSubmitting ? "Menyimpan..." : entryType === "CAPEX" && !editingItem ? "Simpan Aset" : "Simpan"}
                         </Button>
                     </div>
                 </form>

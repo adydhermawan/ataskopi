@@ -6,26 +6,41 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
-import { createAsset, updateAsset, deleteAsset } from "@/actions/assets";
+import { updateAsset, deleteAsset } from "@/actions/assets";
 import { getAssetsROI } from "@/actions/analytics";
 import {
-    Plus,
     Edit,
     Trash,
     Loader2,
     Wallet,
     TrendingUp,
     BadgeDollarSign,
+    Clock,
+    BookOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+
+const USEFUL_LIFE_OPTIONS = [
+    { value: 3, label: "3 Bulan" },
+    { value: 6, label: "6 Bulan" },
+    { value: 12, label: "12 Bulan (1 Tahun)" },
+    { value: 24, label: "24 Bulan (2 Tahun)" },
+    { value: 36, label: "36 Bulan (3 Tahun)" },
+    { value: 48, label: "48 Bulan (4 Tahun)" },
+    { value: 60, label: "60 Bulan (5 Tahun)" },
+];
 
 interface AssetROI {
     id: string;
     outletId: string;
     name: string;
     purchaseDate: Date;
-    purchasePrice: any;
+    purchasePrice: number;
+    usefulLifeMonths: number;
+    monthlyDepreciation: number;
+    accumulatedDepreciation: number;
+    bookValue: number;
     status: string;
     notes: string | null;
     netProfitSince: number;
@@ -45,6 +60,7 @@ export function AssetsClient() {
     const [formName, setFormName] = useState("");
     const [formDate, setFormDate] = useState("");
     const [formPrice, setFormPrice] = useState("");
+    const [formUsefulLife, setFormUsefulLife] = useState(12);
     const [formStatus, setFormStatus] = useState("ACTIVE");
     const [formNotes, setFormNotes] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
@@ -92,17 +108,18 @@ export function AssetsClient() {
         new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
 
     const totalInvestment = assets.reduce((sum, a) => sum + Number(a.purchasePrice), 0);
-    const totalNetProfit = assets.length > 0 ? assets[0].netProfitSince : 0; // All assets share the same outlet net profit
+    const totalBookValue = assets.reduce((sum, a) => sum + a.bookValue, 0);
+    const totalNetProfit = assets.length > 0 ? assets[0].netProfitSince : 0;
     const overallROI = totalInvestment > 0 ? (totalNetProfit / totalInvestment) * 100 : 0;
 
-    const openCreateModal = () => {
-        setEditingItem(null);
-        setFormName("");
-        setFormDate(new Date().toLocaleDateString("en-CA"));
-        setFormPrice("");
-        setFormStatus("ACTIVE");
-        setFormNotes("");
-        setIsModalOpen(true);
+    const getDepreciationStatus = (a: AssetROI) => {
+        const now = new Date();
+        const purchaseDate = new Date(a.purchaseDate);
+        const monthsElapsed = (now.getFullYear() - purchaseDate.getFullYear()) * 12 + (now.getMonth() - purchaseDate.getMonth());
+        if (monthsElapsed >= a.usefulLifeMonths) {
+            return { label: "Habis Disusutkan", color: "bg-slate-100 text-slate-600" };
+        }
+        return { label: "Menyusut", color: "bg-amber-100 text-amber-700" };
     };
 
     const openEditModal = (a: AssetROI) => {
@@ -110,6 +127,7 @@ export function AssetsClient() {
         setFormName(a.name);
         setFormDate(format(new Date(a.purchaseDate), "yyyy-MM-dd"));
         setFormPrice(Number(a.purchasePrice).toString());
+        setFormUsefulLife(a.usefulLifeMonths);
         setFormStatus(a.status);
         setFormNotes(a.notes || "");
         setIsModalOpen(true);
@@ -117,30 +135,19 @@ export function AssetsClient() {
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!outletId) return;
+        if (!outletId || !editingItem) return;
         setFormSubmitting(true);
         try {
-            let res;
-            if (editingItem) {
-                res = await updateAsset(editingItem.id, {
-                    name: formName,
-                    purchaseDate: new Date(formDate + "T00:00:00Z"),
-                    purchasePrice: Number(formPrice),
-                    status: formStatus,
-                    notes: formNotes || undefined,
-                });
-            } else {
-                res = await createAsset({
-                    outletId,
-                    name: formName,
-                    purchaseDate: new Date(formDate + "T00:00:00Z"),
-                    purchasePrice: Number(formPrice),
-                    status: formStatus,
-                    notes: formNotes || undefined,
-                });
-            }
+            const res = await updateAsset(editingItem.id, {
+                name: formName,
+                purchaseDate: new Date(formDate + "T00:00:00Z"),
+                purchasePrice: Number(formPrice),
+                usefulLifeMonths: formUsefulLife,
+                status: formStatus,
+                notes: formNotes || undefined,
+            });
             if (res.success) {
-                toast.success(editingItem ? "Aset berhasil diperbarui" : "Aset berhasil ditambahkan");
+                toast.success("Aset berhasil diperbarui");
                 setIsModalOpen(false);
                 await fetchAssets();
             } else {
@@ -155,7 +162,7 @@ export function AssetsClient() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Hapus aset ini?")) return;
+        if (!confirm("Hapus aset ini? Data penyusutan terkait juga akan dihapus dari laporan.")) return;
         try {
             const res = await deleteAsset(id);
             if (res.success) {
@@ -198,13 +205,13 @@ export function AssetsClient() {
                         </div>
                     ) : null}
                 </div>
-                <Button onClick={openCreateModal} className="w-full sm:w-auto flex items-center justify-center gap-2">
-                    <Plus className="h-4 w-4" /> Tambah Aset
-                </Button>
+                <div className="text-sm text-muted-foreground">
+                    Tambahkan aset baru lewat menu <strong>Kas Keluar</strong> → Pembelian Aset
+                </div>
             </div>
 
             {/* Summary cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="border-l-4 border-l-blue-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Investasi Aset</CardTitle>
@@ -212,7 +219,17 @@ export function AssetsClient() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-blue-600">{formatIDR(totalInvestment)}</div>
-                        <p className="text-xs text-muted-foreground">{assets.length} aset aktif</p>
+                        <p className="text-xs text-muted-foreground">{assets.length} aset aktif (harga beli)</p>
+                    </CardContent>
+                </Card>
+                <Card className="border-l-4 border-l-indigo-500 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Nilai Buku Saat Ini</CardTitle>
+                        <BookOpen className="h-4 w-4 text-indigo-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-indigo-600">{formatIDR(totalBookValue)}</div>
+                        <p className="text-xs text-muted-foreground">Setelah penyusutan</p>
                     </CardContent>
                 </Card>
                 <Card className="border-l-4 border-l-emerald-500 shadow-sm">
@@ -253,7 +270,7 @@ export function AssetsClient() {
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
                     <CardTitle>Daftar Aset (Capital Expenditure)</CardTitle>
-                    <CardDescription>Pantau progres balik modal dari setiap aset.</CardDescription>
+                    <CardDescription>Pantau penyusutan dan progres balik modal dari setiap aset.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
@@ -261,61 +278,79 @@ export function AssetsClient() {
                             <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Aset</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal Beli</th>
+                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tgl Beli</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Beli</th>
+                                    <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Masa Manfaat</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Susut/Bulan</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Nilai Buku</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Progres ROI</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">ROI</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {assets.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                                            Belum ada catatan aset. Klik "Tambah Aset" untuk mulai.
+                                        <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                                            Belum ada catatan aset. Tambahkan aset baru lewat menu <strong>Kas Keluar</strong>.
                                         </td>
                                     </tr>
                                 ) : (
-                                    assets.map((a) => (
-                                        <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                            <td className="p-3">
-                                                <div className="font-medium">{a.name}</div>
-                                                {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
-                                            </td>
-                                            <td className="p-3">
-                                                {format(new Date(a.purchaseDate), "dd MMM yyyy", { locale: idLocale })}
-                                            </td>
-                                            <td className="p-3 text-right font-medium">{formatIDR(Number(a.purchasePrice))}</td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${a.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
-                                                    {a.status === "ACTIVE" ? "Aktif" : "Non-aktif"}
-                                                </span>
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${a.roiPercentage >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
-                                                            style={{ width: `${Math.min(100, Math.max(0, a.roiPercentage))}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-xs font-semibold w-12 text-right">
-                                                        {a.roiPercentage.toFixed(1)}%
+                                    assets.map((a) => {
+                                        const depStatus = getDepreciationStatus(a);
+                                        return (
+                                            <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                                                <td className="p-3">
+                                                    <div className="font-medium">{a.name}</div>
+                                                    {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
+                                                </td>
+                                                <td className="p-3 text-xs">
+                                                    {format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}
+                                                </td>
+                                                <td className="p-3 text-right font-medium">{formatIDR(Number(a.purchasePrice))}</td>
+                                                <td className="p-3 text-center">
+                                                    <span className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                        <Clock className="h-3 w-3" />
+                                                        {a.usefulLifeMonths} bln
                                                     </span>
-                                                </div>
-                                            </td>
-                                            <td className="p-3 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                        <Trash className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="p-3 text-right text-xs font-medium text-amber-600">
+                                                    {formatIDR(a.monthlyDepreciation)}
+                                                </td>
+                                                <td className="p-3 text-right font-medium text-indigo-600">
+                                                    {formatIDR(a.bookValue)}
+                                                </td>
+                                                <td className="p-3">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${depStatus.color}`}>
+                                                        {depStatus.label}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full ${a.roiPercentage >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                                                                style={{ width: `${Math.min(100, Math.max(0, a.roiPercentage))}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-xs font-semibold w-12 text-right">
+                                                            {a.roiPercentage.toFixed(0)}%
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                            <Trash className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -323,10 +358,10 @@ export function AssetsClient() {
                 </CardContent>
             </Card>
 
-            {/* Modal */}
+            {/* Edit Modal */}
             <Modal
-                title={editingItem ? "Edit Aset" : "Tambah Aset"}
-                description={editingItem ? "Perbarui data aset." : "Catat pembelian aset / alat pendukung baru."}
+                title="Edit Aset"
+                description="Perbarui data aset dan parameter penyusutan."
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             >
@@ -366,7 +401,25 @@ export function AssetsClient() {
                             />
                         </div>
                     </div>
-                    {editingItem && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">Masa Manfaat *</label>
+                            <select
+                                required
+                                value={formUsefulLife}
+                                onChange={(e) => setFormUsefulLife(Number(e.target.value))}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                {USEFUL_LIFE_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                            {formPrice && formUsefulLife > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Penyusutan/bulan: <strong>{new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(Number(formPrice) / formUsefulLife)}</strong>
+                                </p>
+                            )}
+                        </div>
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Status</label>
                             <select
@@ -378,7 +431,7 @@ export function AssetsClient() {
                                 <option value="RETIRED">Non-aktif / Rusak</option>
                             </select>
                         </div>
-                    )}
+                    </div>
                     <div className="space-y-1">
                         <label className="text-sm font-medium">Catatan (Opsional)</label>
                         <textarea

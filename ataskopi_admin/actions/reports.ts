@@ -3,6 +3,56 @@
 import { db as prisma } from "@/lib/db"
 import { requirePermission } from "@/lib/auth-utils"
 
+/**
+ * Calculate accumulated depreciation from purchase date up to a given date.
+ */
+function calculateAccumulatedDepreciation(
+    asset: { purchaseDate: Date; purchasePrice: any; usefulLifeMonths: number; monthlyDepreciation: any },
+    asOfDate: Date
+): number {
+    const monthlyDep = Number(asset.monthlyDepreciation)
+    if (monthlyDep <= 0) return 0
+
+    const purchaseDate = new Date(asset.purchaseDate)
+    if (asOfDate < purchaseDate) return 0
+
+    const purchaseMonth = purchaseDate.getFullYear() * 12 + purchaseDate.getMonth()
+    const asOfMonth = asOfDate.getFullYear() * 12 + asOfDate.getMonth()
+    const monthsElapsed = asOfMonth - purchaseMonth + 1
+
+    const cappedMonths = Math.min(monthsElapsed, asset.usefulLifeMonths)
+    const accumulated = monthlyDep * Math.max(0, cappedMonths)
+
+    return Math.min(accumulated, Number(asset.purchasePrice))
+}
+
+/**
+ * Calculate depreciation within a date range for a single asset.
+ */
+function calculateAssetDepreciation(
+    asset: { purchaseDate: Date; purchasePrice: any; usefulLifeMonths: number; monthlyDepreciation: any },
+    startDate: Date,
+    endDate: Date
+): number {
+    const monthlyDep = Number(asset.monthlyDepreciation)
+    if (monthlyDep <= 0) return 0
+
+    const purchaseDate = new Date(asset.purchaseDate)
+    const depEndDate = new Date(purchaseDate)
+    depEndDate.setMonth(depEndDate.getMonth() + asset.usefulLifeMonths)
+
+    const effectiveStart = new Date(Math.max(startDate.getTime(), purchaseDate.getTime()))
+    const effectiveEnd = new Date(Math.min(endDate.getTime(), depEndDate.getTime()))
+
+    if (effectiveStart > effectiveEnd) return 0
+
+    const startMonth = effectiveStart.getFullYear() * 12 + effectiveStart.getMonth()
+    const endMonth = effectiveEnd.getFullYear() * 12 + effectiveEnd.getMonth()
+    const monthsCount = endMonth - startMonth + 1
+
+    return monthlyDep * Math.max(0, monthsCount)
+}
+
 export async function getIncomeStatement(outletId: string, startDate: Date, endDate: Date) {
     await requirePermission('finance', 'view')
 
@@ -25,28 +75,47 @@ export async function getIncomeStatement(outletId: string, startDate: Date, endD
     })
     const totalCogs = stockOpnames.reduce((sum, op) => sum + Number(op.cogsAmount), 0)
 
-    // 3. Operating Expenses from Expense
+    // 3. Operating Expenses from Expense (OpEx only, no CapEx)
     const expenses = await prisma.expense.findMany({
         where: {
             outletId,
             date: { gte: startDate, lte: endDate }
         }
     })
-    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
+    const opexAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
+    // 4. Depreciation from active assets
+    const assets = await prisma.asset.findMany({
+        where: {
+            outletId,
+            status: 'ACTIVE',
+            purchaseDate: { lte: endDate }
+        }
+    })
+    const depreciationExpense = assets.reduce((sum, asset) => {
+        return sum + calculateAssetDepreciation(asset, startDate, endDate)
+    }, 0)
+
+    const totalExpenses = opexAmount + depreciationExpense
     const grossProfit = totalRevenue - totalCogs
     const netProfit = grossProfit - totalExpenses
 
-    // Expenses categorized for breakdown
+    // Expenses categorized for breakdown (including depreciation)
     const expensesByCategory = expenses.reduce((acc, exp) => {
         acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount)
         return acc
     }, {} as Record<string, number>)
 
+    if (depreciationExpense > 0) {
+        expensesByCategory['DEPRECIATION'] = depreciationExpense
+    }
+
     return {
         totalRevenue,
         totalCogs,
         grossProfit,
+        opexAmount,
+        depreciationExpense,
         totalExpenses,
         netProfit,
         expensesByCategory
@@ -70,7 +139,7 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     }))
     const inventoryValue = materialsDetails.reduce((sum, m) => sum + m.totalValue, 0)
 
-    // 2. Fixed Assets from Asset table
+    // 2. Fixed Assets with Net Book Value (purchasePrice - accumulatedDepreciation)
     const fixedAssets = await prisma.asset.findMany({
         where: {
             outletId,
@@ -78,13 +147,23 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
             purchaseDate: { lte: asOfDate }
         }
     })
-    const fixedAssetsDetails = fixedAssets.map(a => ({
-        id: a.id,
-        name: a.name,
-        purchasePrice: Number(a.purchasePrice),
-        purchaseDate: a.purchaseDate
-    }))
-    const fixedAssetsValue = fixedAssetsDetails.reduce((sum, a) => sum + a.purchasePrice, 0)
+    const fixedAssetsDetails = fixedAssets.map(a => {
+        const accDep = calculateAccumulatedDepreciation(a, asOfDate)
+        return {
+            id: a.id,
+            name: a.name,
+            purchasePrice: Number(a.purchasePrice),
+            purchaseDate: a.purchaseDate,
+            usefulLifeMonths: a.usefulLifeMonths,
+            monthlyDepreciation: Number(a.monthlyDepreciation),
+            accumulatedDepreciation: accDep,
+            bookValue: Math.max(0, Number(a.purchasePrice) - accDep)
+        }
+    })
+    // Total fixed assets = Sum of Net Book Values
+    const fixedAssetsValue = fixedAssetsDetails.reduce((sum, a) => sum + a.bookValue, 0)
+    const fixedAssetsCostValue = fixedAssetsDetails.reduce((sum, a) => sum + a.purchasePrice, 0)
+    const totalAccumulatedDepreciation = fixedAssetsDetails.reduce((sum, a) => sum + a.accumulatedDepreciation, 0)
 
     const totalAssets = inventoryValue + fixedAssetsValue
 
@@ -114,7 +193,8 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     })
     const cumulativeExpenses = allExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
-    const retainedEarnings = cumulativeRevenue - cumulativeCogs - cumulativeExpenses
+    // Retained earnings now include depreciation as expense (not CapEx as lump sum)
+    const retainedEarnings = cumulativeRevenue - cumulativeCogs - cumulativeExpenses - totalAccumulatedDepreciation
 
     // 4. Total Purchases (cash spent on inventory purchase)
     const allPurchases = await prisma.inventoryPurchase.findMany({
@@ -133,7 +213,9 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
         },
         fixedAssets: {
             details: fixedAssetsDetails,
-            totalValue: fixedAssetsValue
+            totalValue: fixedAssetsValue,
+            costValue: fixedAssetsCostValue,
+            totalAccumulatedDepreciation
         },
         totalAssets,
         equity: {

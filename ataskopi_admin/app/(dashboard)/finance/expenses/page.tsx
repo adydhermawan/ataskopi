@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export default function ExpensesPage() {
     return (
         <div className="space-y-6">
-            <PageHeader title="Pengeluaran (Expenses)" />
+            <PageHeader title="Kas Keluar (Cash Out)" />
             <ExpensesClient />
         </div>
     )

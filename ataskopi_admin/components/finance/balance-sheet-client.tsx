@@ -35,8 +35,14 @@ interface BalanceSheetData {
             name: string;
             purchasePrice: number;
             purchaseDate: Date;
+            usefulLifeMonths: number;
+            monthlyDepreciation: number;
+            accumulatedDepreciation: number;
+            bookValue: number;
         }>;
         totalValue: number;
+        costValue: number;
+        totalAccumulatedDepreciation: number;
     };
     totalAssets: number;
     equity: {
@@ -91,7 +97,7 @@ export function BalanceSheetClient() {
                         purchaseDate: new Date(d.purchaseDate),
                     })),
                 },
-            });
+            } as BalanceSheetData);
         } catch (err) {
             console.error("Failed to fetch balance sheet:", err);
         } finally {
@@ -242,19 +248,28 @@ export function BalanceSheetClient() {
                                 </span>
                                 <span>{formatIDR(data?.fixedAssets.totalValue || 0)}</span>
                             </h4>
-                            <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                            <div className="max-h-[250px] overflow-y-auto space-y-3 pr-1">
                                 {data?.fixedAssets.details.length === 0 ? (
                                     <div className="text-xs text-muted-foreground py-2 text-center">Tidak ada aset tetap terdaftar.</div>
                                 ) : (
                                     data?.fixedAssets.details.map((a) => (
-                                        <div key={a.id} className="flex justify-between items-center text-xs py-1 border-b border-dashed">
-                                            <div>
-                                                <span className="font-medium text-slate-700 dark:text-slate-300">{a.name}</span>
-                                                <span className="text-[10px] text-muted-foreground block">
-                                                    Beli: {format(a.purchaseDate, "dd MMM yyyy", { locale: idLocale })}
-                                                </span>
+                                        <div key={a.id} className="py-2 border-b border-dashed text-xs space-y-1.5">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{a.name}</span>
+                                                    <span className="text-[10px] text-muted-foreground block">
+                                                        Beli: {format(a.purchaseDate, "dd MMM yyyy", { locale: idLocale })} ({a.usefulLifeMonths} Bln)
+                                                    </span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-semibold text-emerald-600 block">{formatIDR(a.bookValue)}</span>
+                                                    <span className="text-[9px] text-muted-foreground block">Nilai Buku</span>
+                                                </div>
                                             </div>
-                                            <span className="font-semibold">{formatIDR(a.purchasePrice)}</span>
+                                            <div className="flex justify-between text-[10px] text-muted-foreground bg-slate-50 dark:bg-zinc-900/50 p-1.5 rounded">
+                                                <span>Harga Perolehan: {formatIDR(a.purchasePrice)}</span>
+                                                <span>Akm. Penyusutan: {formatIDR(a.accumulatedDepreciation)}</span>
+                                            </div>
                                         </div>
                                     ))
                                 )}
@@ -309,7 +324,10 @@ export function BalanceSheetClient() {
                                 1. Nilai persediaan bahan baku dihitung berdasarkan data stok aktual dikalikan dengan harga modal rata-rata (Moving Average Cost) hasil pencatatan pembelian.
                             </p>
                             <p>
-                                2. Laba ditahan diperoleh dari total akumulasi omset real dikurangi COGS stock opname dan biaya operasional yang telah selesai dicatat.
+                                2. Laba ditahan diperoleh dari total akumulasi omset real dikurangi COGS stock opname, biaya operasional (OpEx), dan biaya penyusutan aset tetap (Depresiasi).
+                            </p>
+                            <p>
+                                3. Aset Tetap disajikan sebesar Nilai Buku (Harga Perolehan dikurangi Akumulasi Penyusutan). Penyusutan dihitung secara berkala berdasarkan masa manfaat masing-masing aset.
                             </p>
                         </div>
                     </CardContent>

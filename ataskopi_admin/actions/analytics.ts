@@ -3,6 +3,62 @@
 import { db as prisma } from "@/lib/db"
 import { requirePermission } from "@/lib/auth-utils"
 
+/**
+ * Calculate depreciation for a single asset within a date range.
+ * Depreciation is counted per month the asset is active within its useful life.
+ */
+function calculateAssetDepreciation(
+    asset: { purchaseDate: Date; purchasePrice: any; usefulLifeMonths: number; monthlyDepreciation: any },
+    startDate: Date,
+    endDate: Date
+): number {
+    const monthlyDep = Number(asset.monthlyDepreciation)
+    if (monthlyDep <= 0) return 0
+
+    const purchaseDate = new Date(asset.purchaseDate)
+    // End of useful life
+    const depEndDate = new Date(purchaseDate)
+    depEndDate.setMonth(depEndDate.getMonth() + asset.usefulLifeMonths)
+
+    // Effective range: overlap between [startDate, endDate] and [purchaseDate, depEndDate]
+    const effectiveStart = new Date(Math.max(startDate.getTime(), purchaseDate.getTime()))
+    const effectiveEnd = new Date(Math.min(endDate.getTime(), depEndDate.getTime()))
+
+    if (effectiveStart > effectiveEnd) return 0
+
+    // Count months in the effective range
+    const startMonth = effectiveStart.getFullYear() * 12 + effectiveStart.getMonth()
+    const endMonth = effectiveEnd.getFullYear() * 12 + effectiveEnd.getMonth()
+    const monthsCount = endMonth - startMonth + 1
+
+    return monthlyDep * Math.max(0, monthsCount)
+}
+
+/**
+ * Calculate accumulated depreciation from purchase date up to a given date.
+ */
+function calculateAccumulatedDepreciation(
+    asset: { purchaseDate: Date; purchasePrice: any; usefulLifeMonths: number; monthlyDepreciation: any },
+    asOfDate: Date
+): number {
+    const monthlyDep = Number(asset.monthlyDepreciation)
+    if (monthlyDep <= 0) return 0
+
+    const purchaseDate = new Date(asset.purchaseDate)
+    if (asOfDate < purchaseDate) return 0
+
+    const purchaseMonth = purchaseDate.getFullYear() * 12 + purchaseDate.getMonth()
+    const asOfMonth = asOfDate.getFullYear() * 12 + asOfDate.getMonth()
+    const monthsElapsed = asOfMonth - purchaseMonth + 1
+
+    // Cap at useful life
+    const cappedMonths = Math.min(monthsElapsed, asset.usefulLifeMonths)
+    const accumulated = monthlyDep * Math.max(0, cappedMonths)
+
+    // Never exceed purchase price
+    return Math.min(accumulated, Number(asset.purchasePrice))
+}
+
 export async function getNetProfitAnalytics(outletId: string, startDate: Date, endDate: Date) {
     await requirePermission('finance', 'view')
     
@@ -26,7 +82,7 @@ export async function getNetProfitAnalytics(outletId: string, startDate: Date, e
     })
     const cogs = stockOpnames.reduce((sum, op) => sum + Number(op.cogsAmount), 0)
     
-    // Get Expenses (Operating Expenses)
+    // Get Expenses (Operating Expenses — OpEx only, excludes CapEx)
     const expenses = await prisma.expense.findMany({
         where: {
             outletId,
@@ -34,20 +90,40 @@ export async function getNetProfitAnalytics(outletId: string, startDate: Date, e
         }
     })
     
-    const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
-    
+    const opexAmount = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
+
+    // Calculate depreciation from active assets
+    const assets = await prisma.asset.findMany({
+        where: {
+            outletId,
+            status: 'ACTIVE',
+            purchaseDate: { lte: endDate }
+        }
+    })
+
+    const depreciationExpense = assets.reduce((sum, asset) => {
+        return sum + calculateAssetDepreciation(asset, startDate, endDate)
+    }, 0)
+
+    // Total expenses = OpEx + Depreciation (for P&L accuracy)
+    const totalExpenses = opexAmount + depreciationExpense
     const netProfit = grossRevenue - cogs - totalExpenses
     
     return {
         grossRevenue,
         cogs,
+        opexAmount,
+        depreciationExpense,
         totalExpenses,
         netProfit,
         margin: grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0,
-        expensesByCategory: expenses.reduce((acc, exp) => {
-            acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount)
-            return acc
-        }, {} as Record<string, number>)
+        expensesByCategory: {
+            ...expenses.reduce((acc, exp) => {
+                acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount)
+                return acc
+            }, {} as Record<string, number>),
+            ...(depreciationExpense > 0 ? { DEPRECIATION: depreciationExpense } : {})
+        }
     }
 }
 
@@ -58,12 +134,19 @@ export async function getMonthlyProfitSummary(outletId: string, months: number =
         month: string;
         grossRevenue: number;
         cogs: number;
+        opexAmount: number;
+        depreciationExpense: number;
         totalExpenses: number;
         netProfit: number;
         margin: number;
     }> = []
 
     const now = new Date()
+
+    // Fetch all assets once for efficiency
+    const allAssets = await prisma.asset.findMany({
+        where: { outletId, status: 'ACTIVE' }
+    })
 
     for (let i = months - 1; i >= 0; i--) {
         const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -81,14 +164,23 @@ export async function getMonthlyProfitSummary(outletId: string, months: number =
         })
 
         const grossRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
-        const cogs = stockOpnames.reduce((sum, op) => sum + Number(op.cogsAmount), 0)
-        const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
-        const netProfit = grossRevenue - cogs - totalExpenses
+        const cogsVal = stockOpnames.reduce((sum, op) => sum + Number(op.cogsAmount), 0)
+        const opexAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
+
+        // Calculate depreciation for this month from eligible assets
+        const depreciationExpense = allAssets
+            .filter(a => new Date(a.purchaseDate) <= endDate)
+            .reduce((sum, asset) => sum + calculateAssetDepreciation(asset, startDate, endDate), 0)
+
+        const totalExpenses = opexAmount + depreciationExpense
+        const netProfit = grossRevenue - cogsVal - totalExpenses
 
         results.push({
             month: startDate.toISOString(),
             grossRevenue,
-            cogs,
+            cogs: cogsVal,
+            opexAmount,
+            depreciationExpense,
             totalExpenses,
             netProfit,
             margin: grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0,
@@ -171,6 +263,8 @@ export async function getAssetsROI(outletId: string) {
     const expenses = await prisma.expense.findMany({
         where: { outletId, date: { gte: oldestAssetDate } }
     })
+
+    const now = new Date()
     
     const roiData = assets.map(asset => {
         const revSince = revenues.filter(r => r.date >= asset.purchaseDate).reduce((s, r) => s + Number(r.amount), 0)
@@ -179,9 +273,18 @@ export async function getAssetsROI(outletId: string) {
         
         const netProfitSince = revSince - cogsSince - expSince
         const roiPercentage = Number(asset.purchasePrice) > 0 ? (netProfitSince / Number(asset.purchasePrice)) * 100 : 0
-        
+
+        // Depreciation tracking
+        const accumulatedDepreciation = calculateAccumulatedDepreciation(asset, now)
+        const bookValue = Math.max(0, Number(asset.purchasePrice) - accumulatedDepreciation)
+
         return {
             ...asset,
+            purchasePrice: Number(asset.purchasePrice),
+            monthlyDepreciation: Number(asset.monthlyDepreciation),
+            usefulLifeMonths: asset.usefulLifeMonths,
+            accumulatedDepreciation,
+            bookValue,
             netProfitSince,
             roiPercentage: Math.max(0, roiPercentage)
         }

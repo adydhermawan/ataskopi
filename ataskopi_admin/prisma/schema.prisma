@@ -528,17 +528,19 @@ model StockOpnameItem {
 }
 
 model Asset {
-  id            String   @id @default(uuid())
-  outletId      String   @map("outlet_id")
-  name          String
-  purchaseDate  DateTime @map("purchase_date") @db.Date
-  purchasePrice Decimal  @map("purchase_price") @db.Decimal(12, 2)
-  status        String   @default("ACTIVE") // ACTIVE, RETIRED
-  notes         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(uuid())
+  outletId            String   @map("outlet_id")
+  name                String
+  purchaseDate        DateTime @map("purchase_date") @db.Date
+  purchasePrice       Decimal  @map("purchase_price") @db.Decimal(12, 2)
+  usefulLifeMonths    Int      @default(12) @map("useful_life_months")
+  monthlyDepreciation Decimal  @default(0) @map("monthly_depreciation") @db.Decimal(12, 2)
+  status              String   @default("ACTIVE") // ACTIVE, RETIRED
+  notes               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
-  outlet        Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  outlet              Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@map("assets")
 }
