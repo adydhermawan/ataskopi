@@ -67,3 +67,20 @@ export async function deleteRawMaterial(id: string) {
         return { success: false, error: "Failed to delete raw material" }
     }
 }
+
+export async function getRawMaterialPurchaseHistory(rawMaterialId: string) {
+    await requirePermission('inventory', 'view')
+    return prisma.inventoryPurchase.findMany({
+        where: { rawMaterialId },
+        orderBy: { date: 'desc' },
+        select: {
+            id: true,
+            date: true,
+            quantity: true,
+            unitPrice: true,
+            totalAmount: true,
+            supplier: true,
+            notes: true,
+        }
+    })
+}

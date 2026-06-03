@@ -33,18 +33,19 @@ interface Expense {
 }
 
 const EXPENSE_CATEGORIES = [
-    { value: "RAW_MATERIAL", label: "Bahan Baku" },
     { value: "OPERATIONAL", label: "Operasional" },
     { value: "SALARY", label: "Gaji Karyawan" },
-    { value: "STOCK_LOSS", label: "Waste / Stock Loss" },
+    { value: "UTILITY", label: "Utilitas (Listrik/Air/Gas)" },
+    { value: "RENT", label: "Sewa Tempat" },
     { value: "OTHER", label: "Lain-lain" },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-    RAW_MATERIAL: "bg-emerald-100 text-emerald-700",
     OPERATIONAL: "bg-blue-100 text-blue-700",
     SALARY: "bg-purple-100 text-purple-700",
-    STOCK_LOSS: "bg-red-100 text-red-700",
+    UTILITY: "bg-amber-100 text-amber-700",
+    RENT: "bg-cyan-100 text-cyan-700",
+    STOCK_LOSS: "bg-red-100 text-red-700", // For viewing older stock loss records
     OTHER: "bg-slate-100 text-slate-700",
 };
 
@@ -67,7 +68,7 @@ export function ExpensesClient() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Expense | null>(null);
     const [formDate, setFormDate] = useState("");
-    const [formCategory, setFormCategory] = useState("RAW_MATERIAL");
+    const [formCategory, setFormCategory] = useState("OPERATIONAL");
     const [formAmount, setFormAmount] = useState("");
     const [formDescription, setFormDescription] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
@@ -115,7 +116,11 @@ export function ExpensesClient() {
         try {
             const { start, end } = getDateRange();
             const data = await getExpenses(outletId, start, end);
-            setExpenses(data.map((e) => ({ ...e, amount: Number(e.amount), date: new Date(e.date) })));
+            setExpenses(data.map((e) => ({
+                ...e,
+                amount: Number(e.amount),
+                date: new Date(e.date),
+            })));
         } catch (err) {
             console.error("Failed to fetch expenses:", err);
         } finally {
@@ -139,7 +144,7 @@ export function ExpensesClient() {
     const openCreateModal = () => {
         setEditingItem(null);
         setFormDate(new Date().toLocaleDateString("en-CA"));
-        setFormCategory("RAW_MATERIAL");
+        setFormCategory("OPERATIONAL");
         setFormAmount("");
         setFormDescription("");
         setIsModalOpen(true);
@@ -270,7 +275,8 @@ export function ExpensesClient() {
                         <Card key={cat} className="shadow-sm">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
-                                    {EXPENSE_CATEGORIES.find((c) => c.value === cat)?.label || cat}
+                                    {EXPENSE_CATEGORIES.find((c) => c.value === cat)?.label || 
+                                     (cat === "STOCK_LOSS" ? "Waste / Stock Loss" : cat)}
                                 </CardTitle>
                                 <Receipt className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
@@ -288,7 +294,7 @@ export function ExpensesClient() {
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
                     <CardTitle>Riwayat Pengeluaran</CardTitle>
-                    <CardDescription>Catat biaya operasional, pembelian bahan baku, dan pengeluaran lainnya.</CardDescription>
+                    <CardDescription>Catat biaya operasional, utilitas, gaji karyawan, dan pengeluaran lainnya.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
@@ -306,7 +312,7 @@ export function ExpensesClient() {
                                 {expenses.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                                            Belum ada riwayat pengeluaran. Klik "Catat Pengeluaran" untuk mulai.
+                                            Belum ada riwayat pengeluaran. Klik &quot;Catat Pengeluaran&quot; untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
@@ -317,7 +323,8 @@ export function ExpensesClient() {
                                             </td>
                                             <td className="p-3">
                                                 <span className={`px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_COLORS[e.category] || CATEGORY_COLORS.OTHER}`}>
-                                                    {EXPENSE_CATEGORIES.find((c) => c.value === e.category)?.label || e.category}
+                                                    {EXPENSE_CATEGORIES.find((c) => c.value === e.category)?.label || 
+                                                     (e.category === "STOCK_LOSS" ? "Waste / Stock Loss" : e.category)}
                                                 </span>
                                             </td>
                                             <td className="p-3 text-muted-foreground max-w-xs truncate">{e.description || "—"}</td>
@@ -374,6 +381,7 @@ export function ExpensesClient() {
                             </select>
                         </div>
                     </div>
+
                     <div className="space-y-1">
                         <label className="text-sm font-medium">Jumlah (Rp) *</label>
                         <input
@@ -389,7 +397,7 @@ export function ExpensesClient() {
                     <div className="space-y-1">
                         <label className="text-sm font-medium">Keterangan (Opsional)</label>
                         <textarea
-                            placeholder="Misal: Beli biji kopi 5kg dari supplier A"
+                            placeholder="Misal: Bayar listrik bulanan"
                             value={formDescription}
                             onChange={(e) => setFormDescription(e.target.value)}
                             rows={2}

@@ -11,6 +11,7 @@ import {
     createRawMaterial,
     updateRawMaterial,
     deleteRawMaterial,
+    getRawMaterialPurchaseHistory,
 } from "@/actions/raw-materials";
 import {
     Plus,
@@ -18,7 +19,11 @@ import {
     Trash,
     Loader2,
     Package,
+    History,
+    Calendar,
 } from "lucide-react";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 
 interface RawMaterial {
     id: string;
@@ -30,6 +35,16 @@ interface RawMaterial {
     averageCost: number;
 }
 
+interface PurchaseHistoryItem {
+    id: string;
+    date: Date;
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+    supplier: string | null;
+    notes: string | null;
+}
+
 export function MaterialsClient() {
     const { user } = useCurrentUser();
     const [materials, setMaterials] = useState<RawMaterial[]>([]);
@@ -37,7 +52,7 @@ export function MaterialsClient() {
     const [outlets, setOutlets] = useState<Array<{ id: string; name: string }>>([]);
     const [outletId, setOutletId] = useState<string | null>(null);
 
-    // Modal state
+    // Form Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<RawMaterial | null>(null);
     const [formName, setFormName] = useState("");
@@ -46,6 +61,12 @@ export function MaterialsClient() {
     const [formStock, setFormStock] = useState("");
     const [formCost, setFormCost] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
+
+    // History Modal state
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [historyMaterialName, setHistoryMaterialName] = useState("");
+    const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryItem[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
 
     // Lock kasir to their outlet
     useEffect(() => {
@@ -72,25 +93,26 @@ export function MaterialsClient() {
     }, [user]);
 
     // Fetch materials
-    useEffect(() => {
-        async function fetchMaterials() {
-            if (!outletId) return;
-            setLoading(true);
-            try {
-                const data = await getRawMaterials(outletId);
-                setMaterials(
-                    data.map((m) => ({
-                        ...m,
-                        currentStock: Number(m.currentStock),
-                        averageCost: Number(m.averageCost),
-                    }))
-                );
-            } catch (err) {
-                console.error("Failed to fetch materials:", err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchMaterials = async () => {
+        if (!outletId) return;
+        setLoading(true);
+        try {
+            const data = await getRawMaterials(outletId);
+            setMaterials(
+                data.map((m) => ({
+                    ...m,
+                    currentStock: Number(m.currentStock),
+                    averageCost: Number(m.averageCost),
+                }))
+            );
+        } catch (err) {
+            console.error("Failed to fetch materials:", err);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    useEffect(() => {
         if (user && outletId) fetchMaterials();
     }, [user, outletId]);
 
@@ -121,6 +143,30 @@ export function MaterialsClient() {
         setIsModalOpen(true);
     };
 
+    const openHistoryModal = async (m: RawMaterial) => {
+        setHistoryMaterialName(m.name);
+        setPurchaseHistory([]);
+        setIsHistoryModalOpen(true);
+        setLoadingHistory(true);
+        try {
+            const history = await getRawMaterialPurchaseHistory(m.id);
+            setPurchaseHistory(
+                history.map((h) => ({
+                    ...h,
+                    quantity: Number(h.quantity),
+                    unitPrice: Number(h.unitPrice),
+                    totalAmount: Number(h.totalAmount),
+                    date: new Date(h.date),
+                }))
+            );
+        } catch (err) {
+            console.error(err);
+            toast.error("Gagal memuat riwayat pembelian");
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!outletId) return;
@@ -148,9 +194,7 @@ export function MaterialsClient() {
             if (res.success) {
                 toast.success(editingItem ? "Bahan baku berhasil diperbarui" : "Bahan baku berhasil ditambahkan");
                 setIsModalOpen(false);
-                // Re-fetch
-                const data = await getRawMaterials(outletId);
-                setMaterials(data.map((m) => ({ ...m, currentStock: Number(m.currentStock), averageCost: Number(m.averageCost) })));
+                await fetchMaterials();
             } else {
                 toast.error(res.error || "Gagal menyimpan bahan baku");
             }
@@ -169,8 +213,7 @@ export function MaterialsClient() {
             const res = await deleteRawMaterial(id);
             if (res.success) {
                 toast.success("Bahan baku berhasil dihapus");
-                const data = await getRawMaterials(outletId);
-                setMaterials(data.map((m) => ({ ...m, currentStock: Number(m.currentStock), averageCost: Number(m.averageCost) })));
+                await fetchMaterials();
             } else {
                 toast.error(res.error || "Gagal menghapus");
             }
@@ -233,7 +276,7 @@ export function MaterialsClient() {
                 </Card>
                 <Card className="border-l-4 border-l-emerald-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Estimasi Nilai Stok</CardTitle>
+                        <CardTitle className="text-sm font-medium">Estimasi Nilai Stok (Asset)</CardTitle>
                         <Package className="h-4 w-4 text-emerald-500" />
                     </CardHeader>
                     <CardContent>
@@ -258,7 +301,7 @@ export function MaterialsClient() {
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">SKU</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Satuan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Stok</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Modal</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Modal (Avg)</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
@@ -279,6 +322,9 @@ export function MaterialsClient() {
                                             <td className="p-3 text-right">{formatIDR(m.averageCost)}</td>
                                             <td className="p-3 text-right">
                                                 <div className="flex justify-end gap-1">
+                                                    <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
+                                                        <History className="h-4 w-4" />
+                                                    </Button>
                                                     <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
@@ -296,10 +342,10 @@ export function MaterialsClient() {
                 </CardContent>
             </Card>
 
-            {/* Modal */}
+            {/* Form Modal */}
             <Modal
                 title={editingItem ? "Edit Bahan Baku" : "Tambah Bahan Baku"}
-                description={editingItem ? "Perbarui data bahan baku." : "Masukkan data bahan baku baru."}
+                description={editingItem ? "Perbarui data bahan baku. Stok dan harga modal dikunci karena diperbarui otomatis oleh sistem pembelian & stock opname." : "Masukkan data bahan baku baru."}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             >
@@ -347,7 +393,7 @@ export function MaterialsClient() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Stok Awal</label>
+                            <label className="text-sm font-medium">{editingItem ? "Stok Saat Ini (Kunci)" : "Stok Awal"}</label>
                             <input
                                 type="number"
                                 min="0"
@@ -355,18 +401,20 @@ export function MaterialsClient() {
                                 placeholder="0"
                                 value={formStock}
                                 onChange={(e) => setFormStock(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                disabled={!!editingItem}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Harga Modal per Satuan (Rp)</label>
+                            <label className="text-sm font-medium">{editingItem ? "Harga Modal Rata-Rata (Kunci)" : "Harga Modal Awal (Rp)"}</label>
                             <input
                                 type="number"
                                 min="0"
                                 placeholder="0"
                                 value={formCost}
                                 onChange={(e) => setFormCost(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                disabled={!!editingItem}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
                     </div>
@@ -379,6 +427,61 @@ export function MaterialsClient() {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* History Modal */}
+            <Modal
+                title={`Riwayat Pembelian: ${historyMaterialName}`}
+                description="Menampilkan semua transaksi masuk / pembelian untuk bahan baku ini."
+                isOpen={isHistoryModalOpen}
+                onClose={() => setIsHistoryModalOpen(false)}
+            >
+                <div className="space-y-4 pt-2 max-h-[50vh] overflow-y-auto">
+                    {loadingHistory ? (
+                        <div className="flex h-[200px] items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                    ) : purchaseHistory.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground text-sm">
+                            Belum ada riwayat pembelian untuk bahan baku ini.
+                        </div>
+                    ) : (
+                        <div className="overflow-hidden rounded-md border text-xs">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
+                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Jumlah</th>
+                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Harga Unit</th>
+                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Total</th>
+                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Supplier/Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {purchaseHistory.map((item) => (
+                                        <tr key={item.id} className="hover:bg-slate-50/50">
+                                            <td className="p-2.5">
+                                                {format(item.date, "dd MMM yyyy", { locale: idLocale })}
+                                            </td>
+                                            <td className="p-2.5 text-right font-medium">{item.quantity}</td>
+                                            <td className="p-2.5 text-right text-muted-foreground">{formatIDR(item.unitPrice)}</td>
+                                            <td className="p-2.5 text-right font-semibold">{formatIDR(item.totalAmount)}</td>
+                                            <td className="p-2.5 max-w-[150px] truncate text-muted-foreground">
+                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block">{item.supplier || "—"}</span>
+                                                <span className="text-[10px] block">{item.notes || ""}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    <div className="flex justify-end pt-2 border-t">
+                        <Button type="button" onClick={() => setIsHistoryModalOpen(false)}>
+                            Tutup
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

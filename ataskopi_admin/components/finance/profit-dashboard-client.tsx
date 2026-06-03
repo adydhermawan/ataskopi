@@ -15,6 +15,7 @@ import {
     Receipt,
     Loader2,
     Percent,
+    ShoppingBag,
 } from "lucide-react";
 import {
     BarChart,
@@ -29,20 +30,20 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend,
 } from "recharts";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
-    RAW_MATERIAL: "Bahan Baku",
     OPERATIONAL: "Operasional",
     SALARY: "Gaji",
-    STOCK_LOSS: "Waste/Loss",
+    UTILITY: "Utilitas (Listrik/Air/Gas)",
+    RENT: "Sewa Tempat",
+    STOCK_LOSS: "Waste/Loss", // For older records
     OTHER: "Lain-lain",
 };
 
-const PIE_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#ef4444", "#6b7280", "#f59e0b"];
+const PIE_COLORS = ["#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4", "#ef4444", "#6b7280"];
 
 const PERIOD_OPTIONS = [
     { value: "3", label: "3 Bulan" },
@@ -60,6 +61,7 @@ export function ProfitDashboardClient() {
     // Data
     const [currentMonth, setCurrentMonth] = useState<{
         grossRevenue: number;
+        cogs: number;
         totalExpenses: number;
         netProfit: number;
         margin: number;
@@ -68,6 +70,7 @@ export function ProfitDashboardClient() {
     const [monthlyData, setMonthlyData] = useState<Array<{
         month: string;
         grossRevenue: number;
+        cogs: number;
         totalExpenses: number;
         netProfit: number;
         margin: number;
@@ -75,6 +78,7 @@ export function ProfitDashboardClient() {
     const [dailyData, setDailyData] = useState<Array<{
         date: string;
         revenue: number;
+        cogs: number;
         expenses: number;
         netProfit: number;
     }>>([]);
@@ -204,43 +208,43 @@ export function ProfitDashboardClient() {
                     </CardContent>
                 </Card>
 
+                <Card className="border-l-4 border-l-orange-500 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">COGS (HPP)</CardTitle>
+                        <ShoppingBag className="h-4 w-4 text-orange-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">
+                            {formatIDR(currentMonth?.cogs || 0)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Bahan baku terpakai (Opname)</p>
+                    </CardContent>
+                </Card>
+
                 <Card className="border-l-4 border-l-red-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
+                        <CardTitle className="text-sm font-medium">Biaya Operasional (Opex)</CardTitle>
+                        <Receipt className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">
                             {formatIDR(currentMonth?.totalExpenses || 0)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Bahan baku + operasional + lainnya</p>
+                        <p className="text-xs text-muted-foreground">Biaya di luar pembelian bahan baku</p>
                     </CardContent>
                 </Card>
 
                 <Card className={`border-l-4 shadow-sm ${(currentMonth?.netProfit || 0) >= 0 ? "border-l-blue-500" : "border-l-amber-500"}`}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                        <CardTitle className="text-sm font-medium">Laba Bersih (Net Profit)</CardTitle>
                         <TrendingUp className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
                         <div className={`text-2xl font-bold ${(currentMonth?.netProfit || 0) >= 0 ? "text-blue-600" : "text-red-600"}`}>
                             {formatIDR(currentMonth?.netProfit || 0)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Pendapatan − Pengeluaran</p>
-                    </CardContent>
-                </Card>
-
-                <Card className={`border-l-4 shadow-sm ${(currentMonth?.margin || 0) >= 30 ? "border-l-emerald-500" : "border-l-amber-500"}`}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-                        <Percent className="h-4 w-4 text-amber-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${(currentMonth?.margin || 0) >= 30 ? "text-emerald-600" : "text-amber-600"}`}>
-                            {(currentMonth?.margin || 0).toFixed(1)}%
-                        </div>
                         <p className="text-xs text-muted-foreground">
-                            {(currentMonth?.margin || 0) >= 30 ? "Margin sehat ✓" : "Margin rendah ⚠️"}
+                            Margin Laba: {(currentMonth?.margin || 0).toFixed(1)}%
                         </p>
                     </CardContent>
                 </Card>
@@ -251,7 +255,7 @@ export function ProfitDashboardClient() {
                 <Card className="col-span-4 shadow-sm">
                     <CardHeader>
                         <CardTitle>Trend Profit Bulanan</CardTitle>
-                        <CardDescription>Perbandingan Pendapatan, Pengeluaran, dan Net Profit per bulan</CardDescription>
+                        <CardDescription>Perbandingan Pendapatan, HPP (COGS), Opex, dan Laba Bersih</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[320px] pt-4">
                         <ResponsiveContainer width="100%" height="100%">
@@ -274,8 +278,9 @@ export function ProfitDashboardClient() {
                                     contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                                 />
                                 <Bar dataKey="grossRevenue" name="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="totalExpenses" name="Pengeluaran" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="netProfit" name="Net Profit" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="cogs" name="COGS (HPP)" fill="#f97316" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="totalExpenses" name="Opex" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="netProfit" name="Laba Bersih" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -283,8 +288,8 @@ export function ProfitDashboardClient() {
 
                 <Card className="col-span-3 shadow-sm">
                     <CardHeader>
-                        <CardTitle>Breakdown Pengeluaran</CardTitle>
-                        <CardDescription>Proporsi per kategori bulan ini</CardDescription>
+                        <CardTitle>Breakdown Opex</CardTitle>
+                        <CardDescription>Proporsi biaya operasional bulan ini</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[320px] flex items-center justify-center">
                         {pieData.length > 0 ? (
@@ -309,7 +314,7 @@ export function ProfitDashboardClient() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="text-center text-muted-foreground text-sm">
-                                Belum ada data pengeluaran bulan ini.
+                                Belum ada data biaya operasional bulan ini.
                             </div>
                         )}
                     </CardContent>
@@ -320,7 +325,7 @@ export function ProfitDashboardClient() {
             <Card className="shadow-sm">
                 <CardHeader>
                     <CardTitle>Trend Harian (Bulan Ini)</CardTitle>
-                    <CardDescription>Pendapatan vs Pengeluaran harian</CardDescription>
+                    <CardDescription>Pendapatan vs COGS + Opex harian</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[280px] pt-4">
                     {dailyData.length > 0 ? (
@@ -344,13 +349,14 @@ export function ProfitDashboardClient() {
                                     contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                                 />
                                 <Line type="monotone" dataKey="revenue" name="Pendapatan" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-                                <Line type="monotone" dataKey="expenses" name="Pengeluaran" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-                                <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#3b82f6" }} />
+                                <Line type="monotone" dataKey="cogs" name="COGS (HPP)" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="expenses" name="Opex" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="netProfit" name="Laba Bersih" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#3b82f6" }} />
                             </LineChart>
                         </ResponsiveContainer>
                     ) : (
                         <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                            Belum ada data bulan ini. Catat omset real dan pengeluaran untuk melihat trend.
+                            Belum ada data bulan ini. Catat omset real, opex, dan lakukan stock opname untuk melihat trend.
                         </div>
                     )}
                 </CardContent>
@@ -359,8 +365,8 @@ export function ProfitDashboardClient() {
             {/* Monthly Summary Table */}
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
-                    <CardTitle>Ringkasan Bulanan</CardTitle>
-                    <CardDescription>Performa keuangan per bulan</CardDescription>
+                    <CardTitle>Ringkasan Laporan Laba Rugi Bulanan</CardTitle>
+                    <CardDescription>Performa keuangan per bulan dengan perhitungan COGS & Opex</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
@@ -369,15 +375,16 @@ export function ProfitDashboardClient() {
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bulan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Pendapatan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Pengeluaran</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Net Profit</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Opex (B. Operasional)</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Laba Bersih</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Margin</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {monthlyData.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
                                             Belum ada data.
                                         </td>
                                     </tr>
@@ -388,6 +395,7 @@ export function ProfitDashboardClient() {
                                                 {format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}
                                             </td>
                                             <td className="p-3 text-right text-emerald-600 font-medium">{formatIDR(row.grossRevenue)}</td>
+                                            <td className="p-3 text-right text-orange-600 font-medium">{formatIDR(row.cogs || 0)}</td>
                                             <td className="p-3 text-right text-red-600 font-medium">{formatIDR(row.totalExpenses)}</td>
                                             <td className={`p-3 text-right font-bold ${row.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
                                                 {formatIDR(row.netProfit)}

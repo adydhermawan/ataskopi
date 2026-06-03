@@ -274,7 +274,7 @@ export function StockOpnameClient() {
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Catatan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Item</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Nilai Selisih</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
@@ -287,12 +287,12 @@ export function StockOpnameClient() {
                                     </tr>
                                 ) : (
                                     opnames.map((o) => {
-                                        const totalLossValue = o.items.reduce((sum, item) => {
+                                        const cogsAmountVal = Number((o as any).cogsAmount) || o.items.reduce((sum, item) => {
                                             const diff = Number(item.difference);
                                             return diff < 0 ? sum + Math.abs(diff) * Number(item.unitCost) : sum;
                                         }, 0);
                                         const isExpanded = expandedId === o.id;
-
+ 
                                         return (
                                             <React.Fragment key={o.id}>
                                                 <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
@@ -309,15 +309,8 @@ export function StockOpnameClient() {
                                                     </td>
                                                     <td className="p-3 text-muted-foreground">{o.notes || "—"}</td>
                                                     <td className="p-3 text-right font-medium">{o.items.length}</td>
-                                                    <td className="p-3 text-right">
-                                                        {totalLossValue > 0 ? (
-                                                            <span className="text-red-600 font-medium flex items-center justify-end gap-1">
-                                                                <AlertTriangle className="h-3 w-3" />
-                                                                -{formatIDR(totalLossValue)}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-emerald-600 font-medium">Rp 0</span>
-                                                        )}
+                                                    <td className="p-3 text-right font-bold text-red-600">
+                                                        {formatIDR(cogsAmountVal)}
                                                     </td>
                                                     <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex justify-end gap-1">
@@ -346,13 +339,13 @@ export function StockOpnameClient() {
                                                                             <th className="text-right pb-2 font-medium">Stok Aktual</th>
                                                                             <th className="text-right pb-2 font-medium">Selisih</th>
                                                                             <th className="text-right pb-2 font-medium">Harga Modal</th>
-                                                                            <th className="text-right pb-2 font-medium">Nilai Selisih</th>
+                                                                            <th className="text-right pb-2 font-medium">COGS (HPP)</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
                                                                         {o.items.map((item) => {
                                                                             const diff = Number(item.difference);
-                                                                            const lossVal = diff * Number(item.unitCost);
+                                                                            const cogsItemVal = Number((item as any).cogsValue) || (diff < 0 ? Math.abs(diff) * Number(item.unitCost) : 0);
                                                                             return (
                                                                                 <tr key={item.id}>
                                                                                     <td className="py-2 font-medium">{item.rawMaterial.name} ({item.rawMaterial.unit})</td>
@@ -362,8 +355,8 @@ export function StockOpnameClient() {
                                                                                         {diff > 0 ? "+" : ""}{diff}
                                                                                     </td>
                                                                                     <td className="py-2 text-right">{formatIDR(Number(item.unitCost))}</td>
-                                                                                    <td className={`py-2 text-right font-medium ${lossVal < 0 ? "text-red-600" : ""}`}>
-                                                                                        {formatIDR(lossVal)}
+                                                                                    <td className={`py-2 text-right font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
+                                                                                        {formatIDR(cogsItemVal)}
                                                                                     </td>
                                                                                 </tr>
                                                                             );

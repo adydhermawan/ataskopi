@@ -1,4 +1,3 @@
-
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
@@ -6,30 +5,36 @@ const prisma = new PrismaClient()
 async function main() {
     console.log('🌱 Starting database seed...')
 
-    // 1. Clean up existing data (Clean Slate for Single Tenant)
+    // 1. Clean up existing data
     console.log('🧹 Cleaning up old data...')
-    await prisma.orderItemOption.deleteMany() // Add deep cleanup
+    await prisma.orderItemOption.deleteMany()
     await prisma.orderItemModifier.deleteMany()
     await prisma.orderItem.deleteMany()
-    await prisma.loyaltyTransaction.deleteMany() // Add loyalty tx cleanup
+    await prisma.loyaltyTransaction.deleteMany()
     await prisma.order.deleteMany()
     await prisma.productModifier.deleteMany()
     await prisma.productOptionValue.deleteMany()
     await prisma.productOption.deleteMany()
     await prisma.product.deleteMany()
     await prisma.category.deleteMany()
-    await prisma.userVoucher.deleteMany() // Add user vouchers cleanup BEFORE voucher cleanup
+    await prisma.userVoucher.deleteMany()
     await prisma.voucher.deleteMany()
     await prisma.table.deleteMany()
-    await prisma.outlet.deleteMany()
-    await prisma.notification.deleteMany() // Clean notifications first
-    await prisma.userAddress.deleteMany() // Clean user addresses
+    await prisma.notification.deleteMany()
+    await prisma.userAddress.deleteMany()
     await prisma.user.deleteMany()
-    await prisma.membershipTier.deleteMany() // Added tier cleanup
-    await prisma.loyaltySetting.deleteMany() // Added loyalty settings cleanup
-    await prisma.orderModeSetting.deleteMany() // Added order mode settings cleanup
-    await prisma.promo.deleteMany() // Added promo cleanup
-    // await prisma.tenant.deleteMany() // Tenant table removed
+    await prisma.membershipTier.deleteMany()
+    await prisma.loyaltySetting.deleteMany()
+    await prisma.orderModeSetting.deleteMany()
+    await prisma.promo.deleteMany()
+    await prisma.dailyRealRevenue.deleteMany()
+    await prisma.inventoryPurchase.deleteMany()
+    await prisma.stockOpnameItem.deleteMany()
+    await prisma.stockOpname.deleteMany()
+    await prisma.rawMaterial.deleteMany()
+    await prisma.expense.deleteMany()
+    await prisma.asset.deleteMany()
+    await prisma.outlet.deleteMany()
     console.log('✨ Database cleaned')
 
     // 2. Create Categories
@@ -44,9 +49,7 @@ async function main() {
 
     for (const cat of categoriesData) {
         const created = await prisma.category.upsert({
-            where: {
-                slug: cat.slug
-            },
+            where: { slug: cat.slug },
             update: {},
             create: {
                 name: cat.name,
@@ -59,28 +62,20 @@ async function main() {
 
     console.log('✅ Categories seeded')
 
-    // 3. Create Outlets
-    const outletsData = [
-        { name: 'Vibe Coffee - Ungaran', address: 'Jl. Diponegoro No. 12, Ungaran Barat, Kab. Semarang', lat: -7.1350, lng: 110.4000 },
-        { name: 'Vibe Coffee - Semarang Kota', address: 'Jl. Pandanaran No. 45, Kota Semarang', lat: -6.9839, lng: 110.4104 },
-    ]
+    // 3. Create Only One Outlet: "Atas Kopi VW"
+    const firstOutlet = await prisma.outlet.create({
+        data: {
+            name: 'Atas Kopi VW',
+            address: 'Jl. Atas Kopi Raya No. 1, Semarang',
+            latitude: -6.9839,
+            longitude: 110.4104,
+        }
+    })
 
-    for (const outlet of outletsData) {
-        await prisma.outlet.create({
-            data: {
-                name: outlet.name,
-                address: outlet.address,
-                latitude: outlet.lat,
-                longitude: outlet.lng,
-            }
-        })
-    }
-
-    console.log('✅ Outlets seeded')
+    console.log('✅ Outlet Atas Kopi VW seeded')
 
     // 4. Create Vouchers (Rewards & Promos)
     const vouchersData = [
-        // Redeemable Reward (Costs Points)
         {
             code: 'KOPIHEMAT',
             discountType: 'fixed',
@@ -90,7 +85,6 @@ async function main() {
             pointCost: 50,
             isRedeemable: true
         },
-        // Free Reward (0 Points, e.g. Welcome Gift)
         {
             code: 'USERBARU',
             discountType: 'percentage',
@@ -100,7 +94,6 @@ async function main() {
             pointCost: 0,
             isRedeemable: true
         },
-        // Promo Code (Not Redeemable via Points, just hidden code)
         {
             code: 'SECRET',
             discountType: 'fixed',
@@ -114,9 +107,7 @@ async function main() {
 
     for (const v of vouchersData) {
         await prisma.voucher.upsert({
-            where: {
-                code: v.code
-            },
+            where: { code: v.code },
             update: {
                 pointCost: v.pointCost,
                 isRedeemable: v.isRedeemable
@@ -139,44 +130,35 @@ async function main() {
     console.log('✅ Vouchers seeded')
 
     // 4.5 Create Loyalty Settings (Single Record)
-    // First enable check if exists
-    const existingSettings = await prisma.loyaltySetting.findFirst()
-    if (!existingSettings) {
-        await prisma.loyaltySetting.create({
-            data: {
-                isEnabled: true,
-                pointsPerItem: 1,
-                pointValueIdr: 1000,
-                minPointsToRedeem: 10,
-                maxPointsPerTransaction: 100,
-            }
-        })
-    }
+    await prisma.loyaltySetting.create({
+        data: {
+            isEnabled: true,
+            pointsPerItem: 1,
+            pointValueIdr: 1000,
+            minPointsToRedeem: 10,
+            maxPointsPerTransaction: 100,
+        }
+    })
 
     console.log('✅ Loyalty settings seeded')
 
     // 4.5.1 Create Order Mode Settings (Single Record)
-    const existingOrderModeSettings = await prisma.orderModeSetting.findFirst()
-    if (!existingOrderModeSettings) {
-        await prisma.orderModeSetting.create({
-            data: {
-                dineIn: true,
-                pickup: true,
-                delivery: true,
-                dineInMethod: 'SCAN_ONLY',
-                taxEnabled: true,
-            }
-        })
-    }
+    await prisma.orderModeSetting.create({
+        data: {
+            dineIn: true,
+            pickup: true,
+            delivery: true,
+            dineInMethod: 'SCAN_ONLY',
+            taxEnabled: true,
+        }
+    })
 
     console.log('✅ Order mode settings seeded')
 
     // 4.6 Create Membership Tiers
     const tiers = await Promise.all([
-        prisma.membershipTier.upsert({
-            where: { tierLevel: 1 },
-            update: {},
-            create: {
+        prisma.membershipTier.create({
+            data: {
                 tierLevel: 1,
                 tierName: 'Bronze',
                 minPoints: 0,
@@ -184,10 +166,8 @@ async function main() {
                 benefitsDescription: 'Basic member benefits',
             },
         }),
-        prisma.membershipTier.upsert({
-            where: { tierLevel: 2 },
-            update: {},
-            create: {
+        prisma.membershipTier.create({
+            data: {
                 tierLevel: 2,
                 tierName: 'Silver',
                 minPoints: 100,
@@ -195,10 +175,8 @@ async function main() {
                 benefitsDescription: 'Access to tier-specific vouchers and priority support',
             },
         }),
-        prisma.membershipTier.upsert({
-            where: { tierLevel: 3 },
-            update: {},
-            create: {
+        prisma.membershipTier.create({
+            data: {
                 tierLevel: 3,
                 tierName: 'Gold',
                 minPoints: 500,
@@ -208,7 +186,7 @@ async function main() {
         }),
     ])
 
-    console.log('✅ Membership tiers seeded:', tiers.map(t => t.tierName).join(', '))
+    console.log('✅ Membership tiers seeded')
 
     // 4.6.1 Create Promos/Banners
     const promosData = [
@@ -246,39 +224,24 @@ async function main() {
     console.log('✅ Promos seeded')
 
     // 4.7 Create Tables for Dine-in
-    const firstOutlet = await prisma.outlet.findFirst()
-    if (firstOutlet) {
-        for (let i = 1; i <= 10; i++) {
-            const tableNum = i.toString().padStart(2, '0')
-            // Composite key outletId_tableNumber assumed exist or findUnique replacement
-            const existingTable = await prisma.table.findFirst({
-                where: {
-                    outletId: firstOutlet.id,
-                    tableNumber: tableNum
-                }
-            })
-
-            if (!existingTable) {
-                await prisma.table.create({
-                    data: {
-                        outletId: firstOutlet.id,
-                        tableNumber: tableNum,
-                        qrCode: `ATASKOPI-TABLE-${tableNum}`,
-                        isOccupied: false,
-                    }
-                })
+    for (let i = 1; i <= 10; i++) {
+        const tableNum = i.toString().padStart(2, '0')
+        await prisma.table.create({
+            data: {
+                outletId: firstOutlet.id,
+                tableNumber: tableNum,
+                qrCode: `ATASKOPI-TABLE-${tableNum}`,
+                isOccupied: false,
             }
-        }
-        console.log('✅ Tables seeded: 10 tables')
+        })
     }
+    console.log('✅ Tables seeded: 10 tables')
 
     // 4.8 Create Test Users with bcrypt
     const pinHash = await bcrypt.hash('123456', 10)
 
-    const customerUser = await prisma.user.upsert({
-        where: { phone: '+6281234567890' },
-        update: {},
-        create: {
+    const customerUser = await prisma.user.create({
+        data: {
             phone: '+6281234567890',
             name: 'John Doe (Customer)',
             email: 'customer@ataskopi.com',
@@ -291,10 +254,8 @@ async function main() {
         },
     })
 
-    const adminUser = await prisma.user.upsert({
-        where: { phone: '+6281234567891' },
-        update: {},
-        create: {
+    const adminUser = await prisma.user.create({
+        data: {
             phone: '+6281234567891',
             name: 'Admin User',
             email: 'admin@ataskopi.com',
@@ -303,22 +264,20 @@ async function main() {
         },
     })
 
-    const kasirUser = await prisma.user.upsert({
-        where: { phone: '+6281234567892' },
-        update: {},
-        create: {
+    const kasirUser = await prisma.user.create({
+        data: {
             phone: '+6281234567892',
             name: 'Kasir User',
             email: 'kasir@ataskopi.com',
             pinHash,
             role: 'kasir',
+            outletId: firstOutlet.id,
         },
     })
 
     console.log('✅ Test users seeded (Customer, Admin, Kasir) - PIN: 123456')
 
     // 5. Create Products & Options
-
     const createProduct = async (
         catSlug: string,
         name: string,
@@ -330,13 +289,6 @@ async function main() {
     ) => {
         const categoryId = categoryMap.get(catSlug)
         if (!categoryId) return
-
-        // Check if product exists to avoid dups in rerun (simple check by name for seed)
-        const existing = await prisma.product.findFirst({
-            where: { name: name }
-        })
-
-        if (existing) return; // Skip if exists
 
         await prisma.product.create({
             data: {
@@ -373,8 +325,6 @@ async function main() {
     }
 
     // --- COFFEE ---
-
-    // Kopsu Atas Aren
     await createProduct(
         'coffee',
         'Kopsu Atas Aren',
@@ -392,7 +342,6 @@ async function main() {
         ]
     )
 
-    // Sweet Caramel Latte
     await createProduct(
         'coffee',
         'Sweet Caramel Latte',
@@ -410,7 +359,6 @@ async function main() {
         ]
     )
 
-    // Ice Black Coffee
     await createProduct(
         'coffee',
         'Ice Black Coffee',
@@ -426,108 +374,7 @@ async function main() {
         ]
     )
 
-    // Filter Coffee V60
-    await createProduct(
-        'coffee',
-        'Filter Coffee V60',
-        'Kopi filter V60 dengan aroma floral dan rasa yang clean.',
-        12000,
-        '/images/products/filter-coffee-v60.png',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
-            { name: 'Size', values: [{ name: 'Regular' }] }
-        ],
-        []
-    )
-
-    // Cold Brew Specialty
-    await createProduct(
-        'coffee',
-        'Cold Brew Specialty',
-        'Kopi cold brew specialty yang diseduh dingin selama 12 jam.',
-        12000,
-        '/images/products/cold-brew-specialty.png',
-        [
-            { name: 'Size', values: [{ name: 'Regular' }] },
-            { name: 'Sugar', values: [{ name: 'No Sugar' }, { name: 'Normal' }, { name: 'Less' }] }
-        ],
-        []
-    )
-
-    // Salted caramel americano
-    await createProduct(
-        'coffee',
-        'Salted caramel americano',
-        'Americano klasik berpadu dengan gurih manis saus salted caramel.',
-        10000,
-        '/images/products/salted-caramel-americano.png',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
-            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
-            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
-        ],
-        [
-            { name: 'Extra Shot Espresso', price: 3000 }
-        ]
-    )
-
-    // Ice Cappuccino
-    await createProduct(
-        'coffee',
-        'Ice Cappuccino',
-        'Cappuccino dingin dengan espresso mantap dan foam susu tebal.',
-        12000,
-        '/images/products/ice-cappuccino.png',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
-            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
-            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
-        ],
-        [
-            { name: 'Extra Shot Espresso', price: 3000 }
-        ]
-    )
-
-    // Kopitiam Coffee Milk
-    await createProduct(
-        'coffee',
-        'Kopitiam Coffee Milk',
-        'Kopi susu tradisional khas Kopitiam dengan susu kental manis gurih.',
-        10000,
-        '/images/products/kopitiam-coffee-milk.png',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice', price: 0 }] },
-            { name: 'Size', values: [{ name: 'Regular' }, { name: 'Large', price: 6000 }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
-            { name: 'Ice Level', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Ice' }] },
-        ],
-        [
-            { name: 'Extra Shot Espresso', price: 3000 }
-        ]
-    )
-
-    // Flat White
-    await createProduct(
-        'coffee',
-        'Flat White',
-        'Espresso double shot dengan susu kukus bertekstur halus beludru.',
-        10000,
-        '/images/products/flat-white.png',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
-            { name: 'Size', values: [{ name: 'Regular' }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] }
-        ],
-        [
-            { name: 'Extra Shot Espresso', price: 3000 }
-        ]
-    )
-
     // --- NON COFFEE ---
-
-    // Matcha Latte
     await createProduct(
         'non-coffee',
         'Matcha Latte',
@@ -545,43 +392,7 @@ async function main() {
         ]
     )
 
-    // Dark Chocolate Sweet
-    await createProduct(
-        'non-coffee',
-        'Dark Chocolate Sweet',
-        'Cokelat dark kental manis dan kaya rasa.',
-        12000,
-        '/images/products/classic-chocolate.jpg',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
-        ],
-        [
-            { name: 'Whipped Cream', price: 5000 },
-            { name: 'Marshmallow', price: 4000 },
-        ]
-    )
-
-    // Chocolate Latte
-    await createProduct(
-        'non-coffee',
-        'Chocolate Latte',
-        'Minuman cokelat premium dengan susu segar yang creamy.',
-        12000,
-        '/images/products/classic-chocolate.jpg',
-        [
-            { name: 'Varian', values: [{ name: 'Hot' }, { name: 'Ice' }] },
-            { name: 'Sugar', values: [{ name: 'Normal' }, { name: 'Less' }, { name: 'No Sugar' }] },
-        ],
-        [
-            { name: 'Whipped Cream', price: 5000 },
-            { name: 'Marshmallow', price: 4000 },
-        ]
-    )
-
     // --- FOOD ---
-
-    // Nasi Goreng Rempah
     await createProduct(
         'food-snacks',
         'Nasi Goreng Rempah',
@@ -598,53 +409,18 @@ async function main() {
         ]
     )
 
-    // French Fries
-    await createProduct(
-        'food-snacks',
-        'French Fries',
-        'Kentang renyah dengan bumbu pilihan.',
-        22000,
-        '/images/products/french-fries.jpg',
-        [
-            { name: 'Bumbu', values: [{ name: 'Original' }, { name: 'BBQ' }, { name: 'Seaweed' }] },
-        ],
-        [
-            { name: 'Cheese Sauce', price: 4000 },
-            { name: 'Mayonnaise', price: 2000 },
-        ]
-    )
-
-    // --- PASTRY ---
-
-    // Almond Croissant
-    await createProduct(
-        'pastry',
-        'Almond Croissant',
-        'Pastry renyah dengan isian pasta almond.',
-        32000,
-        '/images/products/almond-croissant.jpg',
-        [
-            { name: 'Sajian', values: [{ name: 'Dine-in (Warm)' }, { name: 'Takeaway (Original)' }] },
-        ],
-        [
-            { name: 'Vanilla Ice Cream Scoop', price: 8000 },
-            { name: 'Melted Chocolate Side', price: 5000 },
-        ]
-    )
-
     console.log('✅ Products seeded')
 
     // 6. Create Test Orders for History
-    // Get seeded products
     const arenLatte = await prisma.product.findFirst({ where: { name: 'Kopsu Atas Aren' } })
     const nasiGoreng = await prisma.product.findFirst({ where: { name: 'Nasi Goreng Rempah' } })
 
     if (arenLatte && nasiGoreng) {
-        // Order 1: Active (Preparing)
-        const order1 = await prisma.order.create({
+        // Order 1: Active
+        await prisma.order.create({
             data: {
                 userId: customerUser.id,
-                outletId: firstOutlet?.id || '',
+                outletId: firstOutlet.id,
                 tableId: null,
                 orderNumber: '0001013009-001',
                 orderType: 'takeaway',
@@ -673,18 +449,18 @@ async function main() {
             }
         });
 
-        // Order 2: Completed (History)
-        const order2 = await prisma.order.create({
+        // Order 2: Completed
+        await prisma.order.create({
             data: {
                 userId: customerUser.id,
-                outletId: firstOutlet?.id || '',
+                outletId: firstOutlet.id,
                 tableId: null,
                 orderNumber: '0001012909-005',
                 orderType: 'dine_in',
                 subtotal: 38000,
                 tax: 4180,
                 total: 42180,
-                orderStatus: 'completed', // Status for History tab
+                orderStatus: 'completed',
                 paymentStatus: 'paid',
                 paymentMethod: 'cash',
                 items: {
@@ -700,10 +476,205 @@ async function main() {
             }
         });
 
-        console.log('✅ Test orders seeded (1 Active, 1 Completed)')
+        console.log('✅ Test orders seeded')
     }
 
-    console.log('🎉 Seeding completed!')
+    // 7. Seed Fixed Assets
+    const mesinEspresso = await prisma.asset.create({
+        data: {
+            outletId: firstOutlet.id,
+            name: 'Mesin Espresso',
+            purchaseDate: new Date('2026-05-01T00:00:00Z'),
+            purchasePrice: 5000000,
+            status: 'ACTIVE',
+            notes: 'Mesin Espresso La Marzocco'
+        }
+    })
+
+    const grinderKopi = await prisma.asset.create({
+        data: {
+            outletId: firstOutlet.id,
+            name: 'Grinder Kopi',
+            purchaseDate: new Date('2026-05-01T00:00:00Z'),
+            purchasePrice: 2000000,
+            status: 'ACTIVE',
+            notes: 'Grinder Mahlkonig EK43'
+        }
+    })
+
+    console.log('✅ Assets seeded')
+
+    // 8. Seed Raw Materials
+    const bijiKopi = await prisma.rawMaterial.create({
+        data: {
+            outletId: firstOutlet.id,
+            name: 'Biji Kopi Arabika',
+            sku: 'RAW-001',
+            unit: 'g',
+            currentStock: 4000,
+            averageCost: 110
+        }
+    })
+
+    const susuSegar = await prisma.rawMaterial.create({
+        data: {
+            outletId: firstOutlet.id,
+            name: 'Susu Segar',
+            sku: 'RAW-002',
+            unit: 'ml',
+            currentStock: 8000,
+            averageCost: 20
+        }
+    })
+
+    const gulaAren = await prisma.rawMaterial.create({
+        data: {
+            outletId: firstOutlet.id,
+            name: 'Gula Aren',
+            sku: 'RAW-003',
+            unit: 'g',
+            currentStock: 2500,
+            averageCost: 25
+        }
+    })
+
+    console.log('✅ Raw Materials seeded')
+
+    // 9. Seed Inventory Purchases (Purchase History)
+    await prisma.inventoryPurchase.createMany({
+        data: [
+            {
+                outletId: firstOutlet.id,
+                rawMaterialId: bijiKopi.id,
+                date: new Date('2026-05-25T00:00:00Z'),
+                quantity: 5000,
+                unitPrice: 110,
+                totalAmount: 550000,
+                supplier: 'Kopi Supply Co',
+                notes: 'Beli stok awal biji kopi'
+            },
+            {
+                outletId: firstOutlet.id,
+                rawMaterialId: susuSegar.id,
+                date: new Date('2026-05-28T00:00:00Z'),
+                quantity: 10000,
+                unitPrice: 20,
+                totalAmount: 200000,
+                supplier: 'Dairy Farm',
+                notes: 'Susu segar mingguan'
+            },
+            {
+                outletId: firstOutlet.id,
+                rawMaterialId: gulaAren.id,
+                date: new Date('2026-05-28T00:00:00Z'),
+                quantity: 3000,
+                unitPrice: 25,
+                totalAmount: 75000,
+                supplier: 'Gula Supply',
+                notes: 'Gula aren cair premium'
+            }
+        ]
+    })
+
+    console.log('✅ Inventory Purchases seeded')
+
+    // 10. Seed Stock Opname (completed to show COGS)
+    await prisma.stockOpname.create({
+        data: {
+            outletId: firstOutlet.id,
+            date: new Date('2026-06-01T00:00:00Z'),
+            status: 'COMPLETED',
+            notes: 'Stock opname akhir mei / awal juni',
+            cogsAmount: 162500,
+            items: {
+                create: [
+                    {
+                        rawMaterialId: bijiKopi.id,
+                        systemStock: 5000,
+                        actualStock: 4000,
+                        difference: -1000,
+                        unitCost: 110,
+                        cogsValue: 110000
+                    },
+                    {
+                        rawMaterialId: susuSegar.id,
+                        systemStock: 10000,
+                        actualStock: 8000,
+                        difference: -2000,
+                        unitCost: 20,
+                        cogsValue: 40000
+                    },
+                    {
+                        rawMaterialId: gulaAren.id,
+                        systemStock: 3000,
+                        actualStock: 2500,
+                        difference: -500,
+                        unitCost: 25,
+                        cogsValue: 12500
+                    }
+                ]
+            }
+        }
+    })
+
+    console.log('✅ Stock Opname / COGS seeded')
+
+    // 11. Seed Daily Real Revenues (Manual record)
+    await prisma.dailyRealRevenue.createMany({
+        data: [
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-05-31T00:00:00Z'),
+                amount: 358000,
+                notes: 'Omset real catatan manual'
+            },
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-06-01T00:00:00Z'),
+                amount: 389000,
+                notes: 'Omset real catatan manual'
+            },
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-06-02T00:00:00Z'),
+                amount: 266000,
+                notes: 'Omset real catatan manual'
+            }
+        ]
+    })
+
+    console.log('✅ Daily Real Revenues seeded')
+
+    // 12. Seed Operating Expenses (Opex)
+    await prisma.expense.createMany({
+        data: [
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-05-31T00:00:00Z'),
+                category: 'OPERATIONAL',
+                amount: 50000,
+                description: 'Gas LPG & air galon'
+            },
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-06-01T00:00:00Z'),
+                category: 'SALARY',
+                amount: 100000,
+                description: 'Gaji harian kasir'
+            },
+            {
+                outletId: firstOutlet.id,
+                date: new Date('2026-06-02T00:00:00Z'),
+                category: 'UTILITY',
+                amount: 40000,
+                description: 'Token listrik mingguan'
+            }
+        ]
+    })
+
+    console.log('✅ Operating Expenses seeded')
+
+    console.log('🎉 Seeding completed successfully!')
 }
 
 main()

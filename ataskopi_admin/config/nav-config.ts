@@ -5,7 +5,6 @@ import {
     Users,
     Settings,
     Store,
-    CreditCard,
     History,
     Bell,
     Gift,
@@ -16,7 +15,9 @@ import {
     ClipboardList,
     Receipt,
     Wallet,
-    TrendingUp
+    TrendingUp,
+    ShoppingCart,
+    FileText
 } from "lucide-react";
 
 export interface NavItem {
@@ -88,6 +89,12 @@ export const navItems: NavItem[] = [
         roles: ["admin", "owner", "kasir"],
     },
     {
+        title: "Pembelian",
+        href: "/inventory/purchases",
+        icon: ShoppingCart,
+        roles: ["admin", "owner", "kasir"],
+    },
+    {
         title: "Stock Opname",
         href: "/inventory/opname",
         icon: ClipboardList,
@@ -100,9 +107,15 @@ export const navItems: NavItem[] = [
         roles: ["admin", "owner"],
     },
     {
-        title: "Laporan Profit",
+        title: "Laba Rugi",
         href: "/finance/profit",
         icon: TrendingUp,
+        roles: ["admin", "owner"],
+    },
+    {
+        title: "Neraca",
+        href: "/finance/balance-sheet",
+        icon: FileText,
         roles: ["admin", "owner"],
     },
     {
@@ -136,4 +149,3 @@ export const navItems: NavItem[] = [
         roles: ["admin", "owner", "kasir"],
     },
 ];
-
