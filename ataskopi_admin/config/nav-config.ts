@@ -22,9 +22,15 @@ import {
 
 export interface NavItem {
     title: string;
-    href: string;
+    href?: string;
     icon: any;
     roles: string[]; // "admin", "owner", "kasir"
+    children?: {
+        title: string;
+        href: string;
+        icon: any;
+        roles: string[];
+    }[];
 }
 
 export const navItems: NavItem[] = [
@@ -83,46 +89,60 @@ export const navItems: NavItem[] = [
         roles: ["admin", "owner"],
     },
     {
-        title: "Bahan Baku",
-        href: "/inventory/materials",
+        title: "Stok & Pengeluaran",
         icon: Package,
         roles: ["admin", "owner", "kasir"],
+        children: [
+            {
+                title: "Bahan Baku",
+                href: "/inventory/materials",
+                icon: Package,
+                roles: ["admin", "owner", "kasir"],
+            },
+            {
+                title: "Pembelian",
+                href: "/inventory/purchases",
+                icon: ShoppingCart,
+                roles: ["admin", "owner", "kasir"],
+            },
+            {
+                title: "Stock Opname",
+                href: "/inventory/opname",
+                icon: ClipboardList,
+                roles: ["admin", "owner", "kasir"],
+            },
+            {
+                title: "Pengeluaran",
+                href: "/finance/expenses",
+                icon: Receipt,
+                roles: ["admin", "owner"],
+            },
+        ]
     },
     {
-        title: "Pembelian",
-        href: "/inventory/purchases",
-        icon: ShoppingCart,
-        roles: ["admin", "owner", "kasir"],
-    },
-    {
-        title: "Stock Opname",
-        href: "/inventory/opname",
-        icon: ClipboardList,
-        roles: ["admin", "owner", "kasir"],
-    },
-    {
-        title: "Pengeluaran",
-        href: "/finance/expenses",
-        icon: Receipt,
-        roles: ["admin", "owner"],
-    },
-    {
-        title: "Laba Rugi",
-        href: "/finance/profit",
+        title: "Laporan Keuangan",
         icon: TrendingUp,
         roles: ["admin", "owner"],
-    },
-    {
-        title: "Neraca",
-        href: "/finance/balance-sheet",
-        icon: FileText,
-        roles: ["admin", "owner"],
-    },
-    {
-        title: "Aset & Balik Modal",
-        href: "/finance/assets",
-        icon: Wallet,
-        roles: ["admin", "owner"],
+        children: [
+            {
+                title: "Laba Rugi",
+                href: "/finance/profit",
+                icon: TrendingUp,
+                roles: ["admin", "owner"],
+            },
+            {
+                title: "Neraca",
+                href: "/finance/balance-sheet",
+                icon: FileText,
+                roles: ["admin", "owner"],
+            },
+            {
+                title: "Aset & Balik Modal",
+                href: "/finance/assets",
+                icon: Wallet,
+                roles: ["admin", "owner"],
+            },
+        ]
     },
     {
         title: "Loyalty Points",

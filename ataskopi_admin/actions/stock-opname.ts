@@ -163,14 +163,34 @@ export async function updateStockOpnameStatus(id: string, status: string) {
 export async function deleteStockOpname(id: string) {
     await requirePermission('inventory', 'delete')
     try {
-        const opname = await prisma.stockOpname.findUnique({ where: { id } })
-        if (opname?.status === 'COMPLETED') {
-            return { success: false, error: "Tidak dapat menghapus stock opname yang sudah selesai" }
+        const opname = await prisma.stockOpname.findUnique({
+            where: { id },
+            include: { items: true }
+        })
+        if (!opname) {
+            return { success: false, error: "Stock opname tidak ditemukan" }
         }
 
-        await prisma.stockOpname.delete({
-            where: { id }
+        await prisma.$transaction(async (tx) => {
+            if (opname.status === 'COMPLETED') {
+                for (const item of opname.items) {
+                    const diff = Number(item.difference)
+                    await tx.rawMaterial.update({
+                        where: { id: item.rawMaterialId },
+                        data: {
+                            currentStock: {
+                                decrement: diff
+                            }
+                        }
+                    })
+                }
+            }
+
+            await tx.stockOpname.delete({
+                where: { id }
+            })
         })
+
         revalidatePath('/inventory/opname')
         return { success: true }
     } catch (error) {
@@ -178,3 +198,106 @@ export async function deleteStockOpname(id: string) {
         return { success: false, error: "Failed to delete stock opname" }
     }
 }
+
+export async function updateStockOpname(
+    id: string,
+    data: {
+        date: Date;
+        notes?: string;
+        status?: string;
+        items: {
+            rawMaterialId: string;
+            systemStock: number;
+            actualStock: number;
+            difference: number;
+            unitCost: number;
+        }[];
+    }
+) {
+    await requirePermission('inventory', 'update')
+    try {
+        const opname = await prisma.$transaction(async (tx) => {
+            const oldOpname = await tx.stockOpname.findUnique({
+                where: { id },
+                include: { items: true }
+            })
+            if (!oldOpname) throw new Error("Stock opname tidak ditemukan")
+
+            const wasCompleted = oldOpname.status === 'COMPLETED'
+            const isCompleted = data.status === 'COMPLETED'
+
+            // If it was completed, we first revert the old stock adjustments
+            if (wasCompleted) {
+                for (const oldItem of oldOpname.items) {
+                    const diff = Number(oldItem.difference)
+                    await tx.rawMaterial.update({
+                        where: { id: oldItem.rawMaterialId },
+                        data: {
+                            currentStock: {
+                                decrement: diff
+                            }
+                        }
+                    })
+                }
+            }
+
+            // Calculate COGS / HPP
+            let totalCogs = 0
+            const itemsData = data.items.map(item => {
+                const consumed = isCompleted ? (item.systemStock - item.actualStock) : 0
+                const cogsValue = consumed > 0 ? (consumed * item.unitCost) : 0
+                totalCogs += cogsValue
+
+                return {
+                    rawMaterialId: item.rawMaterialId,
+                    systemStock: item.systemStock,
+                    actualStock: item.actualStock,
+                    difference: item.difference,
+                    unitCost: item.unitCost,
+                    cogsValue: cogsValue
+                }
+            })
+
+            // Delete old items and insert new ones
+            await tx.stockOpnameItem.deleteMany({
+                where: { stockOpnameId: id }
+            })
+
+            const updatedOpname = await tx.stockOpname.update({
+                where: { id },
+                data: {
+                    date: data.date,
+                    status: data.status || 'DRAFT',
+                    notes: data.notes || null,
+                    cogsAmount: totalCogs,
+                    items: {
+                        create: itemsData
+                    }
+                }
+            })
+
+            // If the updated state is completed, apply the new stock adjustments
+            if (isCompleted) {
+                for (const item of data.items) {
+                    await tx.rawMaterial.update({
+                        where: { id: item.rawMaterialId },
+                        data: {
+                            currentStock: {
+                                increment: item.difference
+                            }
+                        }
+                    })
+                }
+            }
+
+            return updatedOpname
+        })
+
+        revalidatePath('/inventory/opname')
+        return { success: true, id: opname.id }
+    } catch (error) {
+        console.error("Failed to update stock opname:", error)
+        return { success: false, error: error instanceof Error ? error.message : "Failed to update stock opname" }
+    }
+}
+

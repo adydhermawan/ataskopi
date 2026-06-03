@@ -11,6 +11,7 @@ import {
     createStockOpname,
     updateStockOpnameStatus,
     deleteStockOpname,
+    updateStockOpname,
 } from "@/actions/stock-opname";
 import { getRawMaterials } from "@/actions/raw-materials";
 import {
@@ -22,6 +23,7 @@ import {
     ChevronDown,
     ChevronUp,
     AlertTriangle,
+    Edit,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -50,6 +52,7 @@ interface StockOpnameData {
     notes: string | null;
     items: Array<{
         id: string;
+        rawMaterialId: string;
         systemStock: any;
         actualStock: any;
         difference: any;
@@ -72,6 +75,8 @@ export function StockOpnameClient() {
     const [formNotes, setFormNotes] = useState("");
     const [opnameItems, setOpnameItems] = useState<OpnameItemInput[]>([]);
     const [formSubmitting, setFormSubmitting] = useState(false);
+    const [editingOpnameId, setEditingOpnameId] = useState<string | null>(null);
+    const [editingOpnameStatus, setEditingOpnameStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (user && user.role === "kasir" && user.outletId) {
@@ -136,11 +141,31 @@ export function StockOpnameClient() {
             );
             setFormDate(new Date().toLocaleDateString("en-CA"));
             setFormNotes("");
+            setEditingOpnameId(null);
+            setEditingOpnameStatus(null);
             setIsModalOpen(true);
         } catch (err) {
             console.error(err);
             toast.error("Gagal memuat data bahan baku");
         }
+    };
+
+    const openEditModal = (opname: StockOpnameData) => {
+        setEditingOpnameId(opname.id);
+        setEditingOpnameStatus(opname.status);
+        setFormDate(new Date(opname.date).toLocaleDateString("en-CA"));
+        setFormNotes(opname.notes || "");
+        setOpnameItems(
+            opname.items.map((item) => ({
+                rawMaterialId: item.rawMaterialId,
+                name: item.rawMaterial.name,
+                unit: item.rawMaterial.unit,
+                systemStock: Number(item.systemStock),
+                actualStock: Number(item.actualStock).toString(),
+                unitCost: Number(item.unitCost),
+            }))
+        );
+        setIsModalOpen(true);
     };
 
     const updateActualStock = (index: number, value: string) => {
@@ -166,17 +191,29 @@ export function StockOpnameClient() {
                 };
             });
 
-            const res = await createStockOpname({
-                outletId,
-                date: new Date(formDate + "T00:00:00Z"),
-                status: saveAsCompleted ? "COMPLETED" : "DRAFT",
-                notes: formNotes || undefined,
-                items,
-            });
+            let res;
+            if (editingOpnameId) {
+                res = await updateStockOpname(editingOpnameId, {
+                    date: new Date(formDate + "T00:00:00Z"),
+                    status: saveAsCompleted ? "COMPLETED" : "DRAFT",
+                    notes: formNotes || undefined,
+                    items,
+                });
+            } else {
+                res = await createStockOpname({
+                    outletId,
+                    date: new Date(formDate + "T00:00:00Z"),
+                    status: saveAsCompleted ? "COMPLETED" : "DRAFT",
+                    notes: formNotes || undefined,
+                    items,
+                });
+            }
 
             if (res.success) {
-                toast.success(saveAsCompleted ? "Stock opname selesai! Stok bahan baku telah diperbarui." : "Draft stock opname berhasil disimpan.");
+                toast.success(saveAsCompleted ? "Stock opname selesai! Stok bahan baku telah diperbarui." : "Stock opname berhasil disimpan.");
                 setIsModalOpen(false);
+                setEditingOpnameId(null);
+                setEditingOpnameStatus(null);
                 await fetchOpnames();
             } else {
                 toast.error(res.error || "Gagal menyimpan stock opname");
@@ -205,10 +242,13 @@ export function StockOpnameClient() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("Hapus draft stock opname ini?")) return;
+    const handleDelete = async (opname: StockOpnameData) => {
+        const msg = opname.status === "COMPLETED"
+            ? "Menghapus stock opname yang sudah SELESAI akan mengembalikan penyesuaian stok bahan baku. Lanjutkan?"
+            : "Hapus draft stock opname ini?";
+        if (!confirm(msg)) return;
         try {
-            const res = await deleteStockOpname(id);
+            const res = await deleteStockOpname(opname.id);
             if (res.success) {
                 toast.success("Stock opname berhasil dihapus");
                 await fetchOpnames();
@@ -315,15 +355,16 @@ export function StockOpnameClient() {
                                                     <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex justify-end gap-1">
                                                             {o.status === "DRAFT" && (
-                                                                <>
-                                                                    <Button variant="ghost" size="sm" onClick={() => handleComplete(o.id)} className="h-8 px-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs gap-1">
-                                                                        <CheckCircle className="h-3 w-3" /> Selesaikan
-                                                                    </Button>
-                                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(o.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                                        <Trash className="h-4 w-4" />
-                                                                    </Button>
-                                                                </>
+                                                                <Button variant="ghost" size="sm" onClick={() => handleComplete(o.id)} className="h-8 px-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs gap-1">
+                                                                    <CheckCircle className="h-3 w-3" /> Selesaikan
+                                                                </Button>
                                                             )}
+                                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(o)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(o)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                                <Trash className="h-4 w-4" />
+                                                            </Button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -379,12 +420,21 @@ export function StockOpnameClient() {
 
             {/* Create Stock Opname Modal */}
             <Modal
-                title="Mulai Stock Opname"
-                description="Hitung stok fisik bahan baku. Masukkan stok aktual untuk setiap item."
+                title={editingOpnameId ? "Edit Stock Opname" : "Mulai Stock Opname"}
+                description={editingOpnameId ? "Ubah perhitungan fisik stok bahan baku." : "Hitung stok fisik bahan baku. Masukkan stok aktual untuk setiap item."}
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             >
                 <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
+                    {editingOpnameStatus === "COMPLETED" && (
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg text-amber-800 dark:text-amber-300 text-xs">
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
+                            <div>
+                                <span className="font-semibold">Perhatian:</span> Stock opname ini sudah selesai. 
+                                Menyimpan perubahan akan menyesuaikan stok bahan baku saat ini secara otomatis berdasarkan perbedaan nilai aktual yang baru.
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Tanggal</label>
