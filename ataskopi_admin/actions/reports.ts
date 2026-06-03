@@ -125,6 +125,12 @@ export async function getIncomeStatement(outletId: string, startDate: Date, endD
 export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     await requirePermission('finance', 'view')
 
+    // 0. Get Outlet settings (initial capital)
+    const outlet = await prisma.outlet.findUnique({
+        where: { id: outletId }
+    })
+    const modalAwal = outlet ? Number(outlet.modalAwal) : 0
+
     // 1. Inventory Value (currentStock * averageCost)
     const rawMaterials = await prisma.rawMaterial.findMany({
         where: { outletId }
@@ -165,8 +171,6 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     const fixedAssetsCostValue = fixedAssetsDetails.reduce((sum, a) => sum + a.purchasePrice, 0)
     const totalAccumulatedDepreciation = fixedAssetsDetails.reduce((sum, a) => sum + a.accumulatedDepreciation, 0)
 
-    const totalAssets = inventoryValue + fixedAssetsValue
-
     // 3. Retained Earnings (Accumulated Profit/Loss since inception up to asOfDate)
     const allRevenues = await prisma.dailyRealRevenue.findMany({
         where: {
@@ -205,8 +209,15 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     })
     const totalPurchases = allPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
 
+    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor - Total Pengeluaran Riil
+    // Total Pengeluaran Riil = totalPurchases (Bahan Baku) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
+    const cash = modalAwal + cumulativeRevenue - (totalPurchases + cumulativeExpenses + fixedAssetsCostValue)
+
+    const totalAssets = cash + inventoryValue + fixedAssetsValue
+
     return {
         asOfDate,
+        cash,
         inventory: {
             details: materialsDetails,
             totalValue: inventoryValue
@@ -219,7 +230,7 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
         },
         totalAssets,
         equity: {
-            initialCapital: 10000000, // Default Initial Capital
+            initialCapital: modalAwal,
             retainedEarnings,
             totalPurchases
         }

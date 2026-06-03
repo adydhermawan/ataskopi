@@ -18,6 +18,7 @@ import { id as idLocale } from "date-fns/locale";
 
 interface BalanceSheetData {
     asOfDate: Date;
+    cash: number;
     inventory: {
         details: Array<{
             id: string;
@@ -120,7 +121,7 @@ export function BalanceSheetClient() {
         );
     }
 
-    const totalEquity = (data?.equity.initialCapital || 0) + (data?.equity.retainedEarnings || 0) - (data?.equity.totalPurchases || 0);
+    const totalEquity = (data?.equity.initialCapital || 0) + (data?.equity.retainedEarnings || 0);
 
     return (
         <div className="space-y-6">
@@ -161,14 +162,14 @@ export function BalanceSheetClient() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card className="border-l-4 border-l-blue-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Aset (Aktivitas)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Aset (Aktiva)</CardTitle>
                         <Coins className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-blue-600">
                             {formatIDR(data?.totalAssets || 0)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Persediaan + Aset Tetap</p>
+                        <p className="text-xs text-muted-foreground">Kas + Persediaan + Aset Tetap Net</p>
                     </CardContent>
                 </Card>
 
@@ -187,14 +188,14 @@ export function BalanceSheetClient() {
 
                 <Card className="border-l-4 border-l-indigo-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Ekuitas (Modal)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Pasiva & Ekuitas</CardTitle>
                         <Briefcase className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-indigo-600">
                             {formatIDR(totalEquity)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Modal + Laba − Pembelian</p>
+                        <p className="text-xs text-muted-foreground">Modal + Laba</p>
                     </CardContent>
                 </Card>
             </div>
@@ -211,68 +212,97 @@ export function BalanceSheetClient() {
                         <CardDescription>Aset Lancar dan Aset Tetap milik outlet</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-6">
-                        {/* Aset Lancar: Persediaan */}
+                        {/* Aset Lancar */}
                         <div className="space-y-3">
                             <h4 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-1 flex justify-between items-center text-sm">
                                 <span className="flex items-center gap-1.5">
-                                    <Package className="h-4 w-4 text-blue-500" />
-                                    Aset Lancar (Persediaan Bahan Baku)
+                                    <Coins className="h-4 w-4 text-blue-500" />
+                                    Aset Lancar
                                 </span>
-                                <span>{formatIDR(data?.inventory.totalValue || 0)}</span>
+                                <span>{formatIDR((data?.cash || 0) + (data?.inventory.totalValue || 0))}</span>
                             </h4>
-                            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-1">
-                                {data?.inventory.details.length === 0 ? (
-                                    <div className="text-xs text-muted-foreground py-2 text-center">Tidak ada persediaan bahan baku.</div>
-                                ) : (
-                                    data?.inventory.details.map((m) => (
-                                        <div key={m.id} className="flex justify-between items-center text-xs py-1 border-b border-dashed">
-                                            <div>
-                                                <span className="font-medium text-slate-700 dark:text-slate-300">{m.name}</span>
-                                                <span className="text-[10px] text-muted-foreground block">
-                                                    {m.currentStock} {m.unit} × {formatIDR(m.averageCost)}
-                                                </span>
+                            <div className="space-y-2 pl-2">
+                                <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Kas / Bank (AKUN BARU)</span>
+                                    <span className="font-semibold text-emerald-600">{formatIDR(data?.cash || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Persediaan Bahan Baku (Data Stok Opname)</span>
+                                    <span className="font-semibold">{formatIDR(data?.inventory.totalValue || 0)}</span>
+                                </div>
+                            </div>
+                            
+                            {/* Materials Details list */}
+                            <div className="pl-4 pt-1">
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Detail Persediaan:</span>
+                                <div className="max-h-[150px] overflow-y-auto space-y-1.5 pr-1 mt-1 border-l-2 pl-2">
+                                    {data?.inventory.details.length === 0 ? (
+                                        <div className="text-[10px] text-muted-foreground py-1">Tidak ada persediaan bahan baku.</div>
+                                    ) : (
+                                        data?.inventory.details.map((m) => (
+                                            <div key={m.id} className="flex justify-between items-center text-[11px] py-0.5 border-b border-dashed border-slate-100 dark:border-zinc-800">
+                                                <div>
+                                                    <span className="text-slate-600 dark:text-slate-400">{m.name}</span>
+                                                    <span className="text-[9px] text-muted-foreground block">
+                                                        {m.currentStock} {m.unit} × {formatIDR(m.averageCost)}
+                                                    </span>
+                                                </div>
+                                                <span className="font-medium">{formatIDR(m.totalValue)}</span>
                                             </div>
-                                            <span className="font-semibold">{formatIDR(m.totalValue)}</span>
-                                        </div>
-                                    ))
-                                )}
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Aset Tetap: Peralatan */}
+                        {/* Aset Tetap */}
                         <div className="space-y-3 pt-2">
                             <h4 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-1 flex justify-between items-center text-sm">
                                 <span className="flex items-center gap-1.5">
-                                    <Gem className="h-4 w-4 text-emerald-500" />
-                                    Aset Tetap (Peralatan & Inventaris)
+                                    <Gem className="h-4 w-4 text-indigo-500" />
+                                    Aset Tetap
                                 </span>
                                 <span>{formatIDR(data?.fixedAssets.totalValue || 0)}</span>
                             </h4>
-                            <div className="max-h-[250px] overflow-y-auto space-y-3 pr-1">
-                                {data?.fixedAssets.details.length === 0 ? (
-                                    <div className="text-xs text-muted-foreground py-2 text-center">Tidak ada aset tetap terdaftar.</div>
-                                ) : (
-                                    data?.fixedAssets.details.map((a) => (
-                                        <div key={a.id} className="py-2 border-b border-dashed text-xs space-y-1.5">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{a.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground block">
-                                                        Beli: {format(a.purchaseDate, "dd MMM yyyy", { locale: idLocale })} ({a.usefulLifeMonths} Bln)
-                                                    </span>
+                            <div className="space-y-2 pl-2">
+                                <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Peralatan & Inventaris (Harga Perolehan)</span>
+                                    <span className="font-semibold">{formatIDR(data?.fixedAssets.costValue || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Akumulasi Penyusutan Aset (-)</span>
+                                    <span className="font-semibold text-red-600">({formatIDR(data?.fixedAssets.totalAccumulatedDepreciation || 0)})</span>
+                                </div>
+                            </div>
+
+                            {/* Fixed Assets details list */}
+                            <div className="pl-4 pt-1">
+                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Detail Aset:</span>
+                                <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1 mt-1 border-l-2 pl-2">
+                                    {data?.fixedAssets.details.length === 0 ? (
+                                        <div className="text-[10px] text-muted-foreground py-1">Tidak ada aset tetap terdaftar.</div>
+                                    ) : (
+                                        data?.fixedAssets.details.map((a) => (
+                                            <div key={a.id} className="py-1 border-b border-dashed border-slate-100 dark:border-zinc-800 text-[11px] space-y-1">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className="font-medium text-slate-700 dark:text-slate-300">{a.name}</span>
+                                                        <span className="text-[9px] text-muted-foreground block">
+                                                            Beli: {format(a.purchaseDate, "dd MMM yyyy", { locale: idLocale })} ({a.usefulLifeMonths} Bln)
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="font-semibold text-emerald-600 block">{formatIDR(a.bookValue)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="font-semibold text-emerald-600 block">{formatIDR(a.bookValue)}</span>
-                                                    <span className="text-[9px] text-muted-foreground block">Nilai Buku</span>
+                                                <div className="flex justify-between text-[9px] text-muted-foreground bg-slate-50 dark:bg-zinc-900/50 p-1 rounded">
+                                                    <span>Harga Perolehan: {formatIDR(a.purchasePrice)}</span>
+                                                    <span>Penyusutan: {formatIDR(a.accumulatedDepreciation)}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between text-[10px] text-muted-foreground bg-slate-50 dark:bg-zinc-900/50 p-1.5 rounded">
-                                                <span>Harga Perolehan: {formatIDR(a.purchasePrice)}</span>
-                                                <span>Akm. Penyusutan: {formatIDR(a.accumulatedDepreciation)}</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </CardContent>
@@ -285,29 +315,40 @@ export function BalanceSheetClient() {
                             <span>PASIVA & EKUITAS</span>
                             <span className="text-indigo-600 font-bold">{formatIDR(totalEquity)}</span>
                         </CardTitle>
-                        <CardDescription>Modal dan Laba Ditahan milik outlet</CardDescription>
+                        <CardDescription>Liabilitas dan Ekuitas milik outlet</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6 space-y-6">
-                        <div className="space-y-4">
+                        {/* Liabilitas */}
+                        <div className="space-y-3">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-1 flex items-center gap-1.5 text-sm">
+                                <Coins className="h-4 w-4 text-slate-500" />
+                                Liabilitas
+                            </h4>
+                            <div className="space-y-2 pl-2">
+                                <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Utang Usaha / Operasional (Jika Ada)</span>
+                                    <span className="font-semibold">{formatIDR(0)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Ekuitas Pemilik */}
+                        <div className="space-y-3 pt-2">
                             <h4 className="font-semibold text-slate-800 dark:text-slate-200 border-b pb-1 flex items-center gap-1.5 text-sm">
                                 <Briefcase className="h-4 w-4 text-indigo-500" />
                                 Ekuitas Pemilik
                             </h4>
                             
-                            <div className="space-y-3">
+                            <div className="space-y-3 pl-2">
                                 <div className="flex justify-between items-center text-xs py-1.5 border-b">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">Modal Awal / Investasi Kas</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Modal Awal Toko (Dinamis / User Input)</span>
                                     <span className="font-semibold">{formatIDR(data?.equity.initialCapital || 0)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs py-1.5 border-b">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">Laba Ditahan (Akumulasi Keuntungan)</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Laba Ditahan (Akumulasi Profit Bersih)</span>
                                     <span className={`font-semibold ${(data?.equity.retainedEarnings || 0) >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                         {formatIDR(data?.equity.retainedEarnings || 0)}
                                     </span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs py-1.5 border-b">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">Pengeluaran Kas Pembelian Bahan Baku (-)</span>
-                                    <span className="font-semibold text-red-600">({formatIDR(data?.equity.totalPurchases || 0)})</span>
                                 </div>
 
                                 <div className="flex justify-between items-center text-sm font-bold bg-slate-50 dark:bg-zinc-900/60 p-3 rounded-lg border mt-4">

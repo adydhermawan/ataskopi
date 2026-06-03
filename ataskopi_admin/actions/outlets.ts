@@ -24,7 +24,8 @@ export async function createOutlet(data: any) {
                 operatingHours: data.operatingHours ? { text: data.operatingHours } : undefined,
                 latitude: data.latitude,
                 longitude: data.longitude,
-                isActive: data.isActive ?? true
+                isActive: data.isActive ?? true,
+                modalAwal: data.modalAwal ? Number(data.modalAwal) : 0
             }
         })
         revalidatePath('/outlets')
@@ -47,7 +48,8 @@ export async function updateOutlet(id: string, data: any) {
                 operatingHours: data.operatingHours ? { text: data.operatingHours } : undefined,
                 latitude: data.latitude,
                 longitude: data.longitude,
-                isActive: data.isActive
+                isActive: data.isActive,
+                modalAwal: data.modalAwal ? Number(data.modalAwal) : 0
             }
         })
         revalidatePath('/outlets')

@@ -28,6 +28,7 @@ const outletFormSchema = z.object({
     latitude: z.any(),
     longitude: z.any(),
     isActive: z.any(),
+    modalAwal: z.any(),
 });
 
 type OutletFormValues = z.infer<typeof outletFormSchema>;
@@ -53,6 +54,7 @@ export function OutletForm({ initialData }: OutletFormProps) {
                 latitude: initialData.latitude ? Number(initialData.latitude) : undefined,
                 longitude: initialData.longitude ? Number(initialData.longitude) : undefined,
                 isActive: initialData.isActive,
+                modalAwal: initialData.modalAwal ? Number(initialData.modalAwal) : 0,
             }
             : {
                 name: "",
@@ -62,6 +64,7 @@ export function OutletForm({ initialData }: OutletFormProps) {
                 latitude: undefined,
                 longitude: undefined,
                 isActive: true,
+                modalAwal: 0,
             },
     });
 
@@ -140,19 +143,38 @@ export function OutletForm({ initialData }: OutletFormProps) {
                     )}
                 />
 
-                <FormField
-                    control={form.control}
-                    name="operatingHours"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Operating Hours</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g. 08:00 - 22:00" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                        control={form.control}
+                        name="operatingHours"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Operating Hours</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. 08:00 - 22:00" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="modalAwal"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Modal Awal / Setup Awal Toko</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="e.g. 10000000" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Modal awal kas operasional toko (default: Rp 0)
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <FormField

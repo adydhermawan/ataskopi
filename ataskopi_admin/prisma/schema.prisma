@@ -227,6 +227,7 @@ model Outlet {
   assets         Asset[]
   stockOpnames   StockOpname[]
   inventoryPurchases InventoryPurchase[]
+  modalAwal      Decimal         @default(0) @map("modal_awal") @db.Decimal(12, 2)
 
   @@map("outlets")
 }
