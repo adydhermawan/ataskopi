@@ -199,12 +199,14 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 revenue: 0,
                 realRevenue: 0,
                 orders: 0,
+                items: 0,
             };
         }
         acc[dateStr].revenue += Number(current.totalRevenue);
         acc[dateStr].orders += current.totalOrders;
+        acc[dateStr].items += current.totalItems;
         return acc;
-    }, {} as Record<string, { date: string; name: string; revenue: number; realRevenue: number; orders: number }>);
+    }, {} as Record<string, { date: string; name: string; revenue: number; realRevenue: number; orders: number; items: number }>);
 
     // Merge manual real revenue history
     if (data.realRevenueHistory) {
@@ -217,6 +219,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                     revenue: 0,
                     realRevenue: 0,
                     orders: 0,
+                    items: 0,
                 };
             }
             aggregatedHistory[dateStr].realRevenue += Number(r.amount);
@@ -608,7 +611,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm">
                     <CardHeader>
                         <CardTitle>Volume Pesanan</CardTitle>
-                        <CardDescription>Jumlah transaksi harian via web</CardDescription>
+                        <CardDescription>Jumlah transaksi & produk terjual harian via web</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[250px] pt-4">
                         <ResponsiveContainer width="100%" height="100%">
@@ -631,6 +634,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                     }}
                                 />
                                 <Line type="monotone" dataKey="orders" name="Pesanan" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: "#f59e0b" }} activeDot={{ r: 6 }} />
+                                <Line type="monotone" dataKey="items" name="Produk Terjual" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: "#6366f1" }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
