@@ -312,4 +312,122 @@ export class DashboardService {
             averageTicket: totalOrders > 0 ? totalRevenue.div(totalOrders).toNumber() : 0
         };
     }
+
+    /**
+     * Gets summary for a specific date range
+     */
+    static async getPeriodSummaryByDateRange(outletId: string | null, startDate: Date, endDate: Date) {
+        const start = startOfDay(startDate);
+        const end = endOfDay(endDate);
+
+        try {
+            await this.ensureDailySummaries(start, end, outletId);
+        } catch (error) {
+            console.error("Failed to ensure daily summaries:", error);
+        }
+
+        const now = new Date();
+        if (now >= start && now <= end) {
+            try {
+                let outletsToSync: string[] = [];
+                if (outletId) {
+                    outletsToSync = [outletId];
+                } else {
+                    const activeOutlets = await db.outlet.findMany({
+                        where: { isActive: true },
+                        select: { id: true }
+                    });
+                    outletsToSync = activeOutlets.map(o => o.id);
+                }
+                for (const oid of outletsToSync) {
+                    await this.syncDailySummary(now, oid);
+                }
+            } catch (error) {
+                console.error("Failed to sync today's summary:", error);
+            }
+        }
+
+        const summaries = await db.dailySalesSummary.findMany({
+            where: {
+                ...(outletId ? { outletId } : {}),
+                date: {
+                    gte: start,
+                    lte: end,
+                },
+            },
+            orderBy: {
+                date: "asc",
+            },
+        });
+
+        return summaries;
+    }
+
+    /**
+     * Gets manually logged real revenue for a date range
+     */
+    static async getPeriodRealRevenueByDateRange(outletId: string | null, startDate: Date, endDate: Date) {
+        const start = startOfDay(startDate);
+        const end = endOfDay(endDate);
+
+        const records = await db.dailyRealRevenue.findMany({
+            where: {
+                ...(outletId ? { outletId } : {}),
+                date: {
+                    gte: start,
+                    lte: end
+                }
+            },
+            orderBy: {
+                date: "asc"
+            }
+        });
+
+        return records.map(r => ({
+            id: r.id,
+            date: r.date,
+            outletId: r.outletId,
+            amount: r.amount.toNumber(),
+            notes: r.notes,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt
+        }));
+    }
+
+    /**
+     * Get aggregated KPI summary for a period
+     */
+    static async getAggregatedSummary(outletId: string | null, startDate: Date, endDate: Date) {
+        const summaries = await this.getPeriodSummaryByDateRange(outletId, startDate, endDate);
+        const realRevenues = await this.getPeriodRealRevenueByDateRange(outletId, startDate, endDate);
+        
+        const totalRevenue = summaries.reduce((acc, curr) => acc + Number(curr.totalRevenue), 0);
+        const totalOrders = summaries.reduce((acc, curr) => acc + curr.totalOrders, 0);
+        const totalItems = summaries.reduce((acc, curr) => acc + curr.totalItems, 0);
+        const totalRealRevenue = realRevenues.reduce((acc, curr) => acc + curr.amount, 0);
+        
+        return {
+            totalRevenue,
+            totalOrders,
+            totalItems,
+            averageTicket: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+            totalRealRevenue
+        };
+    }
+
+    /**
+     * Get aggregated KPI summary for the previous comparison period
+     */
+    static async getComparisonSummary(outletId: string | null, currentStartDate: Date, currentEndDate: Date) {
+        const start = startOfDay(currentStartDate);
+        const end = endOfDay(currentEndDate);
+        
+        const durationMs = end.getTime() - start.getTime();
+        const daysDiff = Math.max(1, Math.round(durationMs / (1000 * 60 * 60 * 24)));
+        
+        const prevEndDate = endOfDay(subDays(start, 1));
+        const prevStartDate = startOfDay(subDays(prevEndDate, daysDiff - 1));
+        
+        return this.getAggregatedSummary(outletId, prevStartDate, prevEndDate);
+    }
 }

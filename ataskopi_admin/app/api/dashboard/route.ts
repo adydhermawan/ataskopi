@@ -13,17 +13,24 @@ export const dynamic = 'force-dynamic';
 export const GET = withAuth(async (req: AuthenticatedRequest) => {
     try {
         const { searchParams } = new URL(req.url);
-        const queryParams = {
+        
+        const queryParams: any = {
             outletId: searchParams.get('outletId'),
-            days: searchParams.get('days') || '7',
         };
+        
+        if (searchParams.get('startDate') && searchParams.get('endDate')) {
+            queryParams.startDate = searchParams.get('startDate');
+            queryParams.endDate = searchParams.get('endDate');
+        } else {
+            queryParams.days = searchParams.get('days') || '7';
+        }
 
         const validation = dashboardQuerySchema.safeParse(queryParams);
         if (!validation.success) {
             return validationErrorResponse(validation.error);
         }
 
-        const { outletId, days } = validation.data;
+        const { outletId, days, startDate, endDate } = validation.data;
         const user = req.user;
 
         if (!user) {
@@ -36,25 +43,52 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
             effectiveOutletId = user.outletId;
         }
 
+        let start: Date;
+        let end: Date;
+        let label: string;
+
+        if (startDate && endDate) {
+            start = new Date(startDate);
+            end = new Date(endDate);
+            label = "Custom Range";
+        } else {
+            end = new Date();
+            start = new Date();
+            start.setDate(end.getDate() - (days! - 1));
+            label = `${days} Hari Terakhir`;
+        }
+
         // Fetch data in parallel
-        const [today, history, todayRealRevenue, realRevenueHistory] = await Promise.all([
+        const [
+            today,
+            history,
+            realRevenueHistory,
+            summary,
+            comparison
+        ] = await Promise.all([
             DashboardService.getTodayRealtime(effectiveOutletId || null),
-            DashboardService.getPeriodSummary(effectiveOutletId || null, days),
-            DashboardService.getTodayRealRevenue(effectiveOutletId || null),
-            DashboardService.getPeriodRealRevenue(effectiveOutletId || null, days),
+            DashboardService.getPeriodSummaryByDateRange(effectiveOutletId || null, start, end),
+            DashboardService.getPeriodRealRevenueByDateRange(effectiveOutletId || null, start, end),
+            DashboardService.getAggregatedSummary(effectiveOutletId || null, start, end),
+            DashboardService.getComparisonSummary(effectiveOutletId || null, start, end)
         ]);
+
+        const todayRealRevenue = await DashboardService.getTodayRealRevenue(effectiveOutletId || null);
 
         return successResponse({
             today: {
                 ...today,
                 realRevenue: todayRealRevenue,
             },
+            summary,
+            comparison,
             history,
             realRevenueHistory,
             period: {
                 days,
-                startDate: history.length > 0 ? history[0].date : null,
-                endDate: history.length > 0 ? history[history.length - 1].date : null,
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+                label
             }
         });
     } catch (error) {

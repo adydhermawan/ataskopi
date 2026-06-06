@@ -38,7 +38,7 @@ import {
     PieChart,
     Pie,
 } from "recharts";
-import { format } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, startOfDay, endOfDay } from "date-fns";
 import { id } from "date-fns/locale";
 
 interface DashboardData {
@@ -48,6 +48,20 @@ interface DashboardData {
         totalItems: number;
         averageTicket: number;
         realRevenue?: number;
+    };
+    summary: {
+        totalRevenue: number;
+        totalOrders: number;
+        totalItems: number;
+        averageTicket: number;
+        totalRealRevenue: number;
+    };
+    comparison: {
+        totalRevenue: number;
+        totalOrders: number;
+        totalItems: number;
+        averageTicket: number;
+        totalRealRevenue: number;
     };
     history: Array<{
         date: string;
@@ -65,9 +79,10 @@ interface DashboardData {
         notes: string | null;
     }>;
     period: {
-        days: number;
+        days?: number;
         startDate: string | null;
         endDate: string | null;
+        label: string;
     };
 }
 
@@ -77,6 +92,11 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [outletId, setOutletId] = useState<string | null>(initialOutletId || null);
+    
+    // Date Range State
+    const [dateFilter, setDateFilter] = useState<'7_days' | 'this_month' | '30_days' | 'custom'>('7_days');
+    const [customStartDate, setCustomStartDate] = useState(format(subDays(new Date(), 6), 'yyyy-MM-dd'));
+    const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     
     const [outlets, setOutlets] = useState<Array<{ id: string; name: string }>>([]);
     const [realRevenueLogs, setRealRevenueLogs] = useState<any[]>([]);
@@ -111,47 +131,49 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
         }
     }, [user]);
 
+    const fetchDashboard = async () => {
+        setLoading(true);
+        try {
+            const url = new URL("/api/dashboard", window.location.origin);
+            
+            if (outletId) url.searchParams.set("outletId", outletId);
+            
+            if (dateFilter === '7_days') {
+                url.searchParams.set("days", "7");
+            } else if (dateFilter === '30_days') {
+                url.searchParams.set("days", "30");
+            } else if (dateFilter === 'this_month') {
+                url.searchParams.set("startDate", format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+                url.searchParams.set("endDate", format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+            } else if (dateFilter === 'custom') {
+                url.searchParams.set("startDate", customStartDate);
+                url.searchParams.set("endDate", customEndDate);
+            }
+
+            const response = await fetch(url.toString());
+            if (!response.ok) throw new Error("Failed to fetch dashboard data");
+            const json = await response.json();
+            setData(json.data);
+            
+            setRealRevenueLogs(json.data.realRevenueHistory || []);
+
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An error occurred");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Fetch dashboard data
     useEffect(() => {
-        async function fetchDashboard() {
-            setLoading(true);
-            try {
-                const url = new URL("/api/dashboard", window.location.origin);
-                url.searchParams.set("days", "7");
-                if (outletId) url.searchParams.set("outletId", outletId);
-
-                const response = await fetch(url.toString());
-                if (!response.ok) throw new Error("Failed to fetch dashboard data");
-                const json = await response.json();
-                setData(json.data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "An error occurred");
-            } finally {
-                setLoading(false);
+        if (user) {
+            if (dateFilter !== 'custom' || (customStartDate && customEndDate)) {
+                 fetchDashboard();
             }
         }
+    }, [outletId, user, dateFilter, customStartDate, customEndDate]);
 
-        if (user) {
-            fetchDashboard();
-        }
-    }, [outletId, user]);
-
-    // Fetch manual real revenue logs
-    useEffect(() => {
-        async function fetchLogs() {
-            try {
-                const logs = await getDailyRealRevenues(outletId);
-                setRealRevenueLogs(logs);
-            } catch (err) {
-                console.error("Failed to load real revenue logs:", err);
-            }
-        }
-        if (user) {
-            fetchLogs();
-        }
-    }, [outletId, user]);
-
-    if (loading) {
+    if (loading && !data) {
         return (
             <div className="flex h-[400px] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -173,7 +195,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
         if (!acc[dateStr]) {
             acc[dateStr] = {
                 date: dateStr,
-                name: format(new Date(current.date), "EEE", { locale: id }),
+                name: format(new Date(current.date), "dd MMM", { locale: id }),
                 revenue: 0,
                 realRevenue: 0,
                 orders: 0,
@@ -191,7 +213,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             if (!aggregatedHistory[dateStr]) {
                 aggregatedHistory[dateStr] = {
                     date: dateStr,
-                    name: format(new Date(r.date), "EEE", { locale: id }),
+                    name: format(new Date(r.date), "dd MMM", { locale: id }),
                     revenue: 0,
                     realRevenue: 0,
                     orders: 0,
@@ -255,20 +277,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             if (res.success) {
                 toast.success(editingLog ? "Catatan omset berhasil diperbarui" : "Omset real berhasil dicatat");
                 setIsModalOpen(false);
-                
-                // Re-fetch dashboard data
-                const url = new URL("/api/dashboard", window.location.origin);
-                url.searchParams.set("days", "7");
-                if (outletId) url.searchParams.set("outletId", outletId);
-                const response = await fetch(url.toString());
-                if (response.ok) {
-                    const json = await response.json();
-                    setData(json.data);
-                }
-
-                // Re-fetch logs
-                const logs = await getDailyRealRevenues(outletId);
-                setRealRevenueLogs(logs);
+                fetchDashboard();
             } else {
                 toast.error(res.error || "Gagal menyimpan omset real");
             }
@@ -286,20 +295,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             const res = await deleteDailyRealRevenue(id);
             if (res.success) {
                 toast.success("Catatan omset berhasil dihapus");
-                
-                // Re-fetch dashboard data
-                const url = new URL("/api/dashboard", window.location.origin);
-                url.searchParams.set("days", "7");
-                if (outletId) url.searchParams.set("outletId", outletId);
-                const response = await fetch(url.toString());
-                if (response.ok) {
-                    const json = await response.json();
-                    setData(json.data);
-                }
-
-                // Re-fetch logs
-                const logs = await getDailyRealRevenues(outletId);
-                setRealRevenueLogs(logs);
+                fetchDashboard();
             } else {
                 toast.error("Gagal menghapus catatan");
             }
@@ -309,118 +305,184 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
         }
     };
 
-    const todayRecorded = data.today.totalRevenue;
-    const todayReal = data.today.realRevenue || 0;
-    const todayVariance = todayReal - todayRecorded;
+    const renderComparison = (current: number, previous: number, isCurrency = false) => {
+        if (previous === 0) return <span className="text-muted-foreground text-xs ml-2">N/A</span>;
+        const diff = current - previous;
+        const percentage = (diff / previous) * 100;
+        const isPositive = diff >= 0;
+        
+        return (
+            <span className={`text-xs ml-2 font-medium flex items-center ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                {Math.abs(percentage).toFixed(1)}%
+            </span>
+        );
+    };
 
     return (
         <div className="space-y-6">
             {/* Header controls: Filter and Action */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
-                <div className="flex items-center gap-3">
-                    {user && (user.role === 'admin' || user.role === 'owner') ? (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">Filter Outlet:</span>
-                            <select
-                                value={outletId || ""}
-                                onChange={(e) => setOutletId(e.target.value || null)}
-                                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            >
-                                <option value="">Semua Outlet</option>
-                                {outlets.map((o) => (
-                                    <option key={o.id} value={o.id}>{o.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    ) : (
-                        <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                            Outlet: {user?.outletId ? outlets.find(o => o.id === user.outletId)?.name || "Designated Outlet" : "Semua"}
-                        </div>
-                    )}
+            <div className="flex flex-col gap-4 bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button 
+                            variant={dateFilter === '7_days' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('7_days')}
+                        >
+                            7 Hari Terakhir
+                        </Button>
+                        <Button 
+                            variant={dateFilter === 'this_month' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('this_month')}
+                        >
+                            Bulan Ini
+                        </Button>
+                        <Button 
+                            variant={dateFilter === '30_days' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('30_days')}
+                        >
+                            30 Hari Terakhir
+                        </Button>
+                        <Button 
+                            variant={dateFilter === 'custom' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('custom')}
+                        >
+                            Custom Range
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        {user && (user.role === 'admin' || user.role === 'owner') ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Outlet:</span>
+                                <select
+                                    value={outletId || ""}
+                                    onChange={(e) => setOutletId(e.target.value || null)}
+                                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    <option value="">Semua Outlet</option>
+                                    {outlets.map((o) => (
+                                        <option key={o.id} value={o.id}>{o.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Outlet: {user?.outletId ? outlets.find(o => o.id === user.outletId)?.name || "Designated Outlet" : "Semua"}
+                            </div>
+                        )}
+                        <Button 
+                            onClick={() => {
+                                setEditingLog(null);
+                                setFormDate(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD local format
+                                setFormOutletId(user?.outletId || outletId || (outlets[0]?.id || ""));
+                                setFormAmount("");
+                                setFormNotes("");
+                                setIsModalOpen(true);
+                            }}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 h-9"
+                        >
+                            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Catat Omset</span>
+                        </Button>
+                    </div>
                 </div>
 
-                <Button 
-                    onClick={() => {
-                        setEditingLog(null);
-                        setFormDate(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD local format
-                        setFormOutletId(user?.outletId || outletId || (outlets[0]?.id || ""));
-                        setFormAmount("");
-                        setFormNotes("");
-                        setIsModalOpen(true);
-                    }}
-                    className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2"
-                >
-                    <Plus className="h-4 w-4" /> Catat Omset Real
-                </Button>
+                {dateFilter === 'custom' && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                        <span className="text-sm text-muted-foreground">Dari:</span>
+                        <input 
+                            type="date" 
+                            value={customStartDate} 
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                        />
+                        <span className="text-sm text-muted-foreground ml-2">Sampai:</span>
+                        <input 
+                            type="date" 
+                            value={customEndDate} 
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                        />
+                    </div>
+                )}
+                
+                <div className="text-sm text-muted-foreground pt-1">
+                    Menampilkan data untuk: <strong className="text-foreground">{data.period.label}</strong>
+                </div>
             </div>
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Card 1: Revenue Tercatat Web */}
-                <Card className="border-l-4 border-l-blue-500 shadow-sm">
+                {/* Card 1: Total Omset (Gabungan) */}
+                <Card className="shadow-sm border border-l-4 border-l-primary relative overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Omset Tercatat (Web)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-blue-500" />
+                        <CardTitle className="text-sm font-medium">Total Omset</CardTitle>
+                        <DollarSign className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatIDR(todayRecorded)}</div>
-                        <p className="text-xs text-muted-foreground">Total orderan via web hari ini</p>
-                    </CardContent>
-                </Card>
-
-                {/* Card 2: Omset Real */}
-                <Card className="border-l-4 border-l-emerald-500 shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Omset Real (Manual)</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                            {todayReal > 0 ? formatIDR(todayReal) : "Belum Dicatat"}
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{formatIDR(data.summary.totalRealRevenue || data.summary.totalRevenue)}</div>
+                            {renderComparison(data.summary.totalRealRevenue || data.summary.totalRevenue, data.comparison.totalRealRevenue || data.comparison.totalRevenue)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Total penjualan riil (offline + online)</p>
-                    </CardContent>
-                </Card>
-
-                {/* Card 3: Selisih / Variance */}
-                <Card className={`border-l-4 shadow-sm ${
-                    todayReal === 0 
-                        ? "border-l-slate-400" 
-                        : todayVariance >= 0 
-                            ? "border-l-teal-500" 
-                            : "border-l-amber-500"
-                }`}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Selisih (Offline / Lainnya)</CardTitle>
-                        {todayVariance >= 0 ? (
-                            <Scale className="h-4 w-4 text-teal-500" />
-                        ) : (
-                            <TrendingDown className="h-4 w-4 text-amber-500" />
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${
-                            todayReal === 0
-                                ? "text-slate-500"
-                                : todayVariance >= 0
-                                    ? "text-teal-600 dark:text-teal-400"
-                                    : "text-amber-600 dark:text-amber-400"
-                        }`}>
-                            {todayReal === 0 ? "Rp 0" : (todayVariance >= 0 ? "+" : "") + formatIDR(todayVariance)}
+                        <div className="mt-2 text-xs flex flex-col gap-1 text-muted-foreground">
+                            <div className="flex justify-between">
+                                <span>Tercatat Web:</span>
+                                <span className="font-medium text-blue-600 dark:text-blue-400">{formatIDR(data.summary.totalRevenue)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Real (Manual):</span>
+                                <span className="font-medium text-emerald-600 dark:text-emerald-400">{formatIDR(data.summary.totalRealRevenue)}</span>
+                            </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Pendapatan offline yang tidak tercatat web</p>
                     </CardContent>
                 </Card>
 
-                {/* Card 4: Orders & Products sold */}
-                <Card className="border-l-4 border-l-amber-500 shadow-sm">
+                {/* Card 2: Total Pesanan */}
+                <Card className="shadow-sm border">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Volume Pesanan</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Pesanan (Web)</CardTitle>
                         <ShoppingCart className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.today.totalOrders} order</div>
-                        <p className="text-xs text-muted-foreground">{data.today.totalItems} item produk terjual via web</p>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-2xl font-bold">{data.summary.totalOrders}</div>
+                            {renderComparison(data.summary.totalOrders, data.comparison.totalOrders)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">Jumlah transaksi selesai</p>
+                    </CardContent>
+                </Card>
+
+                {/* Card 3: Rata-rata Transaksi */}
+                <Card className="shadow-sm border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Rata-rata Transaksi</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-2xl font-bold">{formatIDR(data.summary.averageTicket)}</div>
+                            {renderComparison(data.summary.averageTicket, data.comparison.averageTicket)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">Nilai rata-rata per order web</p>
+                    </CardContent>
+                </Card>
+
+                {/* Card 4: Item Terjual */}
+                <Card className="shadow-sm border">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Item Terjual</CardTitle>
+                        <Package className="h-4 w-4 text-indigo-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-2xl font-bold">{data.summary.totalItems}</div>
+                            {renderComparison(data.summary.totalItems, data.comparison.totalItems)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">Total kuantitas produk web</p>
                     </CardContent>
                 </Card>
             </div>
@@ -432,27 +494,35 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5 text-muted-foreground" />
-                            Perbandingan Omset (7 Hari Terakhir)
+                            Grafik Pendapatan Harian
                         </CardTitle>
-                        <CardDescription>Grafik perbandingan pendapatan tercatat web vs omset real harian</CardDescription>
+                        <CardDescription>Omset Tercatat Web vs Omset Real (Manual)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px] pt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                                 <XAxis
-                                    dataKey="date"
+                                    dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={(val) => format(new Date(val), "EEE", { locale: id })}
+                                    tick={{ fontSize: 12 }}
                                 />
                                 <YAxis
                                     axisLine={false}
                                     tickLine={false}
                                     tickFormatter={(val) => `Rp ${val / 1000}k`}
+                                    tick={{ fontSize: 12 }}
                                 />
                                 <Tooltip
                                     formatter={(value: any, name: any) => [formatIDR(value), name]}
+                                    labelFormatter={(label, payload) => {
+                                        if (payload && payload.length > 0) {
+                                            const date = payload[0].payload.date;
+                                            return format(new Date(date), 'dd MMMM yyyy', { locale: id });
+                                        }
+                                        return label;
+                                    }}
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                 />
                                 <Bar dataKey="revenue" name="Tercatat (Web)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -466,27 +536,27 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Produk Terlaris</CardTitle>
-                        <CardDescription>Berdasarkan kuantitas terjual via web</CardDescription>
+                        <CardDescription>Berdasarkan kuantitas terjual via web di periode ini</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-6">
                             {sortedTopProducts.map((product, idx) => (
                                 <div key={idx} className="flex items-center">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted font-bold text-muted-foreground">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-500">
                                         {idx + 1}
                                     </div>
-                                    <div className="ml-4 space-y-1">
+                                    <div className="ml-4 space-y-1 flex-1">
                                         <p className="text-sm font-medium leading-none">{product.name}</p>
                                         <p className="text-xs text-muted-foreground">{product.qty} unit terjual</p>
                                     </div>
-                                    <div className="ml-auto font-medium text-sm">
+                                    <div className="ml-auto font-medium text-sm text-right">
                                         {formatIDR(product.revenue)}
                                     </div>
                                 </div>
                             ))}
                             {sortedTopProducts.length === 0 && (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    Belum ada data produk.
+                                    Belum ada data produk di periode ini.
                                 </div>
                             )}
                         </div>
@@ -499,7 +569,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Metode Pembayaran</CardTitle>
-                        <CardDescription>Distribusi penggunaan pembayaran web</CardDescription>
+                        <CardDescription>Distribusi pembayaran web di periode ini</CardDescription>
                     </CardHeader>
                     <CardContent className="h-auto min-h-[250px] flex flex-col sm:flex-row items-center justify-center gap-4 py-4">
                         <div className="w-full h-[200px] flex-1">
@@ -527,7 +597,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                 <div key={i} className="flex items-center gap-2 text-xs">
                                     <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                                     <span className="font-medium whitespace-nowrap">{e.name}:</span>
-                                    <span className="whitespace-nowrap">{e.value}</span>
+                                    <span className="whitespace-nowrap">{e.value} transaksi</span>
                                 </div>
                             ))}
                         </div>
@@ -545,14 +615,22 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                             <LineChart data={chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                                 <XAxis
-                                    dataKey="date"
+                                    dataKey="name"
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={(val) => format(new Date(val), "EEE", { locale: id })}
+                                    tick={{ fontSize: 12 }}
                                 />
-                                <YAxis axisLine={false} tickLine={false} />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="orders" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#3b82f6" }} activeDot={{ r: 6 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                                <Tooltip
+                                    labelFormatter={(label, payload) => {
+                                        if (payload && payload.length > 0) {
+                                            const date = payload[0].payload.date;
+                                            return format(new Date(date), 'dd MMMM yyyy', { locale: id });
+                                        }
+                                        return label;
+                                    }}
+                                />
+                                <Line type="monotone" dataKey="orders" name="Pesanan" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: "#f59e0b" }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -562,7 +640,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
             {/* Real Revenue Table Manager */}
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
-                    <CardTitle>Riwayat Omset Real Harian</CardTitle>
+                    <CardTitle>Riwayat Omset Real (Sesuai Filter)</CardTitle>
                     <CardDescription>
                         Daftar catatan omset harian real yang diinput secara manual untuk perbandingan.
                     </CardDescription>
@@ -570,33 +648,35 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
                         <table className="w-full text-sm">
-                            <thead className="bg-slate-50 border-b">
+                            <thead className="bg-slate-50 dark:bg-slate-900 border-b">
                                 <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700">Tanggal</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700">Outlet</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700">Omset Real</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700">Catatan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700">Aksi</th>
+                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
+                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Outlet</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Omset Real</th>
+                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Catatan</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {realRevenueLogs.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                                            Belum ada catatan omset real untuk outlet terpilih.
+                                            Belum ada catatan omset real untuk outlet terpilih di periode ini.
                                         </td>
                                     </tr>
                                 ) : (
                                     realRevenueLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="p-3 font-medium text-slate-900">
+                                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="p-3 font-medium">
                                                 {format(new Date(log.date + "T00:00:00Z"), "dd MMMM yyyy", { locale: id })}
                                             </td>
-                                            <td className="p-3 text-slate-700">{log.outletName}</td>
-                                            <td className="p-3 text-right font-bold text-emerald-600">
+                                            <td className="p-3 text-muted-foreground">
+                                                {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
+                                            </td>
+                                            <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                                                 {formatIDR(log.amount)}
                                             </td>
-                                            <td className="p-3 text-slate-600 max-w-xs truncate" title={log.notes || ""}>
+                                            <td className="p-3 text-muted-foreground max-w-xs truncate" title={log.notes || ""}>
                                                 {log.notes || "-"}
                                             </td>
                                             <td className="p-3 text-right">
@@ -606,13 +686,14 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                                         size="sm"
                                                         onClick={() => {
                                                             setEditingLog(log);
-                                                            setFormDate(log.date);
+                                                            // For editing, we parse just the yyyy-MM-dd
+                                                            setFormDate(log.date.split('T')[0]);
                                                             setFormOutletId(log.outletId);
                                                             setFormAmount(log.amount.toString());
                                                             setFormNotes(log.notes || "");
                                                             setIsModalOpen(true);
                                                         }}
-                                                        className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                                                        className="h-8 w-8 p-0"
                                                     >
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
@@ -621,7 +702,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleDeleteLog(log.id)}
-                                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                                         >
                                                             <Trash className="h-4 w-4" />
                                                         </Button>
