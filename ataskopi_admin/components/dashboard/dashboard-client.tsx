@@ -668,7 +668,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                     realRevenueLogs.map((log) => (
                                         <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                             <td className="p-3 font-medium">
-                                                {format(new Date(log.date + "T00:00:00Z"), "dd MMMM yyyy", { locale: id })}
+                                                {format(new Date(log.date), "dd MMMM yyyy", { locale: id })}
                                             </td>
                                             <td className="p-3 text-muted-foreground">
                                                 {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
