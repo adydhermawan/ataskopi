@@ -468,6 +468,7 @@ model RawMaterial {
   unit        String   // e.g., gram, ml, pcs
   currentStock Decimal @default(0) @map("current_stock") @db.Decimal(10, 2)
   averageCost Decimal  @default(0) @map("average_cost") @db.Decimal(12, 2)
+  packagingWeight Decimal @default(0) @map("packaging_weight") @db.Decimal(10, 2)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   

@@ -33,6 +33,7 @@ interface RawMaterial {
     unit: string;
     currentStock: number;
     averageCost: number;
+    packagingWeight: number;
 }
 
 interface PurchaseHistoryItem {
@@ -60,6 +61,7 @@ export function MaterialsClient() {
     const [formUnit, setFormUnit] = useState("gram");
     const [formStock, setFormStock] = useState("");
     const [formCost, setFormCost] = useState("");
+    const [formPackagingWeight, setFormPackagingWeight] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
 
     // History Modal state
@@ -103,6 +105,7 @@ export function MaterialsClient() {
                     ...m,
                     currentStock: Number(m.currentStock),
                     averageCost: Number(m.averageCost),
+                    packagingWeight: Number(m.packagingWeight),
                 }))
             );
         } catch (err) {
@@ -130,6 +133,7 @@ export function MaterialsClient() {
         setFormUnit("gram");
         setFormStock("");
         setFormCost("");
+        setFormPackagingWeight("");
         setIsModalOpen(true);
     };
 
@@ -140,6 +144,7 @@ export function MaterialsClient() {
         setFormUnit(m.unit);
         setFormStock(m.currentStock.toString());
         setFormCost(m.averageCost.toString());
+        setFormPackagingWeight(m.packagingWeight?.toString() || "0");
         setIsModalOpen(true);
     };
 
@@ -180,6 +185,7 @@ export function MaterialsClient() {
                     unit: formUnit,
                     currentStock: Number(formStock),
                     averageCost: Number(formCost),
+                    packagingWeight: Number(formPackagingWeight) || 0,
                 });
             } else {
                 res = await createRawMaterial({
@@ -189,6 +195,7 @@ export function MaterialsClient() {
                     unit: formUnit,
                     currentStock: Number(formStock) || 0,
                     averageCost: Number(formCost) || 0,
+                    packagingWeight: Number(formPackagingWeight) || 0,
                 });
             }
             if (res.success) {
@@ -302,6 +309,7 @@ export function MaterialsClient() {
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Satuan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Stok</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Modal (Avg)</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Berat Packaging</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
@@ -320,6 +328,7 @@ export function MaterialsClient() {
                                             <td className="p-3">{m.unit}</td>
                                             <td className="p-3 text-right font-bold">{m.currentStock}</td>
                                             <td className="p-3 text-right">{formatIDR(m.averageCost)}</td>
+                                            <td className="p-3 text-right text-muted-foreground">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</td>
                                             <td className="p-3 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
@@ -417,6 +426,24 @@ export function MaterialsClient() {
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium">Berat Packaging (Wadah) - Opsional</label>
+                        <div className="flex relative">
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="0"
+                                value={formPackagingWeight}
+                                onChange={(e) => setFormPackagingWeight(e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pr-12"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                {formUnit}
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Berat wadah ini akan digunakan untuk otomatis menghitung berat bersih (netto) saat Stock Opname.</p>
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting}>

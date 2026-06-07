@@ -35,6 +35,7 @@ interface RawMaterial {
     unit: string;
     currentStock: number;
     averageCost: number;
+    packagingWeight?: number;
 }
 
 interface OpnameItemInput {
@@ -43,6 +44,8 @@ interface OpnameItemInput {
     unit: string;
     systemStock: number;
     actualStock: string;
+    grossStock?: string;
+    packagingWeight: number;
     unitCost: number;
 }
 
@@ -58,7 +61,7 @@ interface StockOpnameData {
         actualStock: any;
         difference: any;
         unitCost: any;
-        rawMaterial: { name: string; unit: string };
+        rawMaterial: { name: string; unit: string; packagingWeight?: any };
     }>;
 }
 
@@ -137,6 +140,8 @@ export function StockOpnameClient() {
                     unit: m.unit,
                     systemStock: Number(m.currentStock),
                     actualStock: Number(m.currentStock).toString(),
+                    grossStock: "",
+                    packagingWeight: Number(m.packagingWeight) || 0,
                     unitCost: Number(m.averageCost),
                 }))
             );
@@ -163,16 +168,32 @@ export function StockOpnameClient() {
                 unit: item.rawMaterial.unit,
                 systemStock: Number(item.systemStock),
                 actualStock: Number(item.actualStock).toString(),
+                grossStock: "",
+                packagingWeight: Number(item.rawMaterial.packagingWeight) || 0,
                 unitCost: Number(item.unitCost),
             }))
         );
         setIsModalOpen(true);
     };
 
+    const updateGrossStock = (index: number, value: string) => {
+        setOpnameItems((prev) => {
+            const updated = [...prev];
+            updated[index].grossStock = value;
+            if (value !== "") {
+                const gross = Number(value) || 0;
+                const net = Math.max(0, gross - updated[index].packagingWeight);
+                updated[index].actualStock = net.toString();
+            }
+            return updated;
+        });
+    };
+
     const updateActualStock = (index: number, value: string) => {
         setOpnameItems((prev) => {
             const updated = [...prev];
-            updated[index] = { ...updated[index], actualStock: value };
+            updated[index].actualStock = value;
+            updated[index].grossStock = ""; // reset gross if actual is manually edited
             return updated;
         });
     };
@@ -338,21 +359,35 @@ export function StockOpnameClient() {
                                                 <div className="font-medium">{item.systemStock}</div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 items-end border-t pt-3 mt-1">
+                                        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-start border-t pt-3 mt-1">
                                             <div>
-                                                <label className="text-xs font-medium mb-1 block">Stok Aktual</label>
+                                                <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">Timbangan Kotor</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    placeholder={item.packagingWeight > 0 ? "Kotor" : "-"}
+                                                    disabled={item.packagingWeight === 0}
+                                                    value={item.grossStock ?? ""}
+                                                    onChange={(e) => updateGrossStock(idx, e.target.value)}
+                                                    className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                                {item.packagingWeight > 0 && <div className="text-[10px] text-muted-foreground mt-1">Wdh: {item.packagingWeight}</div>}
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">Stok Aktual (Net)</label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     min="0"
                                                     value={item.actualStock}
                                                     onChange={(e) => updateActualStock(idx, e.target.value)}
-                                                    className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-3 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                    className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                                 />
                                             </div>
                                             <div className="text-right pb-1">
-                                                <div className="text-xs font-medium text-muted-foreground mb-1">Selisih</div>
-                                                <div className={`font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
+                                                <div className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1 leading-tight">Selisih</div>
+                                                <div className={`text-sm sm:text-base font-bold mt-1 ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
                                                     {diff !== 0 ? (diff > 0 ? "+" : "") + diff.toFixed(2) : "0"}
                                                 </div>
                                             </div>

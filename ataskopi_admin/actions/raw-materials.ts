@@ -12,7 +12,7 @@ export async function getRawMaterials(outletId: string) {
     })
 }
 
-export async function createRawMaterial(data: { outletId: string; name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number }) {
+export async function createRawMaterial(data: { outletId: string; name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number; packagingWeight?: number }) {
     await requirePermission('inventory', 'create')
     try {
         await prisma.rawMaterial.create({
@@ -22,7 +22,8 @@ export async function createRawMaterial(data: { outletId: string; name: string; 
                 sku: data.sku,
                 unit: data.unit,
                 currentStock: data.currentStock || 0,
-                averageCost: data.averageCost || 0
+                averageCost: data.averageCost || 0,
+                packagingWeight: data.packagingWeight || 0
             }
         })
         revalidatePath('/inventory/materials')
@@ -33,7 +34,7 @@ export async function createRawMaterial(data: { outletId: string; name: string; 
     }
 }
 
-export async function updateRawMaterial(id: string, data: { name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number }) {
+export async function updateRawMaterial(id: string, data: { name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number; packagingWeight?: number }) {
     await requirePermission('inventory', 'update')
     try {
         await prisma.rawMaterial.update({
@@ -43,7 +44,8 @@ export async function updateRawMaterial(id: string, data: { name: string; sku?: 
                 sku: data.sku,
                 unit: data.unit,
                 currentStock: data.currentStock,
-                averageCost: data.averageCost
+                averageCost: data.averageCost,
+                packagingWeight: data.packagingWeight
             }
         })
         revalidatePath('/inventory/materials')
