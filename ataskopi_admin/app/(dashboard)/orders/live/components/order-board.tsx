@@ -1,17 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { updateOrderStatus, updatePaymentStatus } from "@/actions/orders"
+import { updateOrderStatus, updatePaymentStatus, fetchLiveOrders } from "@/actions/orders"
 import { useRouter } from "next/navigation"
 import { useCanPerform } from "@/hooks/use-current-user"
 import { format } from "date-fns"
-import { Loader2, Eye, CreditCard } from "lucide-react"
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
+import { Loader2, Eye, CreditCard, Volume2, VolumeX, Wifi } from "lucide-react"
 import { OrderDetailsSheet } from "@/components/orders/order-details-sheet"
+import { playNotificationSound } from "@/lib/notification-sound"
+
+const POLLING_INTERVAL_MS = 10_000 // 10 seconds
+const NEW_ORDER_HIGHLIGHT_MS = 30_000 // 30 seconds
 
 interface OrderBoardProps {
     initialOrders: any[]
@@ -29,6 +31,70 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
     const canUpdate = useCanPerform('update', 'orders')
     const [loadingId, setLoadingId] = useState<string | null>(null)
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
+
+    // Polling state
+    const [orders, setOrders] = useState(initialOrders)
+    const [lastUpdate, setLastUpdate] = useState(new Date())
+    const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set())
+    const [soundEnabled, setSoundEnabled] = useState(true)
+    const [isPolling, setIsPolling] = useState(true)
+    const prevOrderIdsRef = useRef<Set<string>>(
+        new Set(initialOrders.map((o: any) => o.id))
+    )
+    const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Poll for new orders
+    const pollOrders = useCallback(async () => {
+        try {
+            const freshOrders = await fetchLiveOrders()
+            const prevIds = prevOrderIdsRef.current
+            const freshIds = new Set(freshOrders.map((o: any) => o.id))
+
+            // Detect new orders (IDs in fresh but not in previous)
+            const newIds = [...freshIds].filter(id => !prevIds.has(id))
+
+            if (newIds.length > 0) {
+                setNewOrderIds(new Set(newIds))
+
+                // Play notification sound
+                if (soundEnabled) {
+                    playNotificationSound()
+                }
+
+                // Clear highlight after N seconds
+                if (highlightTimeoutRef.current) {
+                    clearTimeout(highlightTimeoutRef.current)
+                }
+                highlightTimeoutRef.current = setTimeout(() => {
+                    setNewOrderIds(new Set())
+                }, NEW_ORDER_HIGHLIGHT_MS)
+            }
+
+            setOrders(freshOrders)
+            setLastUpdate(new Date())
+            prevOrderIdsRef.current = freshIds
+        } catch (error) {
+            console.error("Polling failed:", error)
+        }
+    }, [soundEnabled])
+
+    useEffect(() => {
+        if (!isPolling) return
+
+        const interval = setInterval(pollOrders, POLLING_INTERVAL_MS)
+        return () => {
+            clearInterval(interval)
+            if (highlightTimeoutRef.current) {
+                clearTimeout(highlightTimeoutRef.current)
+            }
+        }
+    }, [pollOrders, isPolling])
+
+    // Keep orders in sync when initialOrders changes (e.g. after server action revalidation)
+    useEffect(() => {
+        setOrders(initialOrders)
+        prevOrderIdsRef.current = new Set(initialOrders.map((o: any) => o.id))
+    }, [initialOrders])
 
     const handleStatusUpdate = async (order: any, newStatus: string) => {
         const isUnpaid = order.paymentStatus === 'pending'
@@ -52,7 +118,8 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
             if (!result.success) {
                 alert(result.error)
             } else {
-                router.refresh()
+                // Immediately poll to get fresh data
+                await pollOrders()
             }
         } catch (error) {
             console.error("Failed to update status", error)
@@ -73,7 +140,8 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
                 if (selectedOrder && selectedOrder.id === id) {
                     setSelectedOrder({ ...selectedOrder, paymentStatus: 'paid' })
                 }
-                router.refresh()
+                // Immediately poll to get fresh data
+                await pollOrders()
             }
         } catch (error) {
             console.error("Failed to update payment", error)
@@ -88,20 +156,67 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
 
     return (
         <>
+            {/* Live Status Bar */}
+            <div className="flex items-center justify-between mb-4 px-1">
+                <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        Live — update terakhir {format(lastUpdate, 'HH:mm:ss')}
+                    </span>
+                    <Wifi className="w-3 h-3 text-green-500" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {newOrderIds.size > 0 && (
+                        <Badge className="bg-red-500 text-white animate-pulse text-xs">
+                            {newOrderIds.size} pesanan baru!
+                        </Badge>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        title={soundEnabled ? 'Matikan notifikasi suara' : 'Nyalakan notifikasi suara'}
+                    >
+                        {soundEnabled ? (
+                            <Volume2 className="w-3.5 h-3.5 text-green-600" />
+                        ) : (
+                            <VolumeX className="w-3.5 h-3.5 text-muted-foreground" />
+                        )}
+                    </Button>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {initialOrders.map((order) => {
+                {orders.map((order) => {
                     const status = statusMap[order.orderStatus] || { label: order.orderStatus, color: 'bg-gray-100' }
                     const isUnpaid = order.paymentStatus === 'pending'
                     const isManualPayment = order.paymentMethod === 'cash' || order.paymentMethod === 'manual'
+                    const isNew = newOrderIds.has(order.id)
 
                     return (
                         <Card
                             key={order.id}
-                            className="border-t-4 border-t-primary shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            className={`border-t-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                                isNew
+                                    ? 'border-t-green-500 ring-2 ring-green-400/50 animate-pulse'
+                                    : 'border-t-primary'
+                            }`}
                             onClick={() => setSelectedOrder(order)}
                         >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">#{order.orderNumber}</CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <CardTitle className="text-sm font-medium">#{order.orderNumber}</CardTitle>
+                                    {isNew && (
+                                        <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0">
+                                            BARU
+                                        </Badge>
+                                    )}
+                                </div>
                                 <Badge className={status.color} variant="outline">
                                     {status.label}
                                 </Badge>
@@ -196,7 +311,7 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
                     )
                 })}
 
-                {initialOrders.length === 0 && (
+                {orders.length === 0 && (
                     <div className="col-span-full text-center py-12 text-muted-foreground">
                         No active orders at the moment.
                     </div>
@@ -213,5 +328,3 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
         </>
     )
 }
-
-

@@ -247,6 +247,14 @@ export async function updatePaymentStatus(id: string, status: string) {
     }
 }
 
+/**
+ * Fetch live orders — callable from client components for polling.
+ * Wrapper around getOrders('live').
+ */
+export async function fetchLiveOrders() {
+    return await getOrders('live')
+}
+
 export async function deleteOrder(id: string) {
     try {
         const user = await getCurrentUser()
