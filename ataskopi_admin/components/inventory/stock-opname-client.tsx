@@ -24,6 +24,7 @@ import {
     ChevronUp,
     AlertTriangle,
     Edit,
+    ArrowLeft,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -269,6 +270,115 @@ export function StockOpnameClient() {
         );
     }
 
+    if (isModalOpen) {
+        return (
+            <div className="space-y-6 pb-20">
+                <div className="flex items-center gap-4">
+                    <Button onClick={() => setIsModalOpen(false)} variant="outline" size="icon" className="h-8 w-8 rounded-full">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h2 className="text-xl font-bold tracking-tight">{editingOpnameId ? "Edit Stock Opname" : "Mulai Stock Opname"}</h2>
+                </div>
+                
+                <Card className="border shadow-sm">
+                    <CardHeader className="pb-4">
+                        <CardTitle>{editingOpnameId ? "Edit Perhitungan" : "Perhitungan Stok Fisik"}</CardTitle>
+                        <CardDescription>
+                            {editingOpnameId ? "Ubah perhitungan fisik stok bahan baku." : "Hitung stok fisik bahan baku. Masukkan stok aktual untuk setiap item."}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {editingOpnameStatus === "COMPLETED" && (
+                            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg text-amber-800 dark:text-amber-300 text-xs">
+                                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
+                                <div>
+                                    <span className="font-semibold">Perhatian:</span> Stock opname ini sudah selesai. 
+                                    Menyimpan perubahan akan menyesuaikan stok bahan baku saat ini secara otomatis berdasarkan perbedaan nilai aktual yang baru.
+                                </div>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Tanggal</label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={formDate}
+                                    onChange={(e) => setFormDate(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium">Catatan (Opsional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Misal: Opname mingguan"
+                                    value={formNotes}
+                                    onChange={(e) => setFormNotes(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                        </div>
+
+                        {/* List of items as cards for mobile friendliness */}
+                        <div className="space-y-3 mt-6">
+                            <h3 className="text-sm font-semibold mb-2">Item Bahan Baku</h3>
+                            {opnameItems.map((item, idx) => {
+                                const actual = Number(item.actualStock) || 0;
+                                const diff = actual - item.systemStock;
+                                return (
+                                    <div key={item.rawMaterialId} className="p-4 rounded-lg border bg-slate-50/50 dark:bg-zinc-900/50 flex flex-col gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="font-semibold text-sm">{item.name}</div>
+                                                <div className="text-xs text-muted-foreground">Satuan: {item.unit}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-muted-foreground">Stok Sistem</div>
+                                                <div className="font-medium">{item.systemStock}</div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 items-end border-t pt-3 mt-1">
+                                            <div>
+                                                <label className="text-xs font-medium mb-1 block">Stok Aktual</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={item.actualStock}
+                                                    onChange={(e) => updateActualStock(idx, e.target.value)}
+                                                    className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-3 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                />
+                                            </div>
+                                            <div className="text-right pb-1">
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">Selisih</div>
+                                                <div className={`font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
+                                                    {diff !== 0 ? (diff > 0 ? "+" : "") + diff.toFixed(2) : "0"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex flex-col sm:flex-row justify-end gap-3 fixed sm:sticky bottom-0 left-0 right-0 z-10 bg-white dark:bg-zinc-950 border-t p-4 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.1)] sm:shadow-none sm:border sm:rounded-xl sm:bg-white/80 sm:backdrop-blur-md">
+                    <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting} className="w-full sm:w-auto">
+                        Batal
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => handleSubmit(false)} disabled={formSubmitting} className="w-full sm:w-auto">
+                        {formSubmitting ? "Menyimpan..." : "Simpan Draft"}
+                    </Button>
+                    <Button type="button" onClick={() => handleSubmit(true)} disabled={formSubmitting} className="w-full sm:w-auto">
+                        {formSubmitting ? "Menyimpan..." : "Selesaikan & Update Stok"}
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             {/* Header controls */}
@@ -418,100 +528,6 @@ export function StockOpnameClient() {
                 </CardContent>
             </Card>
 
-            {/* Create Stock Opname Modal */}
-            <Modal
-                title={editingOpnameId ? "Edit Stock Opname" : "Mulai Stock Opname"}
-                description={editingOpnameId ? "Ubah perhitungan fisik stok bahan baku." : "Hitung stok fisik bahan baku. Masukkan stok aktual untuk setiap item."}
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-            >
-                <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
-                    {editingOpnameStatus === "COMPLETED" && (
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg text-amber-800 dark:text-amber-300 text-xs">
-                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500 animate-pulse" />
-                            <div>
-                                <span className="font-semibold">Perhatian:</span> Stock opname ini sudah selesai. 
-                                Menyimpan perubahan akan menyesuaikan stok bahan baku saat ini secara otomatis berdasarkan perbedaan nilai aktual yang baru.
-                            </div>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Tanggal</label>
-                            <input
-                                type="date"
-                                required
-                                value={formDate}
-                                onChange={(e) => setFormDate(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Catatan (Opsional)</label>
-                            <input
-                                type="text"
-                                placeholder="Misal: Opname mingguan"
-                                value={formNotes}
-                                onChange={(e) => setFormNotes(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="rounded-md border overflow-x-auto">
-                        <table className="w-full text-sm min-w-[450px]">
-                            <thead className="bg-slate-50 dark:bg-zinc-900">
-                                <tr>
-                                    <th className="p-2 text-left font-medium text-xs">Bahan Baku</th>
-                                    <th className="p-2 text-right font-medium text-xs whitespace-nowrap">Stok Sistem</th>
-                                    <th className="p-2 text-right font-medium text-xs w-28 whitespace-nowrap">Stok Aktual</th>
-                                    <th className="p-2 text-right font-medium text-xs whitespace-nowrap">Selisih</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y">
-                                {opnameItems.map((item, idx) => {
-                                    const actual = Number(item.actualStock) || 0;
-                                    const diff = actual - item.systemStock;
-                                    return (
-                                        <tr key={item.rawMaterialId} className="hover:bg-slate-50/50">
-                                            <td className="p-2 text-xs font-medium">
-                                                {item.name}
-                                                <span className="text-muted-foreground ml-1 whitespace-nowrap">({item.unit})</span>
-                                            </td>
-                                            <td className="p-2 text-right text-xs">{item.systemStock}</td>
-                                            <td className="p-2 text-right">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    value={item.actualStock}
-                                                    onChange={(e) => updateActualStock(idx, e.target.value)}
-                                                    className="w-16 sm:w-24 h-7 text-xs text-right rounded border border-input bg-transparent px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                                />
-                                            </td>
-                                            <td className={`p-2 text-right text-xs font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
-                                                {diff !== 0 ? (diff > 0 ? "+" : "") + diff.toFixed(2) : "0"}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sticky bottom-0 bg-white dark:bg-zinc-950 pb-1">
-                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting} className="w-full sm:w-auto">
-                            Batal
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => handleSubmit(false)} disabled={formSubmitting} className="w-full sm:w-auto">
-                            {formSubmitting ? "Menyimpan..." : "Simpan Draft"}
-                        </Button>
-                        <Button type="button" onClick={() => handleSubmit(true)} disabled={formSubmitting} className="w-full sm:w-auto">
-                            {formSubmitting ? "Menyimpan..." : "Selesaikan & Update Stok"}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
         </div>
     );
 }
