@@ -198,9 +198,16 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
         orderBy: { date: 'asc' }
     })
 
+    // Fetch stock opnames within the period
     const stockOpnames = await prisma.stockOpname.findMany({
         where: { outletId, status: 'COMPLETED', date: { gte: startDate, lte: endDate } },
         orderBy: { date: 'asc' }
+    })
+
+    // Also fetch the LAST completed stock opname BEFORE startDate to determine period boundaries
+    const previousOpname = await prisma.stockOpname.findFirst({
+        where: { outletId, status: 'COMPLETED', date: { lt: startDate } },
+        orderBy: { date: 'desc' }
     })
 
     const expenses = await prisma.expense.findMany({
@@ -208,7 +215,14 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
         orderBy: { date: 'asc' }
     })
 
-    // Group by date
+    // Build revenue map by date key (YYYY-MM-DD)
+    const revenueMap: Record<string, number> = {}
+    revenues.forEach(r => {
+        const key = r.date.toISOString().split('T')[0]
+        revenueMap[key] = (revenueMap[key] || 0) + Number(r.amount)
+    })
+
+    // Build daily map with revenue and expenses first
     const dailyMap: Record<string, { revenue: number; cogs: number; expenses: number }> = {}
 
     revenues.forEach(r => {
@@ -217,26 +231,82 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
         dailyMap[key].revenue += Number(r.amount)
     })
 
-    stockOpnames.forEach(op => {
-        const key = op.date.toISOString().split('T')[0]
-        if (!dailyMap[key]) dailyMap[key] = { revenue: 0, cogs: 0, expenses: 0 }
-        dailyMap[key].cogs += Number(op.cogsAmount)
-    })
-
     expenses.forEach(e => {
         const key = e.date.toISOString().split('T')[0]
         if (!dailyMap[key]) dailyMap[key] = { revenue: 0, cogs: 0, expenses: 0 }
         dailyMap[key].expenses += Number(e.amount)
     })
 
+    // --- Distribute COGS proportionally based on revenue within each stock opname period ---
+    // Helper: get all date keys (YYYY-MM-DD) between two dates (inclusive)
+    const getDateRange = (from: Date, to: Date): string[] => {
+        const dates: string[] = []
+        const current = new Date(from)
+        current.setHours(0, 0, 0, 0)
+        const end = new Date(to)
+        end.setHours(0, 0, 0, 0)
+        while (current <= end) {
+            dates.push(current.toISOString().split('T')[0])
+            current.setDate(current.getDate() + 1)
+        }
+        return dates
+    }
+
+    for (let i = 0; i < stockOpnames.length; i++) {
+        const opname = stockOpnames[i]
+        const cogsAmount = Number(opname.cogsAmount)
+        if (cogsAmount <= 0) continue
+
+        // Determine period start:
+        // - If there's a previous opname (either earlier in this list or the one before startDate),
+        //   period starts the day AFTER that previous opname
+        // - Otherwise, period starts at startDate
+        let periodStart: Date
+        if (i > 0) {
+            // Previous opname is within this month
+            periodStart = new Date(stockOpnames[i - 1].date)
+            periodStart.setDate(periodStart.getDate() + 1)
+        } else if (previousOpname) {
+            // Previous opname is before this month
+            periodStart = new Date(previousOpname.date)
+            periodStart.setDate(periodStart.getDate() + 1)
+            // Clamp to startDate if the previous opname is too old
+            if (periodStart < startDate) {
+                periodStart = new Date(startDate)
+            }
+        } else {
+            periodStart = new Date(startDate)
+        }
+
+        const periodEnd = new Date(opname.date)
+        const periodDays = getDateRange(periodStart, periodEnd)
+
+        // Calculate total revenue in this period
+        const totalRevenuePeriod = periodDays.reduce((sum, day) => sum + (revenueMap[day] || 0), 0)
+
+        // Distribute COGS
+        for (const day of periodDays) {
+            if (!dailyMap[day]) dailyMap[day] = { revenue: 0, cogs: 0, expenses: 0 }
+
+            if (totalRevenuePeriod > 0) {
+                // Proportional distribution based on revenue share
+                const dayRevenue = revenueMap[day] || 0
+                dailyMap[day].cogs += (dayRevenue / totalRevenuePeriod) * cogsAmount
+            } else {
+                // Equal distribution if no revenue in period
+                dailyMap[day].cogs += cogsAmount / periodDays.length
+            }
+        }
+    }
+
     return Object.entries(dailyMap)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([date, data]) => ({
             date,
             revenue: data.revenue,
-            cogs: data.cogs,
+            cogs: Math.round(data.cogs),
             expenses: data.expenses,
-            netProfit: data.revenue - data.cogs - data.expenses,
+            netProfit: data.revenue - Math.round(data.cogs) - data.expenses,
         }))
 }
 
