@@ -435,7 +435,7 @@ export function StockOpnameClient() {
                             </div>
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Tanggal</label>
                             <input
@@ -458,14 +458,14 @@ export function StockOpnameClient() {
                         </div>
                     </div>
 
-                    <div className="rounded-md border overflow-hidden">
-                        <table className="w-full text-sm">
+                    <div className="rounded-md border overflow-x-auto">
+                        <table className="w-full text-sm min-w-[450px]">
                             <thead className="bg-slate-50 dark:bg-zinc-900">
                                 <tr>
                                     <th className="p-2 text-left font-medium text-xs">Bahan Baku</th>
-                                    <th className="p-2 text-right font-medium text-xs">Stok Sistem</th>
-                                    <th className="p-2 text-right font-medium text-xs w-28">Stok Aktual</th>
-                                    <th className="p-2 text-right font-medium text-xs">Selisih</th>
+                                    <th className="p-2 text-right font-medium text-xs whitespace-nowrap">Stok Sistem</th>
+                                    <th className="p-2 text-right font-medium text-xs w-28 whitespace-nowrap">Stok Aktual</th>
+                                    <th className="p-2 text-right font-medium text-xs whitespace-nowrap">Selisih</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -476,7 +476,7 @@ export function StockOpnameClient() {
                                         <tr key={item.rawMaterialId} className="hover:bg-slate-50/50">
                                             <td className="p-2 text-xs font-medium">
                                                 {item.name}
-                                                <span className="text-muted-foreground ml-1">({item.unit})</span>
+                                                <span className="text-muted-foreground ml-1 whitespace-nowrap">({item.unit})</span>
                                             </td>
                                             <td className="p-2 text-right text-xs">{item.systemStock}</td>
                                             <td className="p-2 text-right">
@@ -486,7 +486,7 @@ export function StockOpnameClient() {
                                                     min="0"
                                                     value={item.actualStock}
                                                     onChange={(e) => updateActualStock(idx, e.target.value)}
-                                                    className="w-24 h-7 text-xs text-right rounded border border-input bg-transparent px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                    className="w-16 sm:w-24 h-7 text-xs text-right rounded border border-input bg-transparent px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                                 />
                                             </td>
                                             <td className={`p-2 text-right text-xs font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
@@ -499,14 +499,14 @@ export function StockOpnameClient() {
                         </table>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-white dark:bg-zinc-950 pb-1">
-                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting}>
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sticky bottom-0 bg-white dark:bg-zinc-950 pb-1">
+                        <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} disabled={formSubmitting} className="w-full sm:w-auto">
                             Batal
                         </Button>
-                        <Button type="button" variant="outline" onClick={() => handleSubmit(false)} disabled={formSubmitting}>
+                        <Button type="button" variant="outline" onClick={() => handleSubmit(false)} disabled={formSubmitting} className="w-full sm:w-auto">
                             {formSubmitting ? "Menyimpan..." : "Simpan Draft"}
                         </Button>
-                        <Button type="button" onClick={() => handleSubmit(true)} disabled={formSubmitting}>
+                        <Button type="button" onClick={() => handleSubmit(true)} disabled={formSubmitting} className="w-full sm:w-auto">
                             {formSubmitting ? "Menyimpan..." : "Selesaikan & Update Stok"}
                         </Button>
                     </div>
