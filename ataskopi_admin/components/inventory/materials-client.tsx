@@ -301,35 +301,59 @@ export function MaterialsClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">SKU</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Satuan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Stok</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Modal (Avg)</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Satuan Rata2</th>
+                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total Harga Stock</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Berat Packaging</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {materials.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={8} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada data bahan baku. Klik "Tambah Bahan Baku" untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
                                     materials.map((m) => (
-                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                            <td className="p-3 font-medium">{m.name}</td>
-                                            <td className="p-3 text-muted-foreground">{m.sku || "—"}</td>
-                                            <td className="p-3">{m.unit}</td>
-                                            <td className="p-3 text-right font-bold">{m.currentStock}</td>
-                                            <td className="p-3 text-right">{formatIDR(m.averageCost)}</td>
-                                            <td className="p-3 text-right text-muted-foreground">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</td>
-                                            <td className="p-3 text-right">
+                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama</span>
+                                                <span className="font-medium text-right md:text-left">{m.name}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">SKU</span>
+                                                <span className="text-muted-foreground text-right md:text-left">{m.sku || "—"}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Satuan</span>
+                                                <span className="text-right md:text-left">{m.unit}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Stok</span>
+                                                <span className="font-bold text-right">{m.currentStock}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Satuan Rata2</span>
+                                                <span className="text-right">{formatIDR(m.averageCost)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Total Harga Stock</span>
+                                                <span className="text-right">{formatIDR(m.currentStock * m.averageCost)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Berat Packaging</span>
+                                                <span className="text-muted-foreground text-right">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
                                                 <div className="flex justify-end gap-1">
                                                     <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
                                                         <History className="h-4 w-4" />
