@@ -651,8 +651,8 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-slate-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Outlet</th>
@@ -661,29 +661,34 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {realRevenueLogs.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={5} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada catatan omset real untuk outlet terpilih di periode ini.
                                         </td>
                                     </tr>
                                 ) : (
                                     realRevenueLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="p-3 font-medium">
-                                                {format(new Date(log.date), "dd MMMM yyyy", { locale: id })}
+                                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
+                                                <span className="text-right md:text-left">{format(new Date(log.date), "dd MMMM yyyy", { locale: id })}</span>
                                             </td>
-                                            <td className="p-3 text-muted-foreground">
-                                                {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-muted-foreground">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Outlet</span>
+                                                <span className="text-right md:text-left">{outlets.find(o => o.id === log.outletId)?.name || log.outletId}</span>
                                             </td>
-                                            <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                                                {formatIDR(log.amount)}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Omset Real</span>
+                                                <span>{formatIDR(log.amount)}</span>
                                             </td>
-                                            <td className="p-3 text-muted-foreground max-w-xs truncate" title={log.notes || ""}>
-                                                {log.notes || "-"}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-muted-foreground max-w-full md:max-w-xs md:truncate" title={log.notes || ""}>
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Catatan</span>
+                                                <span className="text-right md:text-left truncate w-[150px] md:w-auto">{log.notes || "-"}</span>
                                             </td>
-                                            <td className="p-3 text-right">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Aksi</span>
                                                 <div className="flex justify-end gap-2">
                                                     <Button
                                                         variant="ghost"

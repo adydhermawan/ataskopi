@@ -498,8 +498,8 @@ export function MaterialsClient() {
                         </div>
                     ) : (
                         <div className="overflow-hidden rounded-md border text-xs">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                            <table className="w-full text-left block md:table">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                     <tr>
                                         <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
                                         <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Jumlah</th>
@@ -508,18 +508,29 @@ export function MaterialsClient() {
                                         <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Supplier/Notes</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y">
+                                <tbody className="divide-y block md:table-row-group">
                                     {purchaseHistory.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50/50">
-                                            <td className="p-2.5">
-                                                {format(item.date, "dd MMM yyyy", { locale: idLocale })}
+                                        <tr key={item.id} className="hover:bg-slate-50/50 block md:table-row border-b md:border-none p-3 md:p-0 space-y-2 md:space-y-0">
+                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider">Tanggal</span>
+                                                <span className="text-right md:text-left">{format(item.date, "dd MMM yyyy", { locale: idLocale })}</span>
                                             </td>
-                                            <td className="p-2.5 text-right font-medium">{item.quantity}</td>
-                                            <td className="p-2.5 text-right text-muted-foreground">{formatIDR(item.unitPrice)}</td>
-                                            <td className="p-2.5 text-right font-semibold">{formatIDR(item.totalAmount)}</td>
-                                            <td className="p-2.5 max-w-[150px] truncate text-muted-foreground">
-                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block">{item.supplier || "—"}</span>
-                                                <span className="text-[10px] block">{item.notes || ""}</span>
+                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Jumlah</span>
+                                                <span>{item.quantity}</span>
+                                            </td>
+                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right text-muted-foreground">
+                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Harga Unit</span>
+                                                <span>{formatIDR(item.unitPrice)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right font-semibold">
+                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Total</span>
+                                                <span>{formatIDR(item.totalAmount)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-2.5 flex flex-col items-end md:items-start md:table-cell max-w-full md:max-w-[150px] md:truncate text-muted-foreground mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-none">
+                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider w-full text-left mb-1">Supplier/Notes</span>
+                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block text-right md:text-left">{item.supplier || "—"}</span>
+                                                <span className="text-[10px] block text-right md:text-left">{item.notes || ""}</span>
                                             </td>
                                         </tr>
                                     ))}

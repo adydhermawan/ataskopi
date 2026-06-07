@@ -274,8 +274,8 @@ export function AssetsClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Aset</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tgl Beli</th>
@@ -288,10 +288,10 @@ export function AssetsClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {assets.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={9} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada catatan aset. Tambahkan aset baru lewat menu <strong>Kas Keluar</strong>.
                                         </td>
                                     </tr>
@@ -299,33 +299,49 @@ export function AssetsClient() {
                                     assets.map((a) => {
                                         const depStatus = getDepreciationStatus(a);
                                         return (
-                                            <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                                <td className="p-3">
-                                                    <div className="font-medium">{a.name}</div>
-                                                    {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
+                                            <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama Aset</span>
+                                                    <div className="text-right md:text-left">
+                                                        <div className="font-medium">{a.name}</div>
+                                                        {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
+                                                    </div>
                                                 </td>
-                                                <td className="p-3 text-xs">
-                                                    {format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-xs">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tgl Beli</span>
+                                                    <span className="text-right md:text-left">{format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}</span>
                                                 </td>
-                                                <td className="p-3 text-right font-medium">{formatIDR(Number(a.purchasePrice))}</td>
-                                                <td className="p-3 text-center">
-                                                    <span className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Beli</span>
+                                                    <span className="text-right font-medium">{formatIDR(Number(a.purchasePrice))}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Masa Manfaat</span>
+                                                    <span className="flex items-center justify-end md:justify-center gap-1 text-xs text-muted-foreground">
                                                         <Clock className="h-3 w-3" />
                                                         {a.usefulLifeMonths} bln
                                                     </span>
                                                 </td>
-                                                <td className="p-3 text-right text-xs font-medium text-amber-600">
-                                                    {formatIDR(a.monthlyDepreciation)}
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Susut/Bulan</span>
+                                                    <span className="text-right text-xs font-medium text-amber-600">
+                                                        {formatIDR(a.monthlyDepreciation)}
+                                                    </span>
                                                 </td>
-                                                <td className="p-3 text-right font-medium text-indigo-600">
-                                                    {formatIDR(a.bookValue)}
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nilai Buku</span>
+                                                    <span className="text-right font-medium text-indigo-600">
+                                                        {formatIDR(a.bookValue)}
+                                                    </span>
                                                 </td>
-                                                <td className="p-3">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${depStatus.color}`}>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${depStatus.color} text-right md:text-left`}>
                                                         {depStatus.label}
                                                     </span>
                                                 </td>
-                                                <td className="p-3">
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">ROI</span>
                                                     <div className="flex items-center justify-end gap-2">
                                                         <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
                                                             <div
@@ -338,7 +354,8 @@ export function AssetsClient() {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-right">
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
                                                     <div className="flex justify-end gap-1">
                                                         <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
                                                             <Edit className="h-4 w-4" />

@@ -372,8 +372,8 @@ export function ExpensesClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Kategori</th>
@@ -382,28 +382,37 @@ export function ExpensesClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {expenses.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={5} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada riwayat pengeluaran. Klik &quot;Catat Kas Keluar&quot; untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
                                     expenses.map((e) => (
-                                        <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                            <td className="p-3 font-medium">
-                                                {format(new Date(e.date), "dd MMM yyyy", { locale: idLocale })}
+                                        <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
+                                                <span className="text-right md:text-left">{format(new Date(e.date), "dd MMM yyyy", { locale: idLocale })}</span>
                                             </td>
-                                            <td className="p-3">
-                                                <span className={`px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_COLORS[e.category] || CATEGORY_COLORS.OTHER}`}>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Kategori</span>
+                                                <span className={`px-2 py-1 rounded-md text-xs font-medium ${CATEGORY_COLORS[e.category] || CATEGORY_COLORS.OTHER} text-right md:text-left`}>
                                                     {EXPENSE_CATEGORIES.find((c) => c.value === e.category)?.label || 
                                                      (e.category === "STOCK_LOSS" ? "Waste / Stock Loss" : e.category)}
                                                 </span>
                                             </td>
-                                            <td className="p-3 text-muted-foreground max-w-xs truncate">{e.description || "—"}</td>
-                                            <td className="p-3 text-right font-bold text-red-600">{formatIDR(e.amount)}</td>
-                                            <td className="p-3 text-right">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Keterangan</span>
+                                                <span className="text-muted-foreground max-w-[150px] md:max-w-xs truncate text-right md:text-left">{e.description || "—"}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Jumlah (Rp)</span>
+                                                <span className="text-right font-bold text-red-600">{formatIDR(e.amount)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
                                                 <div className="flex justify-end gap-1">
                                                     <Button variant="ghost" size="sm" onClick={() => openEditModal(e)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
                                                         <Edit className="h-4 w-4" />

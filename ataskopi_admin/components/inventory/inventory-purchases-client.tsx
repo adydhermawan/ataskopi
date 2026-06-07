@@ -336,8 +336,8 @@ export function InventoryPurchasesClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bahan Baku</th>
@@ -349,37 +349,51 @@ export function InventoryPurchasesClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {purchases.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={8} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
                                     purchases.map((p) => (
-                                        <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                            <td className="p-3 font-medium">
-                                                {format(new Date(p.date), "dd MMM yyyy", { locale: idLocale })}
+                                        <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
+                                                <span className="text-right md:text-left">{format(new Date(p.date), "dd MMM yyyy", { locale: idLocale })}</span>
                                             </td>
-                                            <td className="p-3 font-semibold text-slate-900 dark:text-white">
-                                                {p.rawMaterial?.name || "Bahan Baku"}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-semibold text-slate-900 dark:text-white">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Bahan Baku</span>
+                                                <span className="text-right md:text-left">{p.rawMaterial?.name || "Bahan Baku"}</span>
                                             </td>
-                                            <td className="p-3 text-right">
-                                                {p.quantity} {p.rawMaterial?.unit}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Jumlah</span>
+                                                <span>{p.quantity} {p.rawMaterial?.unit}</span>
                                             </td>
-                                            <td className="p-3 text-right text-muted-foreground">
-                                                {formatIDR(p.unitPrice)}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-muted-foreground">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Harga / Unit</span>
+                                                <span>{formatIDR(p.unitPrice)}</span>
                                             </td>
-                                            <td className="p-3 text-right font-bold text-slate-900 dark:text-white">
-                                                {formatIDR(p.totalAmount)}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold text-slate-900 dark:text-white">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Total Pembelian</span>
+                                                <span>{formatIDR(p.totalAmount)}</span>
                                             </td>
-                                            <td className="p-3 text-muted-foreground">{p.supplier || "—"}</td>
-                                            <td className="p-3 text-muted-foreground max-w-xs truncate">{p.notes || "—"}</td>
-                                            <td className="p-3 text-right">
-                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                    <Trash className="h-4 w-4" />
-                                                </Button>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-muted-foreground">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Supplier</span>
+                                                <span className="text-right md:text-left">{p.supplier || "—"}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-muted-foreground">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Keterangan</span>
+                                                <span className="max-w-[150px] md:max-w-xs truncate text-right md:text-left">{p.notes || "—"}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Aksi</span>
+                                                <div className="flex justify-end gap-1">
+                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

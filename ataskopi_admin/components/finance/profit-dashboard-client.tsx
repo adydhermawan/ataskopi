@@ -396,8 +396,8 @@ export function ProfitDashboardClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bulan</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Pendapatan</th>
@@ -408,29 +408,42 @@ export function ProfitDashboardClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Margin</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {monthlyData.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={7} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada data.
                                         </td>
                                     </tr>
                                 ) : (
                                     monthlyData.map((row) => (
-                                        <tr key={row.month} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                            <td className="p-3 font-medium">
-                                                {format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}
+                                        <tr key={row.month} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Bulan</span>
+                                                <span className="text-right md:text-left">{format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}</span>
                                             </td>
-                                            <td className="p-3 text-right text-emerald-600 font-medium">{formatIDR(row.grossRevenue)}</td>
-                                            <td className="p-3 text-right text-orange-600 font-medium">{formatIDR(row.cogs || 0)}</td>
-                                            <td className="p-3 text-right text-red-600 font-medium">{formatIDR(row.opexAmount)}</td>
-                                            <td className="p-3 text-right text-slate-500 font-medium">
-                                                {row.depreciationExpense > 0 ? formatIDR(row.depreciationExpense) : "—"}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-emerald-600 font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Pendapatan</span>
+                                                <span>{formatIDR(row.grossRevenue)}</span>
                                             </td>
-                                            <td className={`p-3 text-right font-bold ${row.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
-                                                {formatIDR(row.netProfit)}
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-orange-600 font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">COGS (HPP)</span>
+                                                <span>{formatIDR(row.cogs || 0)}</span>
                                             </td>
-                                            <td className="p-3 text-right">
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-red-600 font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">OpEx</span>
+                                                <span>{formatIDR(row.opexAmount)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-slate-500 font-medium">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Penyusutan</span>
+                                                <span>{row.depreciationExpense > 0 ? formatIDR(row.depreciationExpense) : "—"}</span>
+                                            </td>
+                                            <td className={`p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold ${row.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Laba Bersih</span>
+                                                <span>{formatIDR(row.netProfit)}</span>
+                                            </td>
+                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right">
+                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Margin</span>
                                                 <span className={`px-2 py-1 rounded-md text-xs font-medium ${row.margin >= 30 ? "bg-emerald-100 text-emerald-700" : row.margin >= 0 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
                                                     {row.margin.toFixed(1)}%
                                                 </span>

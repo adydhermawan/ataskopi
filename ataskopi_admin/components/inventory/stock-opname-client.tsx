@@ -451,8 +451,8 @@ export function StockOpnameClient() {
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                        <table className="w-full text-sm block md:table">
+                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
                                 <tr>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300 w-8"></th>
                                     <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
@@ -463,10 +463,10 @@ export function StockOpnameClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y block md:table-row-group">
                                 {opnames.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                    <tr className="block md:table-row">
+                                        <td colSpan={7} className="p-8 text-center text-muted-foreground block md:table-cell">
                                             Belum ada riwayat stock opname. Klik "Mulai Stock Opname" untuk memulai.
                                         </td>
                                     </tr>
@@ -480,24 +480,35 @@ export function StockOpnameClient() {
  
                                         return (
                                             <React.Fragment key={o.id}>
-                                                <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
-                                                    <td className="p-3">
-                                                        {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                                <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Detail</span>
+                                                        <span className="text-right md:text-left">{isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}</span>
                                                     </td>
-                                                    <td className="p-3 font-medium">
-                                                        {format(new Date(o.date), "dd MMMM yyyy", { locale: idLocale })}
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
+                                                        <span className="text-right md:text-left">{format(new Date(o.date), "dd MMMM yyyy", { locale: idLocale })}</span>
                                                     </td>
-                                                    <td className="p-3">
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${o.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</span>
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-right md:text-left ${o.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                                                             {o.status === "COMPLETED" ? "Selesai" : "Draft"}
                                                         </span>
                                                     </td>
-                                                    <td className="p-3 text-muted-foreground">{o.notes || "—"}</td>
-                                                    <td className="p-3 text-right font-medium">{o.items.length}</td>
-                                                    <td className="p-3 text-right font-bold text-red-600">
-                                                        {formatIDR(cogsAmountVal)}
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Catatan</span>
+                                                        <span className="text-muted-foreground text-right md:text-left">{o.notes || "—"}</span>
                                                     </td>
-                                                    <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-medium">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Item</span>
+                                                        <span>{o.items.length}</span>
+                                                    </td>
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold text-red-600">
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">COGS (HPP)</span>
+                                                        <span>{formatIDR(cogsAmountVal)}</span>
+                                                    </td>
+                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0" onClick={(e) => e.stopPropagation()}>
+                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Aksi</span>
                                                         <div className="flex justify-end gap-1">
                                                             {o.status === "DRAFT" && (
                                                                 <Button variant="ghost" size="sm" onClick={() => handleComplete(o.id)} className="h-8 px-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs gap-1">
@@ -514,11 +525,11 @@ export function StockOpnameClient() {
                                                     </td>
                                                 </tr>
                                                 {isExpanded && (
-                                                    <tr>
-                                                        <td colSpan={7} className="p-0">
+                                                    <tr className="block md:table-row">
+                                                        <td colSpan={7} className="p-0 block md:table-cell">
                                                             <div className="bg-slate-50/70 dark:bg-zinc-900/50 p-4 border-t">
-                                                                <table className="w-full text-xs">
-                                                                    <thead>
+                                                                <table className="w-full text-xs block md:table">
+                                                                    <thead className="hidden md:table-header-group">
                                                                         <tr className="text-muted-foreground">
                                                                             <th className="text-left pb-2 font-medium">Bahan Baku</th>
                                                                             <th className="text-right pb-2 font-medium">Stok Sistem</th>
@@ -528,21 +539,35 @@ export function StockOpnameClient() {
                                                                             <th className="text-right pb-2 font-medium">COGS (HPP)</th>
                                                                         </tr>
                                                                     </thead>
-                                                                    <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
+                                                                    <tbody className="divide-y divide-slate-200 dark:divide-zinc-800 block md:table-row-group">
                                                                         {o.items.map((item) => {
                                                                             const diff = Number(item.difference);
                                                                             const cogsItemVal = Number((item as any).cogsValue) || (diff < 0 ? Math.abs(diff) * Number(item.unitCost) : 0);
                                                                             return (
-                                                                                <tr key={item.id}>
-                                                                                    <td className="py-2 font-medium">{item.rawMaterial.name} ({item.rawMaterial.unit})</td>
-                                                                                    <td className="py-2 text-right">{Number(item.systemStock)}</td>
-                                                                                    <td className="py-2 text-right font-medium">{Number(item.actualStock)}</td>
-                                                                                    <td className={`py-2 text-right font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
-                                                                                        {diff > 0 ? "+" : ""}{diff}
+                                                                                <tr key={item.id} className="block md:table-row border-b md:border-none py-2 md:py-0 space-y-1 md:space-y-0">
+                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 font-medium">
+                                                                                        <span className="md:hidden text-muted-foreground">Bahan Baku</span>
+                                                                                        <span className="text-right md:text-left">{item.rawMaterial.name} ({item.rawMaterial.unit})</span>
                                                                                     </td>
-                                                                                    <td className="py-2 text-right">{formatIDR(Number(item.unitCost))}</td>
-                                                                                    <td className={`py-2 text-right font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
-                                                                                        {formatIDR(cogsItemVal)}
+                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right">
+                                                                                        <span className="md:hidden text-muted-foreground text-left">Stok Sistem</span>
+                                                                                        <span>{Number(item.systemStock)}</span>
+                                                                                    </td>
+                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-medium">
+                                                                                        <span className="md:hidden text-muted-foreground text-left">Stok Aktual</span>
+                                                                                        <span>{Number(item.actualStock)}</span>
+                                                                                    </td>
+                                                                                    <td className={`flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
+                                                                                        <span className="md:hidden text-muted-foreground text-left">Selisih</span>
+                                                                                        <span>{diff > 0 ? "+" : ""}{diff}</span>
+                                                                                    </td>
+                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right">
+                                                                                        <span className="md:hidden text-muted-foreground text-left">Harga Modal</span>
+                                                                                        <span>{formatIDR(Number(item.unitCost))}</span>
+                                                                                    </td>
+                                                                                    <td className={`flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
+                                                                                        <span className="md:hidden text-muted-foreground text-left">COGS (HPP)</span>
+                                                                                        <span>{formatIDR(cogsItemVal)}</span>
                                                                                     </td>
                                                                                 </tr>
                                                                             );
