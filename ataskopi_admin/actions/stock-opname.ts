@@ -3,6 +3,7 @@
 import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
+import { invalidateProjectionCache } from "@/lib/cache/projection-cache"
 
 export async function getStockOpnames(outletId: string) {
     await requirePermission('inventory', 'view')
@@ -93,6 +94,7 @@ export async function createStockOpname(data: {
         })
 
         revalidatePath('/inventory/opname')
+        invalidateProjectionCache(data.outletId)
         return { success: true, id: opname.id }
     } catch (error) {
         console.error("Failed to create stock opname:", error)
@@ -153,6 +155,9 @@ export async function updateStockOpnameStatus(id: string, status: string) {
         })
 
         revalidatePath('/inventory/opname')
+        // Invalidate cache — need to fetch outletId from the opname
+        const opnameForCache = await prisma.stockOpname.findUnique({ where: { id }, select: { outletId: true } })
+        if (opnameForCache) invalidateProjectionCache(opnameForCache.outletId)
         return { success: true }
     } catch (error) {
         console.error("Failed to update stock opname status:", error)
@@ -192,6 +197,7 @@ export async function deleteStockOpname(id: string) {
         })
 
         revalidatePath('/inventory/opname')
+        invalidateProjectionCache(opname.outletId)
         return { success: true }
     } catch (error) {
         console.error("Failed to delete stock opname:", error)
@@ -294,6 +300,7 @@ export async function updateStockOpname(
         })
 
         revalidatePath('/inventory/opname')
+        invalidateProjectionCache(opname.outletId)
         return { success: true, id: opname.id }
     } catch (error) {
         console.error("Failed to update stock opname:", error)

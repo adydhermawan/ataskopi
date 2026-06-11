@@ -4,6 +4,7 @@ import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
 import { Decimal } from "@prisma/client/runtime/library"
+import { invalidateProjectionCache } from "@/lib/cache/projection-cache"
 
 export async function getInventoryPurchases(outletId: string, startDate?: Date, endDate?: Date) {
     await requirePermission('inventory', 'view')
@@ -86,6 +87,7 @@ export async function createInventoryPurchase(data: {
 
         revalidatePath('/inventory/purchases')
         revalidatePath('/inventory/materials')
+        invalidateProjectionCache(data.outletId)
         return { 
             success: true, 
             message: `Pembelian dicatat. Stok ${result.materialName} bertambah ${data.quantity} ${result.unit} (Harga modal rata-rata: Rp ${result.newAvgCost.toFixed(0)}/${result.unit})`
@@ -139,11 +141,14 @@ export async function deleteInventoryPurchase(id: string) {
                 where: { id }
             })
 
-            return { success: true }
+            return { success: true, outletId: purchase.outletId }
         })
 
         revalidatePath('/inventory/purchases')
         revalidatePath('/inventory/materials')
+        if (result.success && result.outletId) {
+            invalidateProjectionCache(result.outletId)
+        }
         return result
     } catch (error) {
         console.error("Failed to delete inventory purchase:", error)

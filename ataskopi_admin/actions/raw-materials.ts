@@ -3,6 +3,7 @@
 import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
+import { cacheGet, cacheSet, getProjectionCacheKey } from "@/lib/cache/projection-cache"
 
 export async function getRawMaterials(outletId: string) {
     await requirePermission('inventory', 'view')
@@ -271,6 +272,20 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         }
     }
 
+    return result
+}
+
+/**
+ * Cached version of getStockProjections for dashboard use.
+ * Returns cached data if available (TTL 15 min), otherwise calculates and caches.
+ */
+export async function getCachedStockProjections(outletId: string): Promise<Record<string, StockProjection>> {
+    const cacheKey = getProjectionCacheKey(outletId)
+    const cached = cacheGet<Record<string, StockProjection>>(cacheKey)
+    if (cached) return cached
+
+    const result = await getStockProjections(outletId)
+    cacheSet(cacheKey, result)
     return result
 }
 

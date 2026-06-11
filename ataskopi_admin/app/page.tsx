@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BarChart3, Coffee, LayoutGrid, ShieldCheck, Smartphone, Users, Zap, CheckCircle2, MonitorPlay } from "lucide-react";
+import { ArrowRight, BarChart3, Coffee, LayoutGrid, ShieldCheck, Smartphone, Users, Zap, CheckCircle2, MonitorPlay, Calculator, BellRing, Layers, TrendingUp, Receipt } from "lucide-react";
 import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { useRef } from "react";
 
@@ -91,15 +91,15 @@ export default function LandingPage() {
               >
                 <motion.div variants={fadeInUp} className="inline-flex items-center rounded-full border border-blue-200 bg-white px-5 py-2 text-sm font-medium text-blue-800 mx-auto lg:mx-0 shadow-sm">
                   <Zap className="h-4 w-4 mr-2 fill-blue-600 text-blue-600" />
-                  <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent font-bold">#1 POS System</span>
-                  <span className="text-blue-900 ml-1">untuk Coffee Shop Modern</span>
+                  <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent font-bold">Sistem Kelas Enterprise</span>
+                  <span className="text-blue-900 ml-1">untuk Coffee Shop</span>
                 </motion.div>
                 <motion.h1 variants={fadeInUp} className="text-5xl font-extrabold tracking-tight text-zinc-900 sm:text-6xl xl:text-7xl/none leading-[1.1]">
-                  Kelola Bisnis Kopi <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500">Lebih Cerdas.</span>
+                  Lebih Dari <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-blue-500">Sekadar Kasir.</span>
                 </motion.h1>
                 <motion.p variants={fadeInUp} className="max-w-[600px] text-zinc-500 md:text-xl leading-relaxed mx-auto lg:mx-0">
-                  Platform all-in-one untuk manajemen pesanan, stok, dan pelanggan. Tingkatkan efisiensi operasional dan kepuasan pelanggan dalam satu aplikasi.
+                  Platform all-in-one dengan Laporan Keuangan SAK EMKM otomatis, proyeksi stok bahan baku cerdas, dan POS yang 100% responsif di handphone Anda.
                 </motion.p>
                 <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 w-full justify-center lg:justify-start pt-4">
                   <Button size="lg" className="h-14 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white px-10 text-base shadow-xl hover:-translate-y-1 transition-all duration-300">
@@ -169,129 +169,136 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 grid-rows-2 gap-6 h-auto md:h-[600px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-[250px] gap-6">
 
-              {/* 1. Large Feature (POS) - 2x2 */}
+              {/* 1. Laporan Keuangan SAK EMKM - 2x1 */}
               <motion.div
-                className="md:col-span-2 md:row-span-2 relative rounded-3xl overflow-hidden bg-white border border-zinc-100 shadow-sm group"
+                className="lg:col-span-2 row-span-1 relative rounded-3xl overflow-hidden bg-zinc-900 text-white shadow-sm group p-8 flex items-center justify-between"
                 whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               >
-                <div className="p-8 h-full flex flex-col z-10 relative">
-                  <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-6">
-                    <LayoutGrid className="h-6 w-6" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-900/30 to-zinc-900 z-0"></div>
+                <div className="relative z-10 max-w-sm">
+                  <div className="h-12 w-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-blue-400 mb-6">
+                    <Calculator className="h-6 w-6" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-2 text-zinc-900">POS Modern & Cepat</h3>
-                  <p className="text-zinc-500 mb-6 max-w-sm">Proses pesanan dalam hitungan detik. Tampilan visual memudahkan kasir bekerja saat jam sibuk.</p>
-                  <div className="flex-1 relative mt-4 rounded-t-xl overflow-hidden bg-zinc-100/50 p-2 sm:p-4">
-                    {/* Abstract CSS POS UI Mockup instead of Image */}
-                    <div className="absolute inset-x-4 top-4 bottom-[-10px] bg-white rounded-t-xl shadow-xl border border-zinc-200/80 flex overflow-hidden">
-                      {/* Sidebar */}
-                      <div className="w-12 sm:w-16 bg-zinc-50 border-r border-zinc-100 flex flex-col items-center py-4 gap-3">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
-                          <Coffee className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </div>
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200 mt-2"></div>
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200"></div>
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-zinc-200"></div>
-                      </div>
-
-                      {/* Main Content (Products) */}
-                      <div className="flex-1 p-3 sm:p-4 bg-zinc-50/50 flex flex-col">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="w-20 h-3 sm:h-4 bg-zinc-200 rounded-md"></div>
-                          <div className="w-12 h-4 sm:h-5 bg-white border border-zinc-200 shadow-sm rounded-full"></div>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 flex-1">
-                          {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="bg-white rounded-lg border border-zinc-100 shadow-sm p-1.5 sm:p-2 flex flex-col">
-                              <div className="w-full aspect-[4/3] bg-zinc-100 rounded-md mb-2"></div>
-                              <div className="w-2/3 h-1.5 sm:h-2 bg-zinc-200 rounded-full mb-1"></div>
-                              <div className="w-1/3 h-1.5 sm:h-2 bg-blue-100 rounded-full"></div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Order Panel */}
-                      <div className="w-[35%] bg-white border-l border-zinc-100 p-3 flex flex-col">
-                        <div className="w-1/2 h-3 bg-zinc-200 rounded-md mb-4"></div>
-                        <div className="flex-1 space-y-3">
-                          {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex justify-between items-end gap-2">
-                              <div className="flex flex-col gap-1.5 w-full">
-                                <div className="w-[85%] h-1.5 sm:h-2 bg-zinc-200 rounded-full"></div>
-                                <div className="w-1/3 h-1.5 sm:h-2 bg-zinc-100 rounded-full"></div>
-                              </div>
-                              <div className="w-8 h-1.5 sm:h-2 bg-zinc-200 rounded-full shrink-0"></div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Checkout Button */}
-                        <div className="mt-auto pt-3 border-t border-zinc-100">
-                          <div className="flex justify-between mb-3">
-                            <div className="w-8 h-2 sm:h-2.5 bg-zinc-300 rounded-full"></div>
-                            <div className="w-12 h-2 sm:h-2.5 bg-zinc-900 rounded-full"></div>
-                          </div>
-                          <div className="w-full h-8 sm:h-10 bg-blue-600 hover:bg-blue-700 transition-colors rounded-md sm:rounded-lg shadow-sm flex items-center justify-center cursor-pointer">
-                            <div className="w-12 h-1.5 sm:h-2 bg-white/80 rounded-full"></div>
-                          </div>
-                        </div>
-                      </div>
+                  <h3 className="text-2xl font-bold mb-2">Akuntansi SAK EMKM</h3>
+                  <p className="text-zinc-400 text-sm">Neraca, Laba Rugi, dan Penyusutan Aset otomatis. Semua terintegrasi dengan pengeluaran (OpEx/CapEx) dan HPP harian Anda.</p>
+                </div>
+                
+                {/* Visual Report Abstract */}
+                <div className="hidden sm:flex relative z-10 gap-4 opacity-80 mr-4">
+                  <div className="w-32 bg-white/5 rounded-xl border border-white/10 p-4 shadow-lg backdrop-blur-sm -rotate-6 transform hover:rotate-0 transition-transform">
+                    <div className="h-2 w-1/2 bg-blue-400 rounded-full mb-4"></div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><div className="h-1.5 w-10 bg-white/20 rounded-full"></div><div className="h-1.5 w-8 bg-green-400 rounded-full"></div></div>
+                      <div className="flex justify-between"><div className="h-1.5 w-14 bg-white/20 rounded-full"></div><div className="h-1.5 w-6 bg-green-400 rounded-full"></div></div>
+                      <div className="flex justify-between"><div className="h-1.5 w-12 bg-white/20 rounded-full"></div><div className="h-1.5 w-10 bg-red-400 rounded-full"></div></div>
                     </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* 2. Medium Feature (Analytics) - 1x2 */}
+              {/* 2. POS & Live Order - 1x2 */}
               <motion.div
-                className="md:col-span-1 md:row-span-2 relative rounded-3xl overflow-hidden bg-zinc-900 text-white shadow-sm group"
-                whileHover={{ y: -5 }}
+                className="lg:col-span-1 row-span-2 relative rounded-3xl overflow-hidden bg-white border border-zinc-100 shadow-sm group flex flex-col"
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               >
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-zinc-900 z-0"></div>
-                <div className="p-8 h-full flex flex-col relative z-10">
-                  <div className="h-12 w-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center text-white mb-6">
-                    <BarChart3 className="h-6 w-6" />
+                <div className="p-8 pb-4 flex-1">
+                  <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-6">
+                    <LayoutGrid className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">Real-time Analytics</h3>
-                  <p className="text-zinc-400 text-sm mb-6">Pantau omzet dari mana saja via HP.</p>
-
-                  {/* Abstract Chart Visual */}
-                  <div className="flex-1 flex items-end justify-between gap-2 px-2 pb-4">
-                    {[40, 70, 50, 90, 65, 85].map((h, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-full bg-blue-500 rounded-t-md opacity-80"
-                        initial={{ height: 0 }}
-                        whileInView={{ height: `${h}%` }}
-                        transition={{ duration: 1, delay: i * 0.1 }}
-                      />
-                    ))}
+                  <h3 className="text-2xl font-bold mb-2 text-zinc-900">POS & Live Order</h3>
+                  <p className="text-zinc-500 mb-6 text-sm">Proses kasir kilat, dilengkapi Live Order Board dengan notifikasi suara instan untuk dapur/bar Anda.</p>
+                </div>
+                {/* Visual POS Abstract */}
+                <div className="h-48 bg-zinc-50 border-t border-zinc-100 mt-auto relative overflow-hidden flex justify-center p-4">
+                  <div className="w-[85%] bg-white rounded-t-xl shadow-[0_0_15px_rgba(0,0,0,0.05)] border border-zinc-200 flex flex-col translate-y-4 group-hover:translate-y-2 transition-transform">
+                    <div className="h-8 border-b border-zinc-100 flex items-center px-3 gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                      <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                      <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                    </div>
+                    <div className="p-3 grid grid-cols-2 gap-2">
+                      <div className="h-12 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-100"><BellRing className="h-4 w-4 text-blue-400" /></div>
+                      <div className="h-12 bg-zinc-100 rounded-lg"></div>
+                      <div className="h-12 bg-zinc-100 rounded-lg"></div>
+                      <div className="h-12 bg-green-50 rounded-lg flex items-center justify-center border border-green-100"><Receipt className="h-4 w-4 text-green-500" /></div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* 3. Small Feature (Loyalty) - 1x1 */}
+              {/* 3. Manajemen Stok Cerdas - 2x1 */}
               <motion.div
-                className="bg-blue-50 rounded-3xl p-6 border border-blue-100 flex flex-col justify-between group cursor-default"
-                whileHover={{ scale: 1.02 }}
+                className="lg:col-span-2 row-span-1 relative rounded-3xl overflow-hidden bg-blue-50 border border-blue-100 shadow-sm group p-8 flex items-center justify-between"
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               >
-                <ShieldCheck className="h-8 w-8 text-blue-600 mb-2" />
-                <div>
-                  <h3 className="text-lg font-bold text-blue-900">Loyalty Program</h3>
-                  <p className="text-sm text-blue-700/80 mt-1">Retensi pelanggan otomatis.</p>
+                <div className="relative z-10 max-w-md">
+                  <div className="h-12 w-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-600 mb-6">
+                    <Layers className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2 text-blue-900">Proyeksi Stok & Opname</h3>
+                  <p className="text-blue-800/80 text-sm">Cegah kehabisan bahan! Sistem memproyeksi kapan stok habis. Permudah opname dengan fitur konversi berat kemasan.</p>
+                </div>
+                
+                {/* Visual Inventory Abstract */}
+                <div className="hidden sm:flex flex-col gap-3 mr-6">
+                  <div className="w-40 bg-white p-3 rounded-xl shadow-sm border border-blue-100 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Coffee className="h-4 w-4 text-blue-600" /></div>
+                    <div className="flex-1"><div className="h-2 w-full bg-zinc-200 rounded-full mb-1.5"></div><div className="h-1.5 w-1/2 bg-red-400 rounded-full"></div></div>
+                  </div>
+                  <div className="w-40 bg-white p-3 rounded-xl shadow-sm border border-blue-100 flex items-center gap-3 ml-6 opacity-70">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Coffee className="h-4 w-4 text-blue-600" /></div>
+                    <div className="flex-1"><div className="h-2 w-full bg-zinc-200 rounded-full mb-1.5"></div><div className="h-1.5 w-3/4 bg-green-400 rounded-full"></div></div>
+                  </div>
                 </div>
               </motion.div>
 
-              {/* 4. Small Feature (Inventory) - 1x1 */}
+              {/* 4. Analitik - 1x1 */}
               <motion.div
-                className="bg-white rounded-3xl p-6 border border-zinc-100 flex flex-col justify-between group shadow-sm"
-                whileHover={{ scale: 1.02 }}
+                className="lg:col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-zinc-100 flex flex-col shadow-sm group"
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
               >
-                <Coffee className="h-8 w-8 text-amber-600 mb-2" />
-                <div>
-                  <h3 className="text-lg font-bold text-zinc-900">Inventory</h3>
-                  <p className="text-sm text-zinc-500 mt-1">Stok sinkron otomatis.</p>
+                <div className="flex justify-between items-start mb-auto">
+                  <div className="h-10 w-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-bold text-zinc-900 mb-1">Analitik & Kas</h3>
+                  <p className="text-sm text-zinc-500">Rekonsiliasi kas harian dan pantau tren volume pesanan secara live.</p>
+                </div>
+              </motion.div>
+
+              {/* 5. Mobile Responsif - 1x1 */}
+              <motion.div
+                className="lg:col-span-1 row-span-1 bg-zinc-900 rounded-3xl p-6 border border-zinc-800 flex flex-col shadow-sm group"
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+              >
+                <div className="flex justify-between items-start mb-auto">
+                  <div className="h-10 w-10 bg-white/10 rounded-lg flex items-center justify-center text-white">
+                    <Smartphone className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-bold text-white mb-1">100% Mobile Ready</h3>
+                  <p className="text-sm text-zinc-400">Atur harga, cek laba rugi, dan kelola menu langsung dari HP Anda.</p>
+                </div>
+              </motion.div>
+
+              {/* 6. Loyalty Program - 1x1 */}
+              <motion.div
+                className="lg:col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-zinc-100 flex flex-col shadow-sm group"
+                whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+              >
+                <div className="flex justify-between items-start mb-auto">
+                  <div className="h-10 w-10 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-bold text-zinc-900 mb-1">Loyalty Program</h3>
+                  <p className="text-sm text-zinc-500">Tingkatkan retensi dengan sistem poin dan diskon otomatis untuk member.</p>
                 </div>
               </motion.div>
 

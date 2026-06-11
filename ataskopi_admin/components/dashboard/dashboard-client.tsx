@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -11,6 +12,7 @@ import {
     saveDailyRealRevenue,
     deleteDailyRealRevenue
 } from "@/actions/real-revenue";
+import { getRawMaterials, getCachedStockProjections } from "@/actions/raw-materials";
 import {
     DollarSign,
     Package,
@@ -23,6 +25,8 @@ import {
     Trash,
     Scale,
     TrendingDown,
+    AlertTriangle,
+    ChevronRight,
 } from "lucide-react";
 import {
     BarChart,
@@ -100,6 +104,10 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
     
     const [outlets, setOutlets] = useState<Array<{ id: string; name: string }>>([]);
     const [realRevenueLogs, setRealRevenueLogs] = useState<any[]>([]);
+    
+    // Raw material warnings state
+    const [criticalMaterials, setCriticalMaterials] = useState<any[]>([]);
+    const [loadingMaterials, setLoadingMaterials] = useState(false);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,6 +117,62 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
     const [formAmount, setFormAmount] = useState("");
     const [formNotes, setFormNotes] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
+
+    // Fetch raw material warning projections
+    useEffect(() => {
+        const fetchMaterialWarnings = async () => {
+            if (!user) return;
+            setLoadingMaterials(true);
+            try {
+                const targetOutlets = outletId ? [outletId] : outlets.map(o => o.id);
+                if (targetOutlets.length === 0) {
+                    setCriticalMaterials([]);
+                    setLoadingMaterials(false);
+                    return;
+                }
+
+                const allWarnings: any[] = [];
+
+                await Promise.all(
+                    targetOutlets.map(async (oid) => {
+                        const [materials, projections] = await Promise.all([
+                            getRawMaterials(oid),
+                            getCachedStockProjections(oid),
+                        ]);
+
+                        materials.forEach((mat) => {
+                            const proj = projections[mat.id];
+                            if (proj && (proj.status === 'HABIS' || proj.status === 'KRITIS' || proj.status === 'SEGERA_BELI')) {
+                                allWarnings.push({
+                                    ...mat,
+                                    outletName: outlets.find(o => o.id === oid)?.name || "Outlet",
+                                    projection: proj,
+                                });
+                            }
+                        });
+                    })
+                );
+
+                const severityOrder = { HABIS: 0, KRITIS: 1, SEGERA_BELI: 2 };
+                allWarnings.sort((a, b) => {
+                    const orderA = severityOrder[a.projection.status as keyof typeof severityOrder] ?? 99;
+                    const orderB = severityOrder[b.projection.status as keyof typeof severityOrder] ?? 99;
+                    if (orderA !== orderB) return orderA - orderB;
+                    const daysA = a.projection.projectedDays ?? 999;
+                    const daysB = b.projection.projectedDays ?? 999;
+                    return daysA - daysB;
+                });
+
+                setCriticalMaterials(allWarnings);
+            } catch (err) {
+                console.error("Failed to load stock warnings:", err);
+            } finally {
+                setLoadingMaterials(false);
+            }
+        };
+
+        fetchMaterialWarnings();
+    }, [outletId, outlets, user]);
 
     // Lock cashier to their assigned outlet
     useEffect(() => {
@@ -489,6 +553,85 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                     </CardContent>
                 </Card>
             </div>
+
+            {criticalMaterials.length > 0 && (
+                <Card className="border-l-4 border-l-rose-500 shadow-md bg-white dark:bg-zinc-950 overflow-hidden transition-all duration-300 hover:shadow-lg">
+                    <CardHeader className="pb-3 border-b border-slate-100 dark:border-zinc-800/50 flex flex-row items-center justify-between space-y-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 dark:text-rose-400 animate-pulse">
+                                <AlertTriangle className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                    Peringatan Stok Bahan Baku
+                                </CardTitle>
+                                <CardDescription className="text-xs">
+                                    Bahan baku dengan status kritis atau habis berdasarkan rata-rata pemakaian
+                                </CardDescription>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 font-semibold gap-1 text-xs">
+                            <Link href="/inventory/materials">
+                                Kelola Stok <ChevronRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-100 dark:divide-zinc-800/50 max-h-[320px] overflow-y-auto">
+                            {criticalMaterials.map((item) => {
+                                const status = item.projection.status;
+                                const days = item.projection.projectedDays;
+                                
+                                let badgeColor = "";
+                                let badgeText = "";
+                                
+                                if (status === 'HABIS') {
+                                    badgeColor = "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-900/30";
+                                    badgeText = "HABIS";
+                                } else if (status === 'KRITIS') {
+                                    badgeColor = "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-900/30";
+                                    badgeText = `KRITIS (~${days} hari)`;
+                                } else if (status === 'SEGERA_BELI') {
+                                    badgeColor = "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30";
+                                    badgeText = `SEGERA BELI (~${days} hari)`;
+                                }
+
+                                return (
+                                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3 hover:bg-slate-50/50 dark:hover:bg-zinc-900/20 transition-colors duration-150">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`h-2.5 w-2.5 rounded-full ${status === 'HABIS' ? 'bg-rose-500' : status === 'KRITIS' ? 'bg-orange-500' : 'bg-amber-500'}`} />
+                                            <div>
+                                                <div className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                                                    {item.name}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                                    <span>Stok saat ini: <strong className="text-slate-700 dark:text-slate-300">{item.currentStock} {item.unit}</strong></span>
+                                                    {!outletId && (
+                                                        <>
+                                                            <span>•</span>
+                                                            <span className="font-medium text-slate-500">{item.outletName}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 font-semibold">
+                                            <span className={`text-[11px] px-2.5 py-1 rounded-full ${badgeColor}`}>
+                                                {badgeText}
+                                            </span>
+                                            {item.projection.avgDailyUsage > 0 && (
+                                                <span className="text-xs text-muted-foreground font-medium">
+                                                    Rata-rata: {item.projection.avgDailyUsage} {item.unit}/hari
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Comparison Trend Chart */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
