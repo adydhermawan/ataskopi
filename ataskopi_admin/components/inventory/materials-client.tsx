@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -12,7 +12,9 @@ import {
     updateRawMaterial,
     deleteRawMaterial,
     getRawMaterialPurchaseHistory,
+    getStockProjections,
 } from "@/actions/raw-materials";
+import type { StockProjection } from "@/actions/raw-materials";
 import {
     Plus,
     Edit,
@@ -20,7 +22,10 @@ import {
     Loader2,
     Package,
     History,
-    Calendar,
+    AlertTriangle,
+    TrendingDown,
+    ShieldCheck,
+    Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -46,9 +51,97 @@ interface PurchaseHistoryItem {
     notes: string | null;
 }
 
+// Status priority for sorting (lower = more critical = comes first)
+const STATUS_PRIORITY: Record<StockProjection['status'], number> = {
+    'HABIS': 0,
+    'KRITIS': 1,
+    'SEGERA_BELI': 2,
+    'PERHATIKAN': 3,
+    'AMAN': 4,
+    'NO_DATA': 5,
+};
+
+function ProjectionBadge({ projection }: { projection: StockProjection | undefined }) {
+    if (!projection) {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-zinc-800 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <Info className="h-3 w-3" />
+                Memuat...
+            </span>
+        );
+    }
+
+    const configs: Record<StockProjection['status'], {
+        label: string;
+        bgClass: string;
+        textClass: string;
+        dotClass: string;
+        icon?: React.ReactNode;
+    }> = {
+        'HABIS': {
+            label: 'HABIS',
+            bgClass: 'bg-red-100 dark:bg-red-950/50',
+            textClass: 'text-red-700 dark:text-red-400',
+            dotClass: 'bg-red-500',
+            icon: <AlertTriangle className="h-3 w-3" />,
+        },
+        'KRITIS': {
+            label: `~${projection.projectedDays} hari`,
+            bgClass: 'bg-red-100 dark:bg-red-950/50',
+            textClass: 'text-red-700 dark:text-red-400',
+            dotClass: 'bg-red-500 animate-pulse',
+            icon: <AlertTriangle className="h-3 w-3" />,
+        },
+        'SEGERA_BELI': {
+            label: `~${projection.projectedDays} hari`,
+            bgClass: 'bg-amber-100 dark:bg-amber-950/50',
+            textClass: 'text-amber-700 dark:text-amber-400',
+            dotClass: 'bg-amber-500',
+            icon: <TrendingDown className="h-3 w-3" />,
+        },
+        'PERHATIKAN': {
+            label: `~${projection.projectedDays} hari`,
+            bgClass: 'bg-orange-100 dark:bg-orange-950/50',
+            textClass: 'text-orange-700 dark:text-orange-400',
+            dotClass: 'bg-orange-500',
+        },
+        'AMAN': {
+            label: `~${projection.projectedDays} hari`,
+            bgClass: 'bg-emerald-100 dark:bg-emerald-950/50',
+            textClass: 'text-emerald-700 dark:text-emerald-400',
+            dotClass: 'bg-emerald-500',
+            icon: <ShieldCheck className="h-3 w-3" />,
+        },
+        'NO_DATA': {
+            label: 'Data belum cukup',
+            bgClass: 'bg-slate-100 dark:bg-zinc-800',
+            textClass: 'text-slate-500 dark:text-slate-400',
+            dotClass: 'bg-slate-400',
+            icon: <Info className="h-3 w-3" />,
+        },
+    };
+
+    const config = configs[projection.status];
+
+    return (
+        <div className="flex flex-col items-end md:items-start gap-1">
+            <span className={`inline-flex items-center gap-1.5 rounded-full ${config.bgClass} px-2.5 py-1 text-xs font-semibold ${config.textClass}`}>
+                {config.icon || <span className={`h-1.5 w-1.5 rounded-full ${config.dotClass}`} />}
+                {config.label}
+            </span>
+            {projection.avgDailyUsage > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                    ~{projection.avgDailyUsage}/{projection.opnameCount > 0 ? 'hari aktif' : 'hari'}
+                </span>
+            )}
+        </div>
+    );
+}
+
 export function MaterialsClient() {
     const { user } = useCurrentUser();
     const [materials, setMaterials] = useState<RawMaterial[]>([]);
+    const [projections, setProjections] = useState<Record<string, StockProjection>>({});
     const [loading, setLoading] = useState(true);
     const [outlets, setOutlets] = useState<Array<{ id: string; name: string }>>([]);
     const [outletId, setOutletId] = useState<string | null>(null);
@@ -94,12 +187,15 @@ export function MaterialsClient() {
         }
     }, [user]);
 
-    // Fetch materials
+    // Fetch materials + projections
     const fetchMaterials = async () => {
         if (!outletId) return;
         setLoading(true);
         try {
-            const data = await getRawMaterials(outletId);
+            const [data, projData] = await Promise.all([
+                getRawMaterials(outletId),
+                getStockProjections(outletId),
+            ]);
             setMaterials(
                 data.map((m) => ({
                     ...m,
@@ -108,6 +204,7 @@ export function MaterialsClient() {
                     packagingWeight: Number(m.packagingWeight),
                 }))
             );
+            setProjections(projData);
         } catch (err) {
             console.error("Failed to fetch materials:", err);
         } finally {
@@ -118,6 +215,35 @@ export function MaterialsClient() {
     useEffect(() => {
         if (user && outletId) fetchMaterials();
     }, [user, outletId]);
+
+    // Sort materials: most critical first, then by name
+    const sortedMaterials = useMemo(() => {
+        return [...materials].sort((a, b) => {
+            const projA = projections[a.id];
+            const projB = projections[b.id];
+            const priorityA = projA ? STATUS_PRIORITY[projA.status] : 5;
+            const priorityB = projB ? STATUS_PRIORITY[projB.status] : 5;
+            if (priorityA !== priorityB) return priorityA - priorityB;
+            // Same priority → sort by projectedDays ascending (sooner to run out first)
+            const daysA = projA?.projectedDays ?? Infinity;
+            const daysB = projB?.projectedDays ?? Infinity;
+            if (daysA !== daysB) return daysA - daysB;
+            return a.name.localeCompare(b.name);
+        });
+    }, [materials, projections]);
+
+    // Count warnings
+    const warningCounts = useMemo(() => {
+        let habis = 0, kritis = 0, segeraBeli = 0;
+        for (const mat of materials) {
+            const proj = projections[mat.id];
+            if (!proj) continue;
+            if (proj.status === 'HABIS') habis++;
+            else if (proj.status === 'KRITIS') kritis++;
+            else if (proj.status === 'SEGERA_BELI') segeraBeli++;
+        }
+        return { habis, kritis, segeraBeli, total: habis + kritis + segeraBeli };
+    }, [materials, projections]);
 
     const formatIDR = (val: number) =>
         new Intl.NumberFormat("id-ID", {
@@ -270,8 +396,27 @@ export function MaterialsClient() {
                 </Button>
             </div>
 
+            {/* Alert banner for critical items */}
+            {warningCounts.total > 0 && (
+                <div className="flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-4 shadow-sm">
+                    <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                            Peringatan Stok Bahan Baku
+                        </p>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                            {warningCounts.habis > 0 && <span className="font-bold">{warningCounts.habis} item HABIS</span>}
+                            {warningCounts.habis > 0 && (warningCounts.kritis > 0 || warningCounts.segeraBeli > 0) && " · "}
+                            {warningCounts.kritis > 0 && <span className="font-bold">{warningCounts.kritis} item KRITIS (≤3 hari)</span>}
+                            {warningCounts.kritis > 0 && warningCounts.segeraBeli > 0 && " · "}
+                            {warningCounts.segeraBeli > 0 && <span>{warningCounts.segeraBeli} item perlu segera dibeli (≤7 hari)</span>}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Summary cards */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
                 <Card className="border-l-4 border-l-blue-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Jenis Bahan Baku</CardTitle>
@@ -291,13 +436,36 @@ export function MaterialsClient() {
                         <p className="text-xs text-muted-foreground">Stok × Harga Modal Rata-rata</p>
                     </CardContent>
                 </Card>
+                <Card className={`border-l-4 shadow-sm ${warningCounts.total > 0 ? 'border-l-red-500' : 'border-l-emerald-500'}`}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Status Proyeksi Stok</CardTitle>
+                        {warningCounts.total > 0 ? (
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                        ) : (
+                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {warningCounts.total > 0 ? (
+                            <>
+                                <div className="text-2xl font-bold text-red-600">{warningCounts.total} item</div>
+                                <p className="text-xs text-muted-foreground">perlu perhatian (≤7 hari / habis)</p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold text-emerald-600">Semua Aman</div>
+                                <p className="text-xs text-muted-foreground">Tidak ada bahan baku kritis</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Table */}
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
                     <CardTitle>Daftar Bahan Baku</CardTitle>
-                    <CardDescription>Kelola stok dan harga bahan baku Anda.</CardDescription>
+                    <CardDescription>Kelola stok dan harga bahan baku Anda. Diurutkan berdasarkan urgensi proyeksi stok.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto rounded-md border">
@@ -311,63 +479,75 @@ export function MaterialsClient() {
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Satuan Rata2</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total Harga Stock</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Berat Packaging</th>
+                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Proyeksi Stok</th>
                                     <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y block md:table-row-group">
-                                {materials.length === 0 ? (
+                                {sortedMaterials.length === 0 ? (
                                     <tr className="block md:table-row">
-                                        <td colSpan={8} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada data bahan baku. Klik "Tambah Bahan Baku" untuk mulai.
+                                        <td colSpan={9} className="p-8 text-center text-muted-foreground block md:table-cell">
+                                            Belum ada data bahan baku. Klik &quot;Tambah Bahan Baku&quot; untuk mulai.
                                         </td>
                                     </tr>
                                 ) : (
-                                    materials.map((m) => (
-                                        <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama</span>
-                                                <span className="font-medium text-right md:text-left">{m.name}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">SKU</span>
-                                                <span className="text-muted-foreground text-right md:text-left">{m.sku || "—"}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Satuan</span>
-                                                <span className="text-right md:text-left">{m.unit}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Stok</span>
-                                                <span className="font-bold text-right">{m.currentStock}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Satuan Rata2</span>
-                                                <span className="text-right">{formatIDR(m.averageCost)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Total Harga Stock</span>
-                                                <span className="text-right">{formatIDR(m.currentStock * m.averageCost)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Berat Packaging</span>
-                                                <span className="text-muted-foreground text-right">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
-                                                <div className="flex justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
-                                                        <History className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                        <Trash className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    sortedMaterials.map((m) => {
+                                        const proj = projections[m.id];
+                                        const isUrgent = proj && (proj.status === 'HABIS' || proj.status === 'KRITIS');
+                                        return (
+                                            <tr
+                                                key={m.id}
+                                                className={`hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0 ${isUrgent ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}
+                                            >
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama</span>
+                                                    <span className="font-medium text-right md:text-left">{m.name}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">SKU</span>
+                                                    <span className="text-muted-foreground text-right md:text-left">{m.sku || "—"}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Satuan</span>
+                                                    <span className="text-right md:text-left">{m.unit}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Stok</span>
+                                                    <span className="font-bold text-right">{m.currentStock}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Satuan Rata2</span>
+                                                    <span className="text-right">{formatIDR(m.averageCost)}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Total Harga Stock</span>
+                                                    <span className="text-right">{formatIDR(m.currentStock * m.averageCost)}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Berat Packaging</span>
+                                                    <span className="text-muted-foreground text-right">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</span>
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Proyeksi</span>
+                                                    <ProjectionBadge projection={proj} />
+                                                </td>
+                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
+                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
+                                                            <History className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                            <Trash className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
