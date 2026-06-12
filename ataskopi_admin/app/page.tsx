@@ -5,7 +5,14 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BarChart3, Coffee, LayoutGrid, ShieldCheck, Smartphone, Users, Zap, CheckCircle2, MonitorPlay, Calculator, BellRing, Layers, TrendingUp, Receipt } from "lucide-react";
 import { motion, useScroll, useTransform, Variants } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +33,11 @@ const staggerContainer: Variants = {
 
 export default function LandingPage() {
   const sectionRef = useRef(null);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start end", "end start"]
   });
-
-
 
   return (
     <div className="flex min-h-screen flex-col font-sans bg-white text-zinc-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
@@ -59,10 +65,11 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-blue-700">
               Login Mitra
             </Link>
-            <Button asChild className="rounded-full bg-blue-700 hover:bg-blue-800 text-white px-6 shadow-md hover:shadow-lg transition-all">
-              <Link href="/register">
-                Daftar Gratis
-              </Link>
+            <Button 
+              className="rounded-full bg-blue-700 hover:bg-blue-800 text-white px-6 shadow-md hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setIsDemoOpen(true)}
+            >
+              Daftar Gratis
             </Button>
           </div>
         </div>
@@ -102,10 +109,21 @@ export default function LandingPage() {
                   Platform all-in-one dengan Laporan Keuangan SAK EMKM otomatis, proyeksi stok bahan baku cerdas, dan POS yang 100% responsif di handphone Anda.
                 </motion.p>
                 <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 w-full justify-center lg:justify-start pt-4">
-                  <Button size="lg" className="h-14 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white px-10 text-base shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <Button 
+                    size="lg" 
+                    className="h-14 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white px-10 text-base shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                    onClick={() => setIsDemoOpen(true)}
+                  >
                     Coba Gratis Sekarang
                   </Button>
-                  <Button variant="outline" size="lg" className="h-14 rounded-full border-zinc-200 text-zinc-900 bg-white hover:bg-zinc-50 px-8 text-base shadow-sm hover:shadow-md transition-all">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="h-14 rounded-full border-zinc-200 text-zinc-900 bg-white hover:bg-zinc-50 px-8 text-base shadow-sm hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => {
+                      document.getElementById("demo")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                  >
                     <MonitorPlay className="mr-2 h-4 w-4 text-blue-600" /> Lihat Video Demo
                   </Button>
                 </motion.div>
@@ -158,6 +176,7 @@ export default function LandingPage() {
         </section>
 
         {/* Bento Grid Features (The "Visual Upgrade") */}
+        <div id="solutions" className="scroll-mt-20" />
         <section id="ecosystem" className="py-24 bg-zinc-50/50" ref={sectionRef}>
           <div className="container mx-auto max-w-7xl px-4 md:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -383,6 +402,66 @@ export default function LandingPage() {
           </div>
         </footer>
       </main>
+
+      <Dialog open={isDemoOpen} onOpenChange={setIsDemoOpen}>
+        <DialogContent className="sm:max-w-md bg-white border border-zinc-100 rounded-3xl shadow-2xl p-6 overflow-hidden">
+          <DialogHeader className="space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mb-2">
+              <Coffee className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-zinc-900 tracking-tight">
+              Mulai Uji Coba AtasKopi
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-sm leading-relaxed">
+              Platform all-in-one AtasKopi siap membantu mengelola coffee shop Anda secara digital. Hubungi kami untuk pembuatan akun kustom, atau gunakan akses demo kami.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-4">
+            <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-2">
+              <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">Akses Cepat Web Admin (Demo)</p>
+              <div className="text-sm text-zinc-700 space-y-1 font-medium">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Nomor HP:</span>
+                  <span className="font-mono text-zinc-900">+6281234567890</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">PIN Keamanan:</span>
+                  <span className="font-mono text-zinc-900">123456</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
+              <p className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Aplikasi Pelanggan (Demo)</p>
+              <p className="text-xs text-zinc-500 leading-normal">
+                Uji coba alur pemesanan (dine-in, pickup, delivery) di handphone simulator di bagian bawah halaman landing page.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button
+              asChild
+              className="flex-1 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-medium shadow-md transition-all h-11"
+            >
+              <Link href="/login">
+                Login Web Admin
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-full border-zinc-200 text-zinc-800 font-medium hover:bg-zinc-50 transition-all h-11 cursor-pointer"
+              onClick={() => {
+                setIsDemoOpen(false);
+                document.getElementById("demo")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              Coba App Pelanggan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

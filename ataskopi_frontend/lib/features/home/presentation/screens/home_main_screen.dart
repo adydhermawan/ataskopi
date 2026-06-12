@@ -21,6 +21,8 @@ import 'package:ataskopi_frontend/core/providers/pending_qr_provider.dart';
 import 'package:ataskopi_frontend/features/scan/presentation/controllers/scan_controller.dart';
 import 'package:http/http.dart' as http;
 import 'package:ataskopi_frontend/core/api/api_config.dart';
+import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart';
+import 'package:ataskopi_frontend/features/checkout/presentation/screens/checkout_summary_screen.dart';
 
 class HomeMainScreen extends ConsumerStatefulWidget {
   const HomeMainScreen({super.key});
@@ -83,6 +85,7 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
   Widget build(BuildContext context) {
     final tenant = ref.watch(tenantProvider);
     final bottomNavIndex = ref.watch(homeTabIndexProvider); // Watch provider
+    final cart = ref.watch(cartProvider); // Add cart provider watch
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -99,6 +102,22 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
           ),
         ],
       ),
+      floatingActionButton: cart.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CheckoutSummaryScreen()),
+                );
+              },
+              backgroundColor: tenant.primaryColor,
+              icon: Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 20.w),
+              label: Text(
+                'Keranjang (${cart.fold<int>(0, (sum, item) => sum + item.quantity)})',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp),
+              ),
+            )
+          : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,

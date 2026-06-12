@@ -11,6 +11,7 @@ import 'package:ataskopi_frontend/features/auth/presentation/screens/registratio
 import 'package:ataskopi_frontend/features/home/presentation/screens/home_main_screen.dart';
 import 'package:ataskopi_frontend/features/home/presentation/providers/home_providers.dart';
 import 'package:ataskopi_frontend/features/shared/domain/models/models.dart';
+import 'package:ataskopi_frontend/core/providers/pending_qr_provider.dart';
 
 class AuthEntryScreen extends ConsumerStatefulWidget {
   const AuthEntryScreen({super.key});
@@ -109,6 +110,8 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
     });
 
     final tenant = ref.watch(tenantProvider);
+    final pendingQr = ref.watch(pendingQrCodeProvider);
+    final isFromScan = pendingQr != null && pendingQr.isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -137,28 +140,33 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                         ),
                         child: Padding(
                           padding: EdgeInsets.all(24.w),
-                          child: Image.asset(
-                            'assets/icons/icon-512.png',
-                            fit: BoxFit.contain,
-                          ),
+                          child: isFromScan
+                              ? Icon(Icons.qr_code_scanner, size: 64.w, color: tenant.primaryColor)
+                              : Image.asset(
+                                  'assets/icons/icon-512.png',
+                                  fit: BoxFit.contain,
+                                ),
                         ),
                       ),
                       SizedBox(height: 32.h),
                       Text(
-                        'Selamat Datang!',
+                        isFromScan ? 'Satu Langkah Lagi!' : 'Mulai Pesanan',
                         style: TextStyle(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF0F172A),
                         ),
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 12.h),
                       Text(
-                        'Masukkan nomor handphone Anda untuk melanjutkan.',
+                        isFromScan
+                            ? 'Untuk mulai memesan, silakan masukkan nomor handphone/WhatsApp Anda. Kami akan mengirimkan status pesanan ke nomor ini.'
+                            : 'Masukkan nomor handphone Anda untuk melanjutkan pesanan atau melihat riwayat pesanan.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14.sp,
                           color: const Color(0xFF64748B),
+                          height: 1.5,
                         ),
                       ),
 

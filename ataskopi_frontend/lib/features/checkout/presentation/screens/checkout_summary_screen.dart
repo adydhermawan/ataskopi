@@ -37,10 +37,10 @@ class CheckoutSummaryScreen extends ConsumerWidget {
     final orderFlow = ref.watch(orderFlowProvider);
     final paymentMethod = ref.watch(selectedPaymentMethodProvider);
     final settingsAsync = ref.watch(orderModeSettingsProvider);
+    final hasPrompted = ref.watch(_hasPromptedOrderModeProvider);
 
     // Auto-prompt if mode is not selected
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final hasPrompted = ref.read(_hasPromptedOrderModeProvider);
       if (orderFlow.mode == null && cart.isNotEmpty && !hasPrompted) {
         ref.read(_hasPromptedOrderModeProvider.notifier).state = true;
         _showOrderModeSelectorModal(context, ref);
