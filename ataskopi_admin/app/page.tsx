@@ -418,24 +418,17 @@ export default function LandingPage() {
           </DialogHeader>
 
           <div className="space-y-4 my-4">
-            <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-2">
-              <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">Akses Cepat Web Admin (Demo)</p>
-              <div className="text-sm text-zinc-700 space-y-1 font-medium">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Nomor HP:</span>
-                  <span className="font-mono text-zinc-900">+6281234567890</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">PIN Keamanan:</span>
-                  <span className="font-mono text-zinc-900">123456</span>
-                </div>
-              </div>
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 space-y-2">
+              <p className="text-xs font-bold text-amber-900 uppercase tracking-wider">Registrasi Akun Mitra</p>
+              <p className="text-xs text-zinc-600 leading-normal">
+                Sistem AtasKopi menggunakan arsitektur single-tenant untuk menjaga kerahasiaan data operasional dan finansial. Pendaftaran akun Mitra (Admin, Kasir, Owner) hanya dapat dibuat oleh Administrator / Owner utama.
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-              <p className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Aplikasi Pelanggan (Demo)</p>
+              <p className="text-xs font-bold text-zinc-700 uppercase tracking-wider">Akses Uji Coba (Demo)</p>
               <p className="text-xs text-zinc-500 leading-normal">
-                Uji coba alur pemesanan (dine-in, pickup, delivery) di handphone simulator di bagian bawah halaman landing page.
+                Untuk menjaga keamanan data riil produksi, kredensial demo tidak dipublikasikan secara terbuka. Silakan hubungi tim kami untuk meminta akun uji coba khusus, atau coba langsung alur pemesanan di Simulator Aplikasi Pelanggan di bawah.
               </p>
             </div>
           </div>
