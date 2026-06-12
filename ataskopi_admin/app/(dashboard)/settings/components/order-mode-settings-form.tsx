@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { updateOrderModeSettings } from "@/actions/settings";
 import { toast } from "sonner";
 import { OrderModeSetting } from "@prisma/client";
-import { Loader2, Utensils, ShoppingBag, Truck, Percent, CreditCard, QrCode } from "lucide-react";
+import { Loader2, Utensils, ShoppingBag, Truck, Percent, CreditCard, QrCode, Sparkles } from "lucide-react";
 import ImageUpload from "@/components/ui/image-upload";
 
 // Schema
@@ -40,6 +40,7 @@ const formSchema = z.object({
     cashEnabled: z.boolean(),
     defaultPaymentMethod: z.string(),
     qrisQrCodeUrl: z.string().nullable().optional(),
+    dailyCurationsEnabled: z.boolean(),
 }).refine((data) => data.qrisEnabled || data.cashEnabled, {
     message: "Minimal salah satu metode pembayaran harus aktif",
     path: ["qrisEnabled"],
@@ -64,6 +65,7 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
             cashEnabled: initialData?.cashEnabled ?? true,
             defaultPaymentMethod: initialData?.defaultPaymentMethod ?? 'qris',
             qrisQrCodeUrl: initialData?.qrisQrCodeUrl ?? '',
+            dailyCurationsEnabled: initialData?.dailyCurationsEnabled ?? true,
         },
     });
 
@@ -237,6 +239,40 @@ export function OrderModeSettingsForm({ initialData }: OrderModeSettingsFormProp
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 w-full bg-slate-50/50 dark:bg-slate-900/20">
                                         <div className="space-y-0.5">
                                             <FormLabel className="text-sm font-medium">Aktifkan Pajak</FormLabel>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Daily Curations */}
+                    <Card className="flex flex-col justify-between">
+                        <CardHeader>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg">
+                                    <Sparkles className="w-5 h-5" />
+                                </span>
+                                <CardTitle className="text-lg">Daily Curations</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Tampilkan atau sembunyikan section menu rekomendasi Daily Curations di aplikasi customer.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between pt-0">
+                            <FormField
+                                control={form.control}
+                                name="dailyCurationsEnabled"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 w-full bg-slate-50/50 dark:bg-slate-900/20">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-sm font-medium">Aktifkan Section</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch

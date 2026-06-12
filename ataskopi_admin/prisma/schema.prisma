@@ -429,6 +429,7 @@ model OrderModeSetting {
   cashEnabled          Boolean  @default(true) @map("cash_enabled")
   defaultPaymentMethod String   @default("qris") @map("default_payment_method")
   qrisQrCodeUrl        String?  @map("qris_qr_code_url")
+  dailyCurationsEnabled Boolean  @default(true) @map("daily_curations_enabled")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 

@@ -26,6 +26,7 @@ final orderModeSettingsProvider = FutureProvider<OrderModeSettings>((ref) async 
       cashEnabled: true,
       defaultPaymentMethod: 'qris',
       qrisQrCodeUrl: null,
+      dailyCurationsEnabled: true,
     );
   }
 });

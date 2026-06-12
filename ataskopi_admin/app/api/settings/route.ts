@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
                     cashEnabled: true,
                     defaultPaymentMethod: 'qris',
                     qrisQrCodeUrl: null,
+                    dailyCurationsEnabled: true,
                 }
             });
         }
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
             cashEnabled: setting.cashEnabled,
             defaultPaymentMethod: setting.defaultPaymentMethod,
             qrisQrCodeUrl: setting.qrisQrCodeUrl,
+            dailyCurationsEnabled: setting.dailyCurationsEnabled,
         });
     } catch (error) {
         console.error('GET /api/settings error:', error);

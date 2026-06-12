@@ -23,6 +23,7 @@ import 'package:http/http.dart' as http;
 import 'package:ataskopi_frontend/core/api/api_config.dart';
 import 'package:ataskopi_frontend/features/order/presentation/providers/order_providers.dart';
 import 'package:ataskopi_frontend/features/checkout/presentation/screens/checkout_summary_screen.dart';
+import 'package:ataskopi_frontend/core/providers/settings_provider.dart';
 
 class HomeMainScreen extends ConsumerStatefulWidget {
   const HomeMainScreen({super.key});
@@ -181,6 +182,8 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
     final loyaltyInfoAsync = ref.watch(loyaltyInfoProvider);
     final unreadCountAsync = ref.watch(unreadNotificationCountProvider);
     final unreadCount = unreadCountAsync.valueOrNull ?? 0;
+    final settingsAsync = ref.watch(orderModeSettingsProvider);
+    final isDailyCurationsEnabled = settingsAsync.value?.dailyCurationsEnabled ?? true;
 
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
@@ -272,46 +275,48 @@ class _HomeMainScreenState extends ConsumerState<HomeMainScreen> {
             child: const OrderModeSelector(),
           ),
         ),
-        SliverToBoxAdapter(child: SizedBox(height: 24.h)), // Reduced from 32.h
-        // Daily Curations Header
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w), // Aligned with other sections
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'Daily Curations',
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
-                    );
-                  },
-                  child: Text(
-                    'View Menu',
+        if (isDailyCurationsEnabled) ...[
+          SliverToBoxAdapter(child: SizedBox(height: 24.h)), // Reduced from 32.h
+          // Daily Curations Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w), // Aligned with other sections
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Daily Curations',
                     style: TextStyle(
-                      color: tenant.primaryColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
-                ),
-              ],
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
+                      );
+                    },
+                    child: Text(
+                      'View Menu',
+                      style: TextStyle(
+                        color: tenant.primaryColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        SliverToBoxAdapter(child: SizedBox(height: 20.h)),
-        // Product List
-        const SliverToBoxAdapter(child: ProductRecommendationList()),
+          SliverToBoxAdapter(child: SizedBox(height: 20.h)),
+          // Product List
+          const SliverToBoxAdapter(child: ProductRecommendationList()),
+        ],
         SliverToBoxAdapter(child: SizedBox(height: 40.h)),
       ],
     ),

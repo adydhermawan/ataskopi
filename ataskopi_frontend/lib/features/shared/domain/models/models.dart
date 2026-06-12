@@ -661,6 +661,7 @@ class OrderModeSettings {
   final bool cashEnabled;
   final String defaultPaymentMethod;
   final String? qrisQrCodeUrl;
+  final bool dailyCurationsEnabled;
 
   const OrderModeSettings({
     required this.dineInEnabled,
@@ -672,6 +673,7 @@ class OrderModeSettings {
     this.cashEnabled = true,
     this.defaultPaymentMethod = 'qris',
     this.qrisQrCodeUrl,
+    this.dailyCurationsEnabled = true,
   });
 
   factory OrderModeSettings.fromJson(Map<String, dynamic> json) {
@@ -685,6 +687,7 @@ class OrderModeSettings {
       cashEnabled: json['cashEnabled'] ?? true,
       defaultPaymentMethod: json['defaultPaymentMethod'] ?? 'qris',
       qrisQrCodeUrl: json['qrisQrCodeUrl'] != null ? ApiConfig.fullImageUrl(json['qrisQrCodeUrl']) : null,
+      dailyCurationsEnabled: json['dailyCurationsEnabled'] != false, // Default to true if null
     );
   }
 
@@ -699,6 +702,7 @@ class OrderModeSettings {
       'cashEnabled': cashEnabled,
       'defaultPaymentMethod': defaultPaymentMethod,
       'qrisQrCodeUrl': qrisQrCodeUrl,
+      'dailyCurationsEnabled': dailyCurationsEnabled,
     };
   }
 }

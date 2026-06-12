@@ -22,6 +22,7 @@ export async function getOrderModeSettings() {
                 cashEnabled: true,
                 defaultPaymentMethod: 'qris',
                 qrisQrCodeUrl: null,
+                dailyCurationsEnabled: true,
             }
         })
     }
@@ -39,6 +40,7 @@ export async function updateOrderModeSettings(data: {
     cashEnabled: boolean
     defaultPaymentMethod: string
     qrisQrCodeUrl: string | null
+    dailyCurationsEnabled: boolean
 }) {
     await requirePermission('settings', 'update')
 
@@ -58,6 +60,7 @@ export async function updateOrderModeSettings(data: {
                     cashEnabled: data.cashEnabled,
                     defaultPaymentMethod: data.defaultPaymentMethod,
                     qrisQrCodeUrl: data.qrisQrCodeUrl,
+                    dailyCurationsEnabled: data.dailyCurationsEnabled,
                 }
             })
         } else {
@@ -72,6 +75,7 @@ export async function updateOrderModeSettings(data: {
                     cashEnabled: data.cashEnabled,
                     defaultPaymentMethod: data.defaultPaymentMethod,
                     qrisQrCodeUrl: data.qrisQrCodeUrl,
+                    dailyCurationsEnabled: data.dailyCurationsEnabled,
                 }
             })
         }

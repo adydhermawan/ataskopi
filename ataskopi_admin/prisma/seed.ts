@@ -150,6 +150,7 @@ async function main() {
             delivery: true,
             dineInMethod: 'SCAN_ONLY',
             taxEnabled: true,
+            dailyCurationsEnabled: true,
         }
     })
 
