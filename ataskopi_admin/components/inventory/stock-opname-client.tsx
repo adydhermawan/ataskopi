@@ -181,14 +181,18 @@ export function StockOpnameClient() {
     const updateGrossStock = (index: number, value: string) => {
         setOpnameItems((prev) => {
             const updated = [...prev];
-            updated[index].grossStock = value;
+            const item = { ...updated[index], grossStock: value };
+            
             if (value !== "") {
                 const gross = Number(value) || 0;
-                const net = Math.max(0, gross - updated[index].packagingWeight);
-                updated[index].actualStock = net.toString();
+                // Validasi: jika berat kotor kurang dari berat packaging, tampilkan 0
+                const net = gross >= item.packagingWeight ? gross - item.packagingWeight : 0;
+                item.actualStock = net.toString();
             } else {
-                updated[index].actualStock = updated[index].systemStock.toString();
+                item.actualStock = item.systemStock.toString();
             }
+            
+            updated[index] = item;
             return updated;
         });
     };
@@ -196,8 +200,8 @@ export function StockOpnameClient() {
     const updateActualStock = (index: number, value: string) => {
         setOpnameItems((prev) => {
             const updated = [...prev];
-            updated[index].actualStock = value;
-            updated[index].grossStock = ""; // reset gross if actual is manually edited
+            const item = { ...updated[index], actualStock: value, grossStock: "" };
+            updated[index] = item;
             return updated;
         });
     };
@@ -374,9 +378,20 @@ export function StockOpnameClient() {
                                                     disabled={item.packagingWeight === 0}
                                                     value={item.grossStock ?? ""}
                                                     onChange={(e) => updateGrossStock(idx, e.target.value)}
-                                                    className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className={`w-full h-9 text-sm rounded border px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                        item.grossStock && Number(item.grossStock) < item.packagingWeight 
+                                                            ? "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/20" 
+                                                            : "border-input bg-white dark:bg-zinc-950"
+                                                    }`}
                                                 />
-                                                {item.packagingWeight > 0 && <div className="text-[10px] text-muted-foreground mt-1">Wdh: {item.packagingWeight}</div>}
+                                                {item.packagingWeight > 0 && (
+                                                    <div className="text-[10px] text-muted-foreground mt-1 flex justify-between">
+                                                        <span>Wdh: {item.packagingWeight}</span>
+                                                        {item.grossStock && Number(item.grossStock) < item.packagingWeight && (
+                                                            <span className="text-red-500 font-medium">Invalid</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">Stok Aktual (Net)</label>
