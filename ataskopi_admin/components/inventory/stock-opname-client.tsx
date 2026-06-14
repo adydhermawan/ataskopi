@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
+import { parsePrismaDecimal } from "@/lib/utils";
+
 import {
     getStockOpnames,
     createStockOpname,
@@ -138,11 +140,11 @@ export function StockOpnameClient() {
                     rawMaterialId: m.id,
                     name: m.name,
                     unit: m.unit,
-                    systemStock: Number(m.currentStock),
-                    actualStock: Number(m.currentStock).toString(),
+                    systemStock: parsePrismaDecimal(m.currentStock),
+                    actualStock: parsePrismaDecimal(m.currentStock).toString(),
                     grossStock: "",
-                    packagingWeight: Number(m.packagingWeight) || 0,
-                    unitCost: Number(m.averageCost),
+                    packagingWeight: parsePrismaDecimal(m.packagingWeight),
+                    unitCost: parsePrismaDecimal(m.averageCost),
                 }))
             );
             setFormDate(new Date().toLocaleDateString("en-CA"));
@@ -166,11 +168,11 @@ export function StockOpnameClient() {
                 rawMaterialId: item.rawMaterialId,
                 name: item.rawMaterial.name,
                 unit: item.rawMaterial.unit,
-                systemStock: Number(item.systemStock),
-                actualStock: Number(item.actualStock).toString(),
+                systemStock: parsePrismaDecimal(item.systemStock),
+                actualStock: parsePrismaDecimal(item.actualStock).toString(),
                 grossStock: "",
-                packagingWeight: Number(item.rawMaterial.packagingWeight) || 0,
-                unitCost: Number(item.unitCost),
+                packagingWeight: parsePrismaDecimal(item.rawMaterial.packagingWeight),
+                unitCost: parsePrismaDecimal(item.unitCost),
             }))
         );
         setIsModalOpen(true);
@@ -184,6 +186,8 @@ export function StockOpnameClient() {
                 const gross = Number(value) || 0;
                 const net = Math.max(0, gross - updated[index].packagingWeight);
                 updated[index].actualStock = net.toString();
+            } else {
+                updated[index].actualStock = updated[index].systemStock.toString();
             }
             return updated;
         });

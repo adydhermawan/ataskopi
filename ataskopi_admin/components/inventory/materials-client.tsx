@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
+import { parsePrismaDecimal } from "@/lib/utils";
+
 import {
     getRawMaterials,
     createRawMaterial,
@@ -199,9 +201,9 @@ export function MaterialsClient() {
             setMaterials(
                 data.map((m) => ({
                     ...m,
-                    currentStock: Number(m.currentStock),
-                    averageCost: Number(m.averageCost),
-                    packagingWeight: Number(m.packagingWeight),
+                    currentStock: parsePrismaDecimal(m.currentStock),
+                    averageCost: parsePrismaDecimal(m.averageCost),
+                    packagingWeight: parsePrismaDecimal(m.packagingWeight),
                 }))
             );
             setProjections(projData);
@@ -284,9 +286,9 @@ export function MaterialsClient() {
             setPurchaseHistory(
                 history.map((h) => ({
                     ...h,
-                    quantity: Number(h.quantity),
-                    unitPrice: Number(h.unitPrice),
-                    totalAmount: Number(h.totalAmount),
+                    quantity: parsePrismaDecimal(h.quantity),
+                    unitPrice: parsePrismaDecimal(h.unitPrice),
+                    totalAmount: parsePrismaDecimal(h.totalAmount),
                     date: new Date(h.date),
                 }))
             );

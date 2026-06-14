@@ -4,10 +4,11 @@ import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
 import { invalidateProjectionCache } from "@/lib/cache/projection-cache"
+import { parsePrismaDecimal } from "@/lib/utils"
 
 export async function getStockOpnames(outletId: string) {
     await requirePermission('inventory', 'view')
-    return prisma.stockOpname.findMany({
+    const opnames = await prisma.stockOpname.findMany({
         where: { outletId },
         include: {
             items: {
@@ -18,11 +19,29 @@ export async function getStockOpnames(outletId: string) {
         },
         orderBy: { date: 'desc' }
     })
+    return opnames.map(o => ({
+        ...o,
+        cogsAmount: parsePrismaDecimal(o.cogsAmount),
+        items: o.items.map(item => ({
+            ...item,
+            systemStock: parsePrismaDecimal(item.systemStock),
+            actualStock: parsePrismaDecimal(item.actualStock),
+            difference: parsePrismaDecimal(item.difference),
+            unitCost: parsePrismaDecimal(item.unitCost),
+            cogsValue: parsePrismaDecimal(item.cogsValue),
+            rawMaterial: item.rawMaterial ? {
+                ...item.rawMaterial,
+                currentStock: parsePrismaDecimal(item.rawMaterial.currentStock),
+                averageCost: parsePrismaDecimal(item.rawMaterial.averageCost),
+                packagingWeight: parsePrismaDecimal(item.rawMaterial.packagingWeight),
+            } : null
+        }))
+    }))
 }
 
 export async function getStockOpname(id: string) {
     await requirePermission('inventory', 'view')
-    return prisma.stockOpname.findUnique({
+    const opname = await prisma.stockOpname.findUnique({
         where: { id },
         include: {
             items: {
@@ -32,7 +51,27 @@ export async function getStockOpname(id: string) {
             }
         }
     })
+    if (!opname) return null
+    return {
+        ...opname,
+        cogsAmount: parsePrismaDecimal(opname.cogsAmount),
+        items: opname.items.map(item => ({
+            ...item,
+            systemStock: parsePrismaDecimal(item.systemStock),
+            actualStock: parsePrismaDecimal(item.actualStock),
+            difference: parsePrismaDecimal(item.difference),
+            unitCost: parsePrismaDecimal(item.unitCost),
+            cogsValue: parsePrismaDecimal(item.cogsValue),
+            rawMaterial: item.rawMaterial ? {
+                ...item.rawMaterial,
+                currentStock: parsePrismaDecimal(item.rawMaterial.currentStock),
+                averageCost: parsePrismaDecimal(item.rawMaterial.averageCost),
+                packagingWeight: parsePrismaDecimal(item.rawMaterial.packagingWeight),
+            } : null
+        }))
+    }
 }
+
 
 export async function createStockOpname(data: { 
     outletId: string; 

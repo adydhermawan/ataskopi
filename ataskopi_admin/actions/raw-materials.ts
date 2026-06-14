@@ -4,14 +4,22 @@ import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
 import { cacheGet, cacheSet, getProjectionCacheKey } from "@/lib/cache/projection-cache"
+import { parsePrismaDecimal } from "@/lib/utils"
 
 export async function getRawMaterials(outletId: string) {
     await requirePermission('inventory', 'view')
-    return prisma.rawMaterial.findMany({
+    const materials = await prisma.rawMaterial.findMany({
         where: { outletId },
         orderBy: { name: 'asc' }
     })
+    return materials.map(m => ({
+        ...m,
+        currentStock: parsePrismaDecimal(m.currentStock),
+        averageCost: parsePrismaDecimal(m.averageCost),
+        packagingWeight: parsePrismaDecimal(m.packagingWeight),
+    }))
 }
+
 
 export async function createRawMaterial(data: { outletId: string; name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number; packagingWeight?: number }) {
     await requirePermission('inventory', 'create')
