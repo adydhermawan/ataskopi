@@ -16,7 +16,14 @@ export const metadata: Metadata = {
   title: "AtasKopi Admin",
   description: "Admin Dashboard for AtasKopi Coffee Shop",
   icons: {
-    icon: '/favicon.png',
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" }
+    ],
+    shortcut: "/favicon.png",
+    apple: [
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
+    ]
   },
 };
 
