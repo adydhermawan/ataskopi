@@ -673,7 +673,7 @@ export function InventoryPurchasesClient() {
                 onClose={() => setIsModalOpen(false)}
             >
                 <form onSubmit={handleFormSubmit} className="space-y-4 pt-2">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Tanggal Pembelian *</label>
                             <input
@@ -704,7 +704,7 @@ export function InventoryPurchasesClient() {
 
                     {selectedMaterial && (
                         <div className="space-y-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-3">
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-muted-foreground">
                                         Jumlah Beli ({selectedMaterial.unit}) *
@@ -776,7 +776,7 @@ export function InventoryPurchasesClient() {
                     )}
 
                     {/* Payment Method & Delivery Status */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center gap-1.5">
                                 <CreditCard className="h-3.5 w-3.5 text-muted-foreground" /> Metode Bayar
@@ -855,7 +855,7 @@ export function InventoryPurchasesClient() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Supplier (Opsional)</label>
                             <input
