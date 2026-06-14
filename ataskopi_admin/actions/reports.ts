@@ -145,6 +145,17 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     }))
     const inventoryValue = materialsDetails.reduce((sum, m) => sum + m.totalValue, 0)
 
+    // 1.5. In-Transit Inventory (barang yang masih SHIPPING, belum diterima)
+    const inTransitPurchases = await prisma.inventoryPurchase.findMany({
+        where: {
+            outletId,
+            deliveryStatus: 'SHIPPING',
+            date: { lte: asOfDate }
+        }
+    })
+    const inTransitInventoryValue = inTransitPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    const inTransitCount = inTransitPurchases.length
+
     // 2. Fixed Assets with Net Book Value (purchasePrice - accumulatedDepreciation)
     const fixedAssets = await prisma.asset.findMany({
         where: {
@@ -200,7 +211,7 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     // Retained earnings now include depreciation as expense (not CapEx as lump sum)
     const retainedEarnings = cumulativeRevenue - cumulativeCogs - cumulativeExpenses - totalAccumulatedDepreciation
 
-    // 4. Total Purchases (cash spent on inventory purchase)
+    // 4. Total Purchases (all purchases, both paid and unpaid)
     const allPurchases = await prisma.inventoryPurchase.findMany({
         where: {
             outletId,
@@ -209,16 +220,25 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     })
     const totalPurchases = allPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
 
+    // 4.1. Only PAID purchases count as real cash outflow
+    const paidPurchases = allPurchases.filter(p => p.paymentStatus === 'PAID')
+    const totalPaidPurchases = paidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+
+    // 4.2. Accounts Payable (Utang Dagang) — UNPAID + OVERDUE purchases
+    const unpaidPurchases = allPurchases.filter(p => p.paymentStatus === 'UNPAID' || p.paymentStatus === 'OVERDUE')
+    const accountsPayable = unpaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    const accountsPayableCount = unpaidPurchases.length
+
     // 4.5. Deteksi Modal Barang (stok awal yang diinput tanpa transaksi pembelian)
     // Jika Total Persediaan saat ini + COGS > Total Pembelian Tercatat, selisihnya adalah barang modal awal.
     const unrecordedInitialInventory = Math.max(0, inventoryValue + cumulativeCogs - totalPurchases)
-    const virtualTotalPurchases = totalPurchases + unrecordedInitialInventory
+    const virtualTotalPurchases = totalPaidPurchases + unrecordedInitialInventory
 
-    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor - Total Pengeluaran Riil
-    // Total Pengeluaran Riil = virtualTotalPurchases (Bahan Baku) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
+    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor - Total Pengeluaran Riil (KAS saja)
+    // Total Pengeluaran Riil = virtualTotalPurchases (Bahan Baku PAID) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
     const cash = modalAwal + cumulativeRevenue - (virtualTotalPurchases + cumulativeExpenses + fixedAssetsCostValue)
 
-    const totalAssets = cash + inventoryValue + fixedAssetsValue
+    const totalAssets = cash + inventoryValue + inTransitInventoryValue + fixedAssetsValue
 
     return {
         asOfDate,
@@ -227,6 +247,10 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
             details: materialsDetails,
             totalValue: inventoryValue
         },
+        inTransitInventory: {
+            totalValue: inTransitInventoryValue,
+            count: inTransitCount,
+        },
         fixedAssets: {
             details: fixedAssetsDetails,
             totalValue: fixedAssetsValue,
@@ -234,6 +258,8 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
             totalAccumulatedDepreciation
         },
         totalAssets,
+        accountsPayable,
+        accountsPayableCount,
         equity: {
             initialCapital: modalAwal,
             retainedEarnings,
@@ -241,3 +267,4 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
         }
     }
 }
+

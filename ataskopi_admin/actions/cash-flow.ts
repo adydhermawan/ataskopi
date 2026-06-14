@@ -15,11 +15,12 @@ export async function getCashFlowReport(outletId: string, startDate: Date, endDa
     })
     const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
 
-    // Cash Out — COGS: Inventory Purchases (actual cash spent on raw materials)
+    // Cash Out — COGS: Inventory Purchases (only PAID — paylater excluded until paid)
     const purchases = await prisma.inventoryPurchase.findMany({
         where: {
             outletId,
-            date: { gte: startDate, lte: endDate }
+            date: { gte: startDate, lte: endDate },
+            paymentStatus: 'PAID',
         }
     })
     const totalPurchases = purchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
@@ -99,7 +100,7 @@ export async function getMonthlyCashFlowTrend(outletId: string, months: number =
             where: { outletId, date: { gte: startDate, lte: endDate } }
         })
         const purchases = await prisma.inventoryPurchase.findMany({
-            where: { outletId, date: { gte: startDate, lte: endDate } }
+            where: { outletId, date: { gte: startDate, lte: endDate }, paymentStatus: 'PAID' }
         })
         const expenses = await prisma.expense.findMany({
             where: { outletId, date: { gte: startDate, lte: endDate } }

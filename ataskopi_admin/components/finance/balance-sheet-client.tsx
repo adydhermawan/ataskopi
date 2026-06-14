@@ -30,6 +30,10 @@ interface BalanceSheetData {
         }>;
         totalValue: number;
     };
+    inTransitInventory: {
+        totalValue: number;
+        count: number;
+    };
     fixedAssets: {
         details: Array<{
             id: string;
@@ -46,6 +50,8 @@ interface BalanceSheetData {
         totalAccumulatedDepreciation: number;
     };
     totalAssets: number;
+    accountsPayable: number;
+    accountsPayableCount: number;
     equity: {
         initialCapital: number;
         retainedEarnings: number;
@@ -122,6 +128,8 @@ export function BalanceSheetClient() {
     }
 
     const totalEquity = (data?.equity.initialCapital || 0) + (data?.equity.retainedEarnings || 0);
+    const totalLiabilities = data?.accountsPayable || 0;
+    const totalPasiva = totalLiabilities + totalEquity;
 
     return (
         <div className="space-y-6">
@@ -193,9 +201,9 @@ export function BalanceSheetClient() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-indigo-600">
-                            {formatIDR(totalEquity)}
+                            {formatIDR(totalPasiva)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Modal + Laba</p>
+                        <p className="text-xs text-muted-foreground">Hutang + Modal + Laba</p>
                     </CardContent>
                 </Card>
             </div>
@@ -230,6 +238,15 @@ export function BalanceSheetClient() {
                                     <span className="font-medium text-slate-700 dark:text-slate-300">Persediaan Bahan Baku (Data Stok Opname)</span>
                                     <span className="font-semibold">{formatIDR(data?.inventory.totalValue || 0)}</span>
                                 </div>
+                                {(data?.inTransitInventory.totalValue || 0) > 0 && (
+                                    <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                                            Persediaan Dalam Perjalanan
+                                            <span className="text-[9px] text-muted-foreground block">({data?.inTransitInventory.count || 0} pembelian belum diterima)</span>
+                                        </span>
+                                        <span className="font-semibold text-blue-600">{formatIDR(data?.inTransitInventory.totalValue || 0)}</span>
+                                    </div>
+                                )}
                             </div>
                             
                             {/* Materials Details list */}
@@ -313,7 +330,7 @@ export function BalanceSheetClient() {
                     <CardHeader className="bg-slate-50 dark:bg-zinc-900 border-b">
                         <CardTitle className="flex justify-between items-center text-lg">
                             <span>PASIVA & EKUITAS</span>
-                            <span className="text-indigo-600 font-bold">{formatIDR(totalEquity)}</span>
+                            <span className="text-indigo-600 font-bold">{formatIDR(totalPasiva)}</span>
                         </CardTitle>
                         <CardDescription>Liabilitas dan Ekuitas milik outlet</CardDescription>
                     </CardHeader>
@@ -326,8 +343,19 @@ export function BalanceSheetClient() {
                             </h4>
                             <div className="space-y-2 pl-2">
                                 <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">Utang Usaha / Operasional (Jika Ada)</span>
-                                    <span className="font-semibold">{formatIDR(0)}</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                                        Utang Dagang (Pembelian Paylater)
+                                        {(data?.accountsPayableCount || 0) > 0 && (
+                                            <span className="text-[9px] text-muted-foreground block">({data?.accountsPayableCount} tagihan belum lunas)</span>
+                                        )}
+                                    </span>
+                                    <span className={`font-semibold ${(data?.accountsPayable || 0) > 0 ? 'text-red-600' : ''}`}>
+                                        {formatIDR(data?.accountsPayable || 0)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm font-bold bg-slate-50 dark:bg-zinc-900/60 p-2 rounded border mt-2">
+                                    <span className="text-xs">TOTAL LIABILITAS</span>
+                                    <span className={`${totalLiabilities > 0 ? 'text-red-600' : ''}`}>{formatIDR(totalLiabilities)}</span>
                                 </div>
                             </div>
                         </div>
@@ -354,6 +382,11 @@ export function BalanceSheetClient() {
                                 <div className="flex justify-between items-center text-sm font-bold bg-slate-50 dark:bg-zinc-900/60 p-3 rounded-lg border mt-4">
                                     <span>TOTAL EKUITAS</span>
                                     <span className="text-indigo-600">{formatIDR(totalEquity)}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-sm font-bold bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 mt-3">
+                                    <span className="text-indigo-700 dark:text-indigo-400">TOTAL PASIVA + EKUITAS</span>
+                                    <span className="text-indigo-600">{formatIDR(totalPasiva)}</span>
                                 </div>
                             </div>
                         </div>

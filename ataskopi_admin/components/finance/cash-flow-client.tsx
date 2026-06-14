@@ -481,6 +481,9 @@ export function CashFlowClient() {
                     <p>
                         Laporan ini menyajikan mutasi kas riil yang masuk dan keluar dari outlet. Berbeda dengan Laporan Laba Rugi, pembelian aset tetap (CapEx) dicatat secara utuh sebagai Kas Keluar pada saat tanggal transaksi pembelian, dan biaya non-kas seperti penyusutan aset (depresiasi) **tidak** dimasukkan karena tidak ada aliran kas keluar saat penyusutan terjadi.
                     </p>
+                    <p>
+                        Pembelian bahan baku dengan <strong>paylater/hutang</strong> yang belum dibayar <strong>tidak dihitung</strong> sebagai Kas Keluar sampai pembayaran dicatat lunas di halaman Pembelian.
+                    </p>
                 </div>
             </div>
         </div>

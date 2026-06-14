@@ -549,17 +549,23 @@ model Asset {
 }
 
 model InventoryPurchase {
-  id            String      @id @default(uuid())
-  outletId      String      @map("outlet_id")
-  rawMaterialId String      @map("raw_material_id")
-  date          DateTime    @db.Date
-  quantity      Decimal     @db.Decimal(10, 2)
-  unitPrice     Decimal     @map("unit_price") @db.Decimal(12, 2)
-  totalAmount   Decimal     @map("total_amount") @db.Decimal(12, 2)
-  supplier      String?
-  notes         String?
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id              String      @id @default(uuid())
+  outletId        String      @map("outlet_id")
+  rawMaterialId   String      @map("raw_material_id")
+  date            DateTime    @db.Date
+  quantity        Decimal     @db.Decimal(10, 2)
+  unitPrice       Decimal     @map("unit_price") @db.Decimal(12, 2)
+  totalAmount     Decimal     @map("total_amount") @db.Decimal(12, 2)
+  supplier        String?
+  notes           String?
+  paymentMethod   String      @default("CASH") @map("payment_method")       // CASH | PAYLATER
+  paymentStatus   String      @default("PAID") @map("payment_status")       // PAID | UNPAID | OVERDUE
+  dueDate         DateTime?   @map("due_date") @db.Date                     // Tanggal jatuh tempo paylater
+  paidAt          DateTime?   @map("paid_at")                               // Tanggal pelunasan
+  deliveryStatus  String      @default("RECEIVED") @map("delivery_status")  // RECEIVED | SHIPPING
+  receivedAt      DateTime?   @map("received_at")                           // Tanggal barang diterima
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   outlet        Outlet       @relation(fields: [outletId], references: [id], onDelete: Cascade)
   rawMaterial   RawMaterial  @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
