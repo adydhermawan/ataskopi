@@ -156,6 +156,7 @@ export function MaterialsClient() {
     const [formUnit, setFormUnit] = useState("gram");
     const [formStock, setFormStock] = useState("");
     const [formCost, setFormCost] = useState("");
+    const [formTotalCost, setFormTotalCost] = useState("");
     const [formPackagingWeight, setFormPackagingWeight] = useState("");
     const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -254,6 +255,30 @@ export function MaterialsClient() {
             maximumFractionDigits: 0,
         }).format(val);
 
+    // Auto-calculate cost (unit) and totalCost
+    const handleStockChange = (val: string) => {
+        setFormStock(val);
+        if (formTotalCost && val && Number(val) > 0) {
+            setFormCost((Number(formTotalCost) / Number(val)).toFixed(2));
+        } else if (formCost && val && Number(val) > 0) {
+            setFormTotalCost((Number(formCost) * Number(val)).toFixed(0));
+        }
+    };
+
+    const handleCostChange = (val: string) => {
+        setFormCost(val);
+        if (formStock && val && Number(formStock) > 0) {
+            setFormTotalCost((Number(formStock) * Number(val)).toFixed(0));
+        }
+    };
+
+    const handleTotalCostChange = (val: string) => {
+        setFormTotalCost(val);
+        if (formStock && val && Number(formStock) > 0) {
+            setFormCost((Number(val) / Number(formStock)).toFixed(2));
+        }
+    };
+
     const openCreateModal = () => {
         setEditingItem(null);
         setFormName("");
@@ -261,6 +286,7 @@ export function MaterialsClient() {
         setFormUnit("gram");
         setFormStock("");
         setFormCost("");
+        setFormTotalCost("");
         setFormPackagingWeight("");
         setIsModalOpen(true);
     };
@@ -272,6 +298,7 @@ export function MaterialsClient() {
         setFormUnit(m.unit);
         setFormStock(m.currentStock.toString());
         setFormCost(m.averageCost.toString());
+        setFormTotalCost((m.currentStock * m.averageCost).toFixed(0));
         setFormPackagingWeight(m.packagingWeight?.toString() || "0");
         setIsModalOpen(true);
     };
@@ -606,7 +633,7 @@ export function MaterialsClient() {
                             </select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">{editingItem ? "Stok Saat Ini (Kunci)" : "Stok Awal"}</label>
                             <input
@@ -615,19 +642,31 @@ export function MaterialsClient() {
                                 step="0.01"
                                 placeholder="0"
                                 value={formStock}
-                                onChange={(e) => setFormStock(e.target.value)}
+                                onChange={(e) => handleStockChange(e.target.value)}
                                 disabled={!!editingItem}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">{editingItem ? "Harga Modal Rata-Rata (Kunci)" : "Harga Modal Awal (Rp)"}</label>
+                            <label className="text-sm font-medium">{editingItem ? "Harga Rata-Rata (Kunci)" : "Harga per Satuan (Rp)"}</label>
                             <input
                                 type="number"
                                 min="0"
                                 placeholder="0"
                                 value={formCost}
-                                onChange={(e) => setFormCost(e.target.value)}
+                                onChange={(e) => handleCostChange(e.target.value)}
+                                disabled={!!editingItem}
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">{editingItem ? "Total Nilai (Kunci)" : "Harga Total (Rp)"}</label>
+                            <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                value={formTotalCost}
+                                onChange={(e) => handleTotalCostChange(e.target.value)}
                                 disabled={!!editingItem}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                             />
