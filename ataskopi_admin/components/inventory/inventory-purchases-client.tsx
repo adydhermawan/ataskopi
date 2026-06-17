@@ -13,6 +13,7 @@ import {
     markPurchaseAsReceived,
     markPurchaseAsPaid,
     getPurchaseSummary,
+    updateInventoryPurchase,
 } from "@/actions/inventory-purchases";
 import { checkAndUpdateOverdue } from "@/actions/check-overdue";
 import { getRawMaterials } from "@/actions/raw-materials";
@@ -31,6 +32,7 @@ import {
     AlertTriangle,
     Clock,
     CircleDollarSign,
+    Pencil,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, addDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -172,6 +174,14 @@ export function InventoryPurchasesClient() {
 
     // Action loading states
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+    // Edit Modal state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+    const [editDate, setEditDate] = useState("");
+    const [editPaymentMethod, setEditPaymentMethod] = useState("CASH");
+    const [editPaymentStatus, setEditPaymentStatus] = useState("PAID");
+    const [editDueDate, setEditDueDate] = useState("");
 
     useEffect(() => {
         if (user && user.role === "kasir" && user.outletId) {
@@ -362,6 +372,48 @@ export function InventoryPurchasesClient() {
                 await fetchSummary();
             } else {
                 toast.error(res.error || "Gagal mencatat pembelian");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Terjadi kesalahan sistem");
+        } finally {
+            setFormSubmitting(false);
+        }
+    };
+
+    const openEditModal = (p: Purchase) => {
+        setEditingPurchase(p);
+        setEditDate(format(new Date(p.date), "yyyy-MM-dd"));
+        setEditPaymentMethod(p.paymentMethod);
+        setEditPaymentStatus(p.paymentStatus);
+        setEditDueDate(p.dueDate ? format(new Date(p.dueDate), "yyyy-MM-dd") : addDays(new Date(), 30).toLocaleDateString("en-CA"));
+        setIsEditModalOpen(true);
+    };
+
+    const closeEditModal = () => {
+        setIsEditModalOpen(false);
+        setEditingPurchase(null);
+    };
+
+    const handleEditSubmit = async (ev: React.FormEvent) => {
+        ev.preventDefault();
+        if (!editingPurchase) return;
+        setFormSubmitting(true);
+        try {
+            const res = await updateInventoryPurchase(editingPurchase.id, {
+                date: new Date(editDate + "T00:00:00Z"),
+                paymentMethod: editPaymentMethod,
+                paymentStatus: editPaymentStatus,
+                dueDate: editPaymentMethod === "PAYLATER" && editDueDate ? new Date(editDueDate + "T00:00:00Z") : null,
+            }) as any;
+
+            if (res.success) {
+                toast.success(res.message || "Pembelian berhasil diperbarui");
+                closeEditModal();
+                await fetchPurchases();
+                await fetchSummary();
+            } else {
+                toast.error(res.error || "Gagal memperbarui pembelian");
             }
         } catch (err) {
             console.error(err);
@@ -651,6 +703,17 @@ export function InventoryPurchasesClient() {
                                                             Lunas
                                                         </Button>
                                                     )}
+                                                    {user && (user.role === 'admin' || user.role === 'owner') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => openEditModal(p)}
+                                                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                                                            title="Ubah Pembelian"
+                                                        >
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    )}
                                                     <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
                                                         <Trash className="h-3.5 w-3.5" />
                                                     </Button>
@@ -884,6 +947,112 @@ export function InventoryPurchasesClient() {
                         </Button>
                         <Button type="submit" disabled={formSubmitting || !formRawMaterialId || !formQuantity || !formTotalAmount}>
                             {formSubmitting ? "Menyimpan..." : "Simpan Pembelian"}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Edit Modal */}
+            <Modal
+                title="Ubah Pembelian Bahan Baku"
+                description="Ubah tanggal pembelian, metode pembayaran, atau tanggal jatuh tempo."
+                isOpen={isEditModalOpen}
+                onClose={closeEditModal}
+            >
+                <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium">Tanggal Pembelian *</label>
+                        <input
+                            type="date"
+                            required
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-1.5">
+                            <CreditCard className="h-3.5 w-3.5 text-muted-foreground" /> Metode Bayar
+                        </label>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditPaymentMethod("CASH");
+                                    setEditPaymentStatus("PAID");
+                                }}
+                                className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                    editPaymentMethod === "CASH"
+                                        ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                                        : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                }`}
+                            >
+                                💵 Bayar Langsung
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setEditPaymentMethod("PAYLATER")}
+                                className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                    editPaymentMethod === "PAYLATER"
+                                        ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
+                                        : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                }`}
+                            >
+                                🏷️ Paylater / Hutang
+                            </button>
+                        </div>
+                    </div>
+
+                    {editPaymentMethod === "PAYLATER" && (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Status Pembayaran</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditPaymentStatus("UNPAID")}
+                                        className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                            editPaymentStatus !== "PAID"
+                                                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
+                                                : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                        }`}
+                                    >
+                                        ⏳ Belum Lunas
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditPaymentStatus("PAID")}
+                                        className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                            editPaymentStatus === "PAID"
+                                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                                                : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                        }`}
+                                    >
+                                        ✅ Lunas
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Jatuh Tempo *</label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={editDueDate}
+                                    onChange={(e) => setEditDueDate(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <Button type="button" variant="outline" onClick={closeEditModal} disabled={formSubmitting}>
+                            Batal
+                        </Button>
+                        <Button type="submit" disabled={formSubmitting}>
+                            {formSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
                         </Button>
                     </div>
                 </form>

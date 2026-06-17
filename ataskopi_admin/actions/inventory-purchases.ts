@@ -351,3 +351,68 @@ export async function deleteInventoryPurchase(id: string) {
         return { success: false, error: error instanceof Error ? error.message : "Failed to delete purchase" }
     }
 }
+
+export async function updateInventoryPurchase(
+    id: string,
+    data: {
+        date: Date;
+        paymentMethod: string;
+        paymentStatus: string;
+        dueDate?: Date | null;
+    }
+) {
+    await requirePermission('inventory', 'update')
+    try {
+        const purchase = await prisma.inventoryPurchase.findUnique({
+            where: { id }
+        })
+        if (!purchase) throw new Error("Pembelian tidak ditemukan")
+
+        const paymentMethod = data.paymentMethod
+        let paymentStatus = data.paymentStatus
+        let dueDate = paymentMethod === 'PAYLATER' ? data.dueDate : null
+        let paidAt = purchase.paidAt
+
+        if (paymentMethod === 'CASH') {
+            paymentStatus = 'PAID'
+            if (!paidAt) paidAt = new Date()
+            dueDate = null
+        } else if (paymentMethod === 'PAYLATER') {
+            if (paymentStatus === 'PAID') {
+                if (!paidAt) paidAt = new Date()
+            } else {
+                paidAt = null
+                // Check if overdue
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                if (dueDate && new Date(dueDate) < today) {
+                    paymentStatus = 'OVERDUE'
+                } else {
+                    paymentStatus = 'UNPAID'
+                }
+            }
+        }
+
+        await prisma.inventoryPurchase.update({
+            where: { id },
+            data: {
+                date: data.date,
+                paymentMethod,
+                paymentStatus,
+                dueDate,
+                paidAt,
+            }
+        })
+
+        revalidatePath('/inventory/purchases')
+        revalidatePath('/inventory/materials')
+        revalidatePath('/finance/cash-flow')
+        revalidatePath('/finance/balance-sheet')
+        invalidateProjectionCache(purchase.outletId)
+
+        return { success: true, message: "Pembelian berhasil diperbarui" }
+    } catch (error) {
+        console.error("Failed to update inventory purchase:", error)
+        return { success: false, error: error instanceof Error ? error.message : "Failed to update purchase" }
+    }
+}
