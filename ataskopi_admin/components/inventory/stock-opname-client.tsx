@@ -136,16 +136,23 @@ export function StockOpnameClient() {
                 return;
             }
             setOpnameItems(
-                materials.map((m) => ({
-                    rawMaterialId: m.id,
-                    name: m.name,
-                    unit: m.unit,
-                    systemStock: parsePrismaDecimal(m.currentStock),
-                    actualStock: parsePrismaDecimal(m.currentStock).toString(),
-                    grossStock: "",
-                    packagingWeight: parsePrismaDecimal(m.packagingWeight),
-                    unitCost: parsePrismaDecimal(m.averageCost),
-                }))
+                materials.map((m) => {
+                    const sysStock = parsePrismaDecimal(m.currentStock);
+                    const pkgWeight = parsePrismaDecimal(m.packagingWeight);
+                    // Untuk item dengan kemasan, default brutto = systemStock + packagingWeight
+                    // sehingga net (brutto - kemasan) = systemStock → selisih awal = 0
+                    const defaultActual = pkgWeight > 0 ? sysStock + pkgWeight : sysStock;
+                    return {
+                        rawMaterialId: m.id,
+                        name: m.name,
+                        unit: m.unit,
+                        systemStock: sysStock,
+                        actualStock: defaultActual.toString(),
+                        grossStock: "",
+                        packagingWeight: pkgWeight,
+                        unitCost: parsePrismaDecimal(m.averageCost),
+                    };
+                })
             );
             setFormDate(new Date().toLocaleDateString("en-CA"));
             setFormNotes("");
@@ -164,16 +171,22 @@ export function StockOpnameClient() {
         setFormDate(new Date(opname.date).toLocaleDateString("en-CA"));
         setFormNotes(opname.notes || "");
         setOpnameItems(
-            opname.items.map((item) => ({
-                rawMaterialId: item.rawMaterialId,
-                name: item.rawMaterial.name,
-                unit: item.rawMaterial.unit,
-                systemStock: parsePrismaDecimal(item.systemStock),
-                actualStock: parsePrismaDecimal(item.actualStock).toString(),
-                grossStock: "",
-                packagingWeight: parsePrismaDecimal(item.rawMaterial.packagingWeight),
-                unitCost: parsePrismaDecimal(item.unitCost),
-            }))
+            opname.items.map((item) => {
+                const actualNet = parsePrismaDecimal(item.actualStock);
+                const pkgWeight = parsePrismaDecimal(item.rawMaterial.packagingWeight);
+                // Database menyimpan net, form bekerja dengan brutto
+                const actualBrutto = pkgWeight > 0 ? actualNet + pkgWeight : actualNet;
+                return {
+                    rawMaterialId: item.rawMaterialId,
+                    name: item.rawMaterial.name,
+                    unit: item.rawMaterial.unit,
+                    systemStock: parsePrismaDecimal(item.systemStock),
+                    actualStock: actualBrutto.toString(),
+                    grossStock: "",
+                    packagingWeight: pkgWeight,
+                    unitCost: parsePrismaDecimal(item.unitCost),
+                };
+            })
         );
         setIsModalOpen(true);
     };
@@ -185,11 +198,15 @@ export function StockOpnameClient() {
             
             if (value !== "") {
                 const gross = Number(value) || 0;
-                // Validasi: jika berat kotor kurang dari berat packaging, tampilkan 0
-                const net = gross >= item.packagingWeight ? gross - item.packagingWeight : 0;
-                item.actualStock = net.toString();
+                // Timbangan kotor langsung jadi brutto di actualStock
+                // Net dihitung otomatis saat display & submit (brutto - packagingWeight)
+                item.actualStock = gross.toString();
             } else {
-                item.actualStock = item.systemStock.toString();
+                // Reset ke default brutto (systemStock + packagingWeight)
+                const defaultBrutto = item.packagingWeight > 0
+                    ? item.systemStock + item.packagingWeight
+                    : item.systemStock;
+                item.actualStock = defaultBrutto.toString();
             }
             
             updated[index] = item;
@@ -211,12 +228,14 @@ export function StockOpnameClient() {
         setFormSubmitting(true);
         try {
             const items = opnameItems.map((item) => {
-                const actual = Number(item.actualStock) || 0;
+                const actualInput = Number(item.actualStock) || 0;
+                const hasPackaging = item.packagingWeight > 0;
+                const net = hasPackaging ? Math.max(actualInput - item.packagingWeight, 0) : actualInput;
                 return {
                     rawMaterialId: item.rawMaterialId,
                     systemStock: item.systemStock,
-                    actualStock: actual,
-                    difference: actual - item.systemStock,
+                    actualStock: net,
+                    difference: net - item.systemStock,
                     unitCost: item.unitCost,
                 };
             });
@@ -353,8 +372,10 @@ export function StockOpnameClient() {
                         <div className="space-y-3 mt-6">
                             <h3 className="text-sm font-semibold mb-2">Item Bahan Baku</h3>
                             {opnameItems.map((item, idx) => {
-                                const actual = Number(item.actualStock) || 0;
-                                const diff = actual - item.systemStock;
+                                const actualInput = Number(item.actualStock) || 0;
+                                const hasPackaging = item.packagingWeight > 0;
+                                const net = hasPackaging ? Math.max(actualInput - item.packagingWeight, 0) : actualInput;
+                                const diff = net - item.systemStock;
                                 return (
                                     <div key={item.rawMaterialId} className="p-4 rounded-lg border bg-slate-50/50 dark:bg-zinc-900/50 flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
@@ -367,15 +388,15 @@ export function StockOpnameClient() {
                                                 <div className="font-medium">{item.systemStock}</div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-2 sm:gap-4 items-start border-t pt-3 mt-1">
+                                        <div className={`grid ${hasPackaging ? 'grid-cols-4' : 'grid-cols-3'} gap-2 sm:gap-4 items-start border-t pt-3 mt-1`}>
                                             <div>
                                                 <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">Timbangan Kotor</label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     min="0"
-                                                    placeholder={item.packagingWeight > 0 ? "Kotor" : "-"}
-                                                    disabled={item.packagingWeight === 0}
+                                                    placeholder={hasPackaging ? "Kotor" : "-"}
+                                                    disabled={!hasPackaging}
                                                     value={item.grossStock ?? ""}
                                                     onChange={(e) => updateGrossStock(idx, e.target.value)}
                                                     className={`w-full h-9 text-sm rounded border px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -384,7 +405,7 @@ export function StockOpnameClient() {
                                                             : "border-input bg-white dark:bg-zinc-950"
                                                     }`}
                                                 />
-                                                {item.packagingWeight > 0 && (
+                                                {hasPackaging && (
                                                     <div className="text-[10px] text-muted-foreground mt-1 flex justify-between">
                                                         <span>Wdh: {item.packagingWeight}</span>
                                                         {item.grossStock && Number(item.grossStock) < item.packagingWeight && (
@@ -394,7 +415,9 @@ export function StockOpnameClient() {
                                                 )}
                                             </div>
                                             <div>
-                                                <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">Stok Aktual (Net)</label>
+                                                <label className="text-[10px] sm:text-xs font-medium mb-1 block leading-tight">
+                                                    {hasPackaging ? 'Stok Aktual (Brutto)' : 'Stok Aktual (Net)'}
+                                                </label>
                                                 <input
                                                     type="number"
                                                     step="0.01"
@@ -403,12 +426,31 @@ export function StockOpnameClient() {
                                                     onChange={(e) => updateActualStock(idx, e.target.value)}
                                                     className="w-full h-9 text-sm rounded border border-input bg-white dark:bg-zinc-950 px-2 shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                                 />
+                                                {hasPackaging && actualInput > 0 && actualInput < item.packagingWeight && (
+                                                    <div className="text-[10px] text-red-500 font-medium mt-1">Kurang dari berat kemasan</div>
+                                                )}
                                             </div>
+                                            {hasPackaging && (
+                                                <div className="text-center pb-1">
+                                                    <div className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1 leading-tight">Net (Isi)</div>
+                                                    <div className="text-sm sm:text-base font-semibold mt-1 text-blue-600 dark:text-blue-400">
+                                                        {net.toFixed(2)}
+                                                    </div>
+                                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                                        {actualInput.toFixed(2)} − {item.packagingWeight}
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="text-right pb-1">
                                                 <div className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-1 leading-tight">Selisih</div>
                                                 <div className={`text-sm sm:text-base font-bold mt-1 ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
                                                     {diff !== 0 ? (diff > 0 ? "+" : "") + diff.toFixed(2) : "0"}
                                                 </div>
+                                                {hasPackaging && diff !== 0 && (
+                                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                                        {net.toFixed(2)} − {item.systemStock}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

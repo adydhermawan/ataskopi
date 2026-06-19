@@ -635,7 +635,7 @@ export function MaterialsClient() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">{editingItem ? "Stok Saat Ini (Kunci)" : "Stok Awal"}</label>
+                            <label className="text-sm font-medium">{editingItem ? "Stok Saat Ini" : "Stok Awal"}</label>
                             <input
                                 type="number"
                                 min="0"
@@ -648,7 +648,7 @@ export function MaterialsClient() {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">{editingItem ? "Harga Rata-Rata (Kunci)" : "Harga per Satuan (Rp)"}</label>
+                            <label className="text-sm font-medium">{editingItem ? "Harga Rata-Rata" : "Harga Satuan (Rp)"}</label>
                             <input
                                 type="number"
                                 min="0"
@@ -660,7 +660,7 @@ export function MaterialsClient() {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">{editingItem ? "Total Nilai (Kunci)" : "Harga Total (Rp)"}</label>
+                            <label className="text-sm font-medium">{editingItem ? "Total Nilai" : "Harga Total (Rp)"}</label>
                             <input
                                 type="number"
                                 min="0"
