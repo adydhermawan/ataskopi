@@ -992,7 +992,10 @@ export function InventoryPurchasesClient() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setEditPaymentMethod("PAYLATER")}
+                                onClick={() => {
+                                    setEditPaymentMethod("PAYLATER");
+                                    if (editPaymentStatus === "PAID") setEditPaymentStatus("UNPAID");
+                                }}
                                 className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
                                     editPaymentMethod === "PAYLATER"
                                         ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
