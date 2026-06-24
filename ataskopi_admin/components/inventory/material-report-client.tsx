@@ -221,52 +221,96 @@ export function MaterialReportClient() {
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <div className="overflow-x-auto rounded-md border">
-                            <table className="w-full text-sm">
-                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
-                                    <tr>
-                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Bahan Baku</th>
-                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Sisa Stok</th>
-                                        <th className="p-3 text-right font-semibold text-amber-700 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-950/20 border-l">Qty Dibeli</th>
-                                        <th className="p-3 text-right font-semibold text-amber-700 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-950/20">Nilai Dibeli</th>
-                                        <th className="p-3 text-right font-semibold text-emerald-700 dark:text-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 border-l">Qty Digunakan</th>
-                                        <th className="p-3 text-right font-semibold text-emerald-700 dark:text-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20">Nilai Digunakan</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {filteredReports.length === 0 ? (
+                        <div className="space-y-4">
+                            <div className="hidden md:block overflow-x-auto rounded-md border">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
                                         <tr>
-                                            <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                                                Tidak ada data atau tidak ditemukan hasil pencarian.
-                                            </td>
+                                            <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Bahan Baku</th>
+                                            <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Sisa Stok</th>
+                                            <th className="p-3 text-right font-semibold text-amber-700 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-950/20 border-l">Qty Dibeli</th>
+                                            <th className="p-3 text-right font-semibold text-amber-700 dark:text-amber-500 bg-amber-50/50 dark:bg-amber-950/20">Nilai Dibeli</th>
+                                            <th className="p-3 text-right font-semibold text-emerald-700 dark:text-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 border-l">Qty Digunakan</th>
+                                            <th className="p-3 text-right font-semibold text-emerald-700 dark:text-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20">Nilai Digunakan</th>
                                         </tr>
-                                    ) : (
-                                        filteredReports.map((r) => (
-                                            <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
-                                                <td className="p-3">
-                                                    <div className="font-medium text-slate-900 dark:text-slate-100">{r.name}</div>
-                                                    <div className="text-xs text-muted-foreground">Satuan: {r.unit}</div>
-                                                </td>
-                                                <td className="p-3 text-right font-semibold">
-                                                    {r.currentStock} {r.unit}
-                                                </td>
-                                                <td className="p-3 text-right text-amber-700 dark:text-amber-400 bg-amber-50/20 dark:bg-amber-950/10 border-l">
-                                                    {r.purchasedQty > 0 ? `+${r.purchasedQty}` : '-'}
-                                                </td>
-                                                <td className="p-3 text-right text-amber-700 dark:text-amber-400 bg-amber-50/20 dark:bg-amber-950/10">
-                                                    {r.purchasedValue > 0 ? formatIDR(r.purchasedValue) : '-'}
-                                                </td>
-                                                <td className="p-3 text-right text-emerald-700 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/10 border-l">
-                                                    {r.usedQty > 0 ? `-${r.usedQty}` : '-'}
-                                                </td>
-                                                <td className="p-3 text-right text-emerald-700 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/10">
-                                                    {r.usedValue > 0 ? formatIDR(r.usedValue) : '-'}
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {filteredReports.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                                                    Tidak ada data atau tidak ditemukan hasil pencarian.
                                                 </td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                        ) : (
+                                            filteredReports.map((r) => (
+                                                <tr key={r.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                                                    <td className="p-3">
+                                                        <div className="font-medium text-slate-900 dark:text-slate-100">{r.name}</div>
+                                                        <div className="text-xs text-muted-foreground">Satuan: {r.unit}</div>
+                                                    </td>
+                                                    <td className="p-3 text-right font-semibold whitespace-nowrap">
+                                                        {r.currentStock} {r.unit}
+                                                    </td>
+                                                    <td className="p-3 text-right text-amber-700 dark:text-amber-400 bg-amber-50/20 dark:bg-amber-950/10 border-l whitespace-nowrap">
+                                                        {r.purchasedQty > 0 ? `+${r.purchasedQty} ${r.unit}` : '-'}
+                                                    </td>
+                                                    <td className="p-3 text-right text-amber-700 dark:text-amber-400 bg-amber-50/20 dark:bg-amber-950/10 whitespace-nowrap">
+                                                        {r.purchasedValue > 0 ? formatIDR(r.purchasedValue) : '-'}
+                                                    </td>
+                                                    <td className="p-3 text-right text-emerald-700 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/10 border-l whitespace-nowrap">
+                                                        {r.usedQty > 0 ? `-${r.usedQty} ${r.unit}` : '-'}
+                                                    </td>
+                                                    <td className="p-3 text-right text-emerald-700 dark:text-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/10 whitespace-nowrap">
+                                                        {r.usedValue > 0 ? formatIDR(r.usedValue) : '-'}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile View */}
+                            <div className="md:hidden space-y-4">
+                                {filteredReports.length === 0 ? (
+                                    <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                        Tidak ada data atau tidak ditemukan hasil pencarian.
+                                    </div>
+                                ) : (
+                                    filteredReports.map((r) => (
+                                        <div key={r.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-3 shadow-sm">
+                                            <div className="flex justify-between items-start border-b pb-3">
+                                                <div>
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100">{r.name}</div>
+                                                    <div className="text-sm text-muted-foreground mt-0.5">Sisa Stok: <span className="font-medium text-slate-700 dark:text-slate-300">{r.currentStock} {r.unit}</span></div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="bg-amber-50/50 dark:bg-amber-950/20 p-3 rounded-md border border-amber-100 dark:border-amber-900/30">
+                                                    <div className="text-xs text-muted-foreground font-medium mb-1">Pembelian</div>
+                                                    <div className="font-semibold text-amber-700 dark:text-amber-500">
+                                                        {r.purchasedQty > 0 ? `+${r.purchasedQty} ${r.unit}` : '-'}
+                                                    </div>
+                                                    <div className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-1">
+                                                        {r.purchasedValue > 0 ? formatIDR(r.purchasedValue) : '-'}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-3 rounded-md border border-emerald-100 dark:border-emerald-900/30">
+                                                    <div className="text-xs text-muted-foreground font-medium mb-1">Penggunaan</div>
+                                                    <div className="font-semibold text-emerald-700 dark:text-emerald-500">
+                                                        {r.usedQty > 0 ? `-${r.usedQty} ${r.unit}` : '-'}
+                                                    </div>
+                                                    <div className="text-xs text-emerald-600/80 dark:text-emerald-400/80 mt-1">
+                                                        {r.usedValue > 0 ? formatIDR(r.usedValue) : '-'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     )}
                 </CardContent>
