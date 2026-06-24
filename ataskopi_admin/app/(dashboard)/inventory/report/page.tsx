@@ -1,6 +1,6 @@
 import { Metadata } from "next"
 import { MaterialReportClient } from "@/components/inventory/material-report-client"
-import { verifyAuth } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth-utils"
 import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MaterialReportPage() {
-    const user = await verifyAuth()
+    const user = await getCurrentUser()
 
     if (!user) {
         redirect("/login")
