@@ -113,6 +113,12 @@ export const navItems: NavItem[] = [
                 roles: ["admin", "owner", "kasir"],
             },
             {
+                title: "Laporan Stok",
+                href: "/inventory/report",
+                icon: FileText,
+                roles: ["admin", "owner", "kasir"],
+            },
+            {
                 title: "Pengeluaran",
                 href: "/finance/expenses",
                 icon: Receipt,
