@@ -511,140 +511,228 @@ export function StockOpnameClient() {
                     <CardDescription>Catat dan pantau perhitungan fisik stok bahan baku.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300 w-8"></th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Catatan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Item</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y block md:table-row-group">
-                                {opnames.length === 0 ? (
-                                    <tr className="block md:table-row">
-                                        <td colSpan={7} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada riwayat stock opname. Klik "Mulai Stock Opname" untuk memulai.
-                                        </td>
+                    <div className="space-y-4">
+                        <div className="hidden md:block overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300 w-8"></th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Catatan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Item</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                     </tr>
-                                ) : (
-                                    opnames.map((o) => {
-                                        const cogsAmountVal = Number((o as any).cogsAmount) || o.items.reduce((sum, item) => {
-                                            const diff = Number(item.difference);
-                                            return diff < 0 ? sum + Math.abs(diff) * Number(item.unitCost) : sum;
-                                        }, 0);
-                                        const isExpanded = expandedId === o.id;
- 
-                                        return (
-                                            <React.Fragment key={o.id}>
-                                                <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Detail</span>
-                                                        <span className="text-right md:text-left">{isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}</span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
-                                                        <span className="text-right md:text-left">{format(new Date(o.date), "dd MMMM yyyy", { locale: idLocale })}</span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</span>
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-right md:text-left ${o.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                                                            {o.status === "COMPLETED" ? "Selesai" : "Draft"}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Catatan</span>
-                                                        <span className="text-muted-foreground text-right md:text-left">{o.notes || "—"}</span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-medium">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Item</span>
-                                                        <span>{o.items.length}</span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold text-red-600">
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">COGS (HPP)</span>
-                                                        <span>{formatIDR(cogsAmountVal)}</span>
-                                                    </td>
-                                                    <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0" onClick={(e) => e.stopPropagation()}>
-                                                        <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Aksi</span>
-                                                        <div className="flex justify-end gap-1">
-                                                            {o.status === "DRAFT" && (
-                                                                <Button variant="ghost" size="sm" onClick={() => handleComplete(o.id)} className="h-8 px-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs gap-1">
-                                                                    <CheckCircle className="h-3 w-3" /> Selesaikan
+                                </thead>
+                                <tbody className="divide-y">
+                                    {opnames.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                                Belum ada riwayat stock opname. Klik "Mulai Stock Opname" untuk memulai.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        opnames.map((o) => {
+                                            const cogsAmountVal = Number((o as any).cogsAmount) || o.items.reduce((sum, item) => {
+                                                const diff = Number(item.difference);
+                                                return diff < 0 ? sum + Math.abs(diff) * Number(item.unitCost) : sum;
+                                            }, 0);
+                                            const isExpanded = expandedId === o.id;
+
+                                            return (
+                                                <React.Fragment key={o.id}>
+                                                    <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
+                                                        <td className="p-3">
+                                                            {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                                        </td>
+                                                        <td className="p-3 font-medium whitespace-nowrap">
+                                                            {format(new Date(o.date), "dd MMMM yyyy", { locale: idLocale })}
+                                                        </td>
+                                                        <td className="p-3 whitespace-nowrap">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${o.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                                                {o.status === "COMPLETED" ? "Selesai" : "Draft"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-3 text-muted-foreground">
+                                                            {o.notes || "—"}
+                                                        </td>
+                                                        <td className="p-3 text-right font-medium whitespace-nowrap">
+                                                            {o.items.length}
+                                                        </td>
+                                                        <td className="p-3 text-right font-bold text-red-600 whitespace-nowrap">
+                                                            {formatIDR(cogsAmountVal)}
+                                                        </td>
+                                                        <td className="p-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex justify-end gap-1">
+                                                                {o.status === "DRAFT" && (
+                                                                    <Button variant="ghost" size="sm" onClick={() => handleComplete(o.id)} className="h-8 px-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 text-xs gap-1">
+                                                                        <CheckCircle className="h-3 w-3" /> Selesaikan
+                                                                    </Button>
+                                                                )}
+                                                                <Button variant="ghost" size="sm" onClick={() => openEditModal(o)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                                                                    <Edit className="h-4 w-4" />
                                                                 </Button>
-                                                            )}
-                                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(o)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                                                                <Edit className="h-4 w-4" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(o)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                                <Trash className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                {isExpanded && (
-                                                    <tr className="block md:table-row">
-                                                        <td colSpan={7} className="p-0 block md:table-cell">
-                                                            <div className="bg-slate-50/70 dark:bg-zinc-900/50 p-4 border-t">
-                                                                <table className="w-full text-xs block md:table">
-                                                                    <thead className="hidden md:table-header-group">
-                                                                        <tr className="text-muted-foreground">
-                                                                            <th className="text-left pb-2 font-medium">Bahan Baku</th>
-                                                                            <th className="text-right pb-2 font-medium">Stok Sistem</th>
-                                                                            <th className="text-right pb-2 font-medium">Stok Aktual</th>
-                                                                            <th className="text-right pb-2 font-medium">Selisih</th>
-                                                                            <th className="text-right pb-2 font-medium">Harga Modal</th>
-                                                                            <th className="text-right pb-2 font-medium">COGS (HPP)</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="divide-y divide-slate-200 dark:divide-zinc-800 block md:table-row-group">
-                                                                        {o.items.map((item) => {
-                                                                            const diff = Number(item.difference);
-                                                                            const cogsItemVal = Number((item as any).cogsValue) || (diff < 0 ? Math.abs(diff) * Number(item.unitCost) : 0);
-                                                                            return (
-                                                                                <tr key={item.id} className="block md:table-row border-b md:border-none py-2 md:py-0 space-y-1 md:space-y-0">
-                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 font-medium">
-                                                                                        <span className="md:hidden text-muted-foreground">Bahan Baku</span>
-                                                                                        <span className="text-right md:text-left">{item.rawMaterial.name} ({item.rawMaterial.unit})</span>
-                                                                                    </td>
-                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right">
-                                                                                        <span className="md:hidden text-muted-foreground text-left">Stok Sistem</span>
-                                                                                        <span>{Number(item.systemStock)}</span>
-                                                                                    </td>
-                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-medium">
-                                                                                        <span className="md:hidden text-muted-foreground text-left">Stok Aktual</span>
-                                                                                        <span>{Number(item.actualStock)}</span>
-                                                                                    </td>
-                                                                                    <td className={`flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
-                                                                                        <span className="md:hidden text-muted-foreground text-left">Selisih</span>
-                                                                                        <span>{diff > 0 ? "+" : ""}{diff}</span>
-                                                                                    </td>
-                                                                                    <td className="flex justify-between items-center md:table-cell py-1 md:py-2 text-right">
-                                                                                        <span className="md:hidden text-muted-foreground text-left">Harga Modal</span>
-                                                                                        <span>{formatIDR(Number(item.unitCost))}</span>
-                                                                                    </td>
-                                                                                    <td className={`flex justify-between items-center md:table-cell py-1 md:py-2 text-right font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
-                                                                                        <span className="md:hidden text-muted-foreground text-left">COGS (HPP)</span>
-                                                                                        <span>{formatIDR(cogsItemVal)}</span>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            );
-                                                                        })}
-                                                                    </tbody>
-                                                                </table>
+                                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(o)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                                    <Trash className="h-4 w-4" />
+                                                                </Button>
                                                             </div>
                                                         </td>
                                                     </tr>
+                                                    {isExpanded && (
+                                                        <tr>
+                                                            <td colSpan={7} className="p-0">
+                                                                <div className="bg-slate-50/70 dark:bg-zinc-900/50 p-4 border-t">
+                                                                    <table className="w-full text-xs">
+                                                                        <thead>
+                                                                            <tr className="text-muted-foreground">
+                                                                                <th className="text-left pb-2 font-medium">Bahan Baku</th>
+                                                                                <th className="text-right pb-2 font-medium">Stok Sistem</th>
+                                                                                <th className="text-right pb-2 font-medium">Stok Aktual</th>
+                                                                                <th className="text-right pb-2 font-medium">Selisih</th>
+                                                                                <th className="text-right pb-2 font-medium">Harga Modal</th>
+                                                                                <th className="text-right pb-2 font-medium">COGS (HPP)</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
+                                                                            {o.items.map((item) => {
+                                                                                const diff = Number(item.difference);
+                                                                                const cogsItemVal = Number((item as any).cogsValue) || (diff < 0 ? Math.abs(diff) * Number(item.unitCost) : 0);
+                                                                                return (
+                                                                                    <tr key={item.id}>
+                                                                                        <td className="py-2 font-medium">
+                                                                                            {item.rawMaterial.name}
+                                                                                        </td>
+                                                                                        <td className="py-2 text-right">
+                                                                                            {Number(item.systemStock)} <span className="text-muted-foreground text-[10px]">{item.rawMaterial.unit}</span>
+                                                                                        </td>
+                                                                                        <td className="py-2 text-right font-medium">
+                                                                                            {Number(item.actualStock)} <span className="text-muted-foreground text-[10px]">{item.rawMaterial.unit}</span>
+                                                                                        </td>
+                                                                                        <td className={`py-2 text-right font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
+                                                                                            {diff > 0 ? "+" : ""}{diff} <span className="text-muted-foreground text-[10px] font-normal">{item.rawMaterial.unit}</span>
+                                                                                        </td>
+                                                                                        <td className="py-2 text-right">
+                                                                                            {formatIDR(Number(item.unitCost))}
+                                                                                        </td>
+                                                                                        <td className={`py-2 text-right font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
+                                                                                            {formatIDR(cogsItemVal)}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                );
+                                                                            })}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {opnames.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                    Belum ada riwayat stock opname. Klik "Mulai Stock Opname" untuk memulai.
+                                </div>
+                            ) : (
+                                opnames.map((o) => {
+                                    const cogsAmountVal = Number((o as any).cogsAmount) || o.items.reduce((sum, item) => {
+                                        const diff = Number(item.difference);
+                                        return diff < 0 ? sum + Math.abs(diff) * Number(item.unitCost) : sum;
+                                    }, 0);
+                                    const isExpanded = expandedId === o.id;
+
+                                    return (
+                                        <div key={o.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm">
+                                            <div className="flex justify-between items-start border-b pb-3 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : o.id)}>
+                                                <div className="space-y-1 flex-1">
+                                                    <div className="font-bold text-slate-900 dark:text-slate-100 text-lg flex items-center gap-2">
+                                                        {format(new Date(o.date), "dd MMMM yyyy", { locale: idLocale })}
+                                                        {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${o.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                                            {o.status === "COMPLETED" ? "Selesai" : "Draft"}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">{o.items.length} Item</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">COGS</div>
+                                                    <div className="font-bold text-red-600">{formatIDR(cogsAmountVal)}</div>
+                                                </div>
+                                            </div>
+
+                                            {o.notes && (
+                                                <div className="text-sm bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-md border text-slate-600 dark:text-slate-400">
+                                                    <span className="font-medium text-slate-700 dark:text-slate-300">Catatan:</span> {o.notes}
+                                                </div>
+                                            )}
+
+                                            <div className="pt-2 border-t flex justify-end gap-2">
+                                                {o.status === "DRAFT" && (
+                                                    <Button variant="outline" size="sm" onClick={() => handleComplete(o.id)} className="h-8 text-xs px-3 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950">
+                                                        <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Selesaikan
+                                                    </Button>
                                                 )}
-                                            </React.Fragment>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                                <Button variant="ghost" size="sm" onClick={() => openEditModal(o)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 border">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(o)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border">
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {isExpanded && (
+                                                <div className="mt-4 border-t pt-4 space-y-3">
+                                                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Detail Perhitungan</div>
+                                                    {o.items.map((item) => {
+                                                        const diff = Number(item.difference);
+                                                        const cogsItemVal = Number((item as any).cogsValue) || (diff < 0 ? Math.abs(diff) * Number(item.unitCost) : 0);
+                                                        return (
+                                                            <div key={item.id} className="bg-slate-50 dark:bg-zinc-900/50 rounded p-3 text-sm border space-y-2">
+                                                                <div className="font-medium border-b pb-2">
+                                                                    {item.rawMaterial.name}
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-muted-foreground">Sistem:</span>
+                                                                        <span>{Number(item.systemStock)} {item.rawMaterial.unit}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-muted-foreground">Aktual:</span>
+                                                                        <span className="font-medium">{Number(item.actualStock)} {item.rawMaterial.unit}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-muted-foreground">Selisih:</span>
+                                                                        <span className={`font-bold ${diff < 0 ? "text-red-600" : diff > 0 ? "text-emerald-600" : ""}`}>
+                                                                            {diff > 0 ? "+" : ""}{diff} {item.rawMaterial.unit}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span className="text-muted-foreground">COGS:</span>
+                                                                        <span className={`font-bold ${cogsItemVal > 0 ? "text-red-600" : ""}`}>
+                                                                            {formatIDR(cogsItemVal)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>

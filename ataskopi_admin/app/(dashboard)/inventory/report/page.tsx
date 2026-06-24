@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { Metadata } from "next"
 import { MaterialReportClient } from "@/components/inventory/material-report-client"
 import { getCurrentUser } from "@/lib/auth-utils"

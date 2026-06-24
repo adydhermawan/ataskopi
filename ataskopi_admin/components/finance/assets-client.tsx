@@ -273,104 +273,167 @@ export function AssetsClient() {
                     <CardDescription>Pantau penyusutan dan progres balik modal dari setiap aset.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Aset</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tgl Beli</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Beli</th>
-                                    <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Masa Manfaat</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Susut/Bulan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Nilai Buku</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">ROI</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y block md:table-row-group">
-                                {assets.length === 0 ? (
-                                    <tr className="block md:table-row">
-                                        <td colSpan={9} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada catatan aset. Tambahkan aset baru lewat menu <strong>Kas Keluar</strong>.
-                                        </td>
+                    <div className="space-y-4">
+                        <div className="hidden md:block overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama Aset</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tgl Beli</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Beli</th>
+                                        <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Masa Manfaat</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Susut/Bulan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Nilai Buku</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Status</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">ROI</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                     </tr>
-                                ) : (
-                                    assets.map((a) => {
-                                        const depStatus = getDepreciationStatus(a);
-                                        return (
-                                            <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama Aset</span>
-                                                    <div className="text-right md:text-left">
+                                </thead>
+                                <tbody className="divide-y">
+                                    {assets.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                                                Belum ada catatan aset. Tambahkan aset baru lewat menu <strong>Kas Keluar</strong>.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        assets.map((a) => {
+                                            const depStatus = getDepreciationStatus(a);
+                                            return (
+                                                <tr key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                                                    <td className="p-3">
                                                         <div className="font-medium">{a.name}</div>
                                                         {a.notes && <div className="text-xs text-muted-foreground">{a.notes}</div>}
-                                                    </div>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-xs">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tgl Beli</span>
-                                                    <span className="text-right md:text-left">{format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Beli</span>
-                                                    <span className="text-right font-medium">{formatIDR(Number(a.purchasePrice))}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Masa Manfaat</span>
-                                                    <span className="flex items-center justify-end md:justify-center gap-1 text-xs text-muted-foreground">
-                                                        <Clock className="h-3 w-3" />
-                                                        {a.usefulLifeMonths} bln
-                                                    </span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Susut/Bulan</span>
-                                                    <span className="text-right text-xs font-medium text-amber-600">
+                                                    </td>
+                                                    <td className="p-3 text-xs whitespace-nowrap">
+                                                        {format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}
+                                                    </td>
+                                                    <td className="p-3 text-right font-medium whitespace-nowrap">
+                                                        {formatIDR(Number(a.purchasePrice))}
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <span className="flex items-center justify-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                                                            <Clock className="h-3 w-3" />
+                                                            {a.usefulLifeMonths} bln
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3 text-right text-xs font-medium text-amber-600 whitespace-nowrap">
                                                         {formatIDR(a.monthlyDepreciation)}
-                                                    </span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nilai Buku</span>
-                                                    <span className="text-right font-medium text-indigo-600">
+                                                    </td>
+                                                    <td className="p-3 text-right font-medium text-indigo-600 whitespace-nowrap">
                                                         {formatIDR(a.bookValue)}
-                                                    </span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Status</span>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${depStatus.color} text-right md:text-left`}>
-                                                        {depStatus.label}
-                                                    </span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">ROI</span>
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-full ${a.roiPercentage >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
-                                                                style={{ width: `${Math.min(100, Math.max(0, a.roiPercentage))}%` }}
-                                                            />
+                                                    </td>
+                                                    <td className="p-3 whitespace-nowrap">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${depStatus.color}`}>
+                                                            {depStatus.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden hidden lg:block">
+                                                                <div
+                                                                    className={`h-full ${a.roiPercentage >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                                                                    style={{ width: `${Math.min(100, Math.max(0, a.roiPercentage))}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs font-semibold w-12 text-right">
+                                                                {a.roiPercentage.toFixed(0)}%
+                                                            </span>
                                                         </div>
-                                                        <span className="text-xs font-semibold w-12 text-right">
+                                                    </td>
+                                                    <td className="p-3 text-right">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                                <Trash className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {assets.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                    Belum ada catatan aset. Tambahkan aset baru lewat menu <strong>Kas Keluar</strong>.
+                                </div>
+                            ) : (
+                                assets.map((a) => {
+                                    const depStatus = getDepreciationStatus(a);
+                                    return (
+                                        <div key={a.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm">
+                                            <div className="flex justify-between items-start border-b pb-3">
+                                                <div className="space-y-1">
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100">{a.name}</div>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span>{format(new Date(a.purchaseDate), "dd MMM yy", { locale: idLocale })}</span>
+                                                        <span>•</span>
+                                                        <span className={`px-2 py-0.5 rounded-full ${depStatus.color}`}>
+                                                            {depStatus.label}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-1 shrink-0">
+                                                    <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 dark:hover:text-slate-300">
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950">
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-muted-foreground">Harga Beli</div>
+                                                    <div className="font-medium text-slate-900 dark:text-slate-100">{formatIDR(Number(a.purchasePrice))}</div>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <div className="text-xs text-muted-foreground">Nilai Buku</div>
+                                                    <div className="font-medium text-indigo-600 dark:text-indigo-400">{formatIDR(a.bookValue)}</div>
+                                                </div>
+                                                
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-muted-foreground">Penyusutan/Bulan</div>
+                                                    <div className="font-medium text-amber-600 dark:text-amber-500">{formatIDR(a.monthlyDepreciation)}</div>
+                                                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" /> {a.usefulLifeMonths} bln
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <div className="text-xs text-muted-foreground">ROI</div>
+                                                    <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center justify-end gap-2">
+                                                        <span className={a.roiPercentage >= 100 ? "text-emerald-600" : "text-blue-600"}>
                                                             {a.roiPercentage.toFixed(0)}%
                                                         </span>
                                                     </div>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(a)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(a.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                            <Trash className="h-4 w-4" />
-                                                        </Button>
+                                                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+                                                        <div
+                                                            className={`h-full ${a.roiPercentage >= 100 ? "bg-emerald-500" : "bg-blue-500"}`}
+                                                            style={{ width: `${Math.min(100, Math.max(0, a.roiPercentage))}%` }}
+                                                        />
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                                </div>
+                                            </div>
+                                            
+                                            {a.notes && (
+                                                <div className="pt-2 border-t text-xs text-muted-foreground">
+                                                    {a.notes}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>

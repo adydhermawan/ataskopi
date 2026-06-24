@@ -497,89 +497,142 @@ export function MaterialsClient() {
                     <CardDescription>Kelola stok dan harga bahan baku Anda. Diurutkan berdasarkan urgensi proyeksi stok.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">SKU</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Satuan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Stok</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Satuan Rata2</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total Harga Stock</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Berat Packaging</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Proyeksi Stok</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y block md:table-row-group">
-                                {sortedMaterials.length === 0 ? (
-                                    <tr className="block md:table-row">
-                                        <td colSpan={9} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada data bahan baku. Klik &quot;Tambah Bahan Baku&quot; untuk mulai.
-                                        </td>
+                    <div className="space-y-4">
+                        <div className="hidden md:block overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Nama</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">SKU</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Satuan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Stok</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Harga Satuan Rata2</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total Harga Stock</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Berat Packaging</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Proyeksi Stok</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                     </tr>
-                                ) : (
-                                    sortedMaterials.map((m) => {
-                                        const proj = projections[m.id];
-                                        const isUrgent = proj && (proj.status === 'HABIS' || proj.status === 'KRITIS');
-                                        return (
-                                            <tr
-                                                key={m.id}
-                                                className={`hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0 ${isUrgent ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}
-                                            >
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Nama</span>
-                                                    <span className="font-medium text-right md:text-left">{m.name}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">SKU</span>
-                                                    <span className="text-muted-foreground text-right md:text-left">{m.sku || "—"}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Satuan</span>
-                                                    <span className="text-right md:text-left">{m.unit}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Stok</span>
-                                                    <span className="font-bold text-right">{m.currentStock}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Harga Satuan Rata2</span>
-                                                    <span className="text-right">{formatIDR(m.averageCost)}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Total Harga Stock</span>
-                                                    <span className="text-right">{formatIDR(m.currentStock * m.averageCost)}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Berat Packaging</span>
-                                                    <span className="text-muted-foreground text-right">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</span>
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Proyeksi</span>
-                                                    <ProjectionBadge projection={proj} />
-                                                </td>
-                                                <td className="p-0 md:p-3 flex justify-between items-center md:table-cell pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
-                                                    <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Aksi</span>
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
-                                                            <History className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                            <Trash className="h-4 w-4" />
-                                                        </Button>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {sortedMaterials.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                                                Belum ada data bahan baku. Klik &quot;Tambah Bahan Baku&quot; untuk mulai.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        sortedMaterials.map((m) => {
+                                            const proj = projections[m.id];
+                                            const isUrgent = proj && (proj.status === 'HABIS' || proj.status === 'KRITIS');
+                                            return (
+                                                <tr
+                                                    key={m.id}
+                                                    className={`hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors ${isUrgent ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}
+                                                >
+                                                    <td className="p-3 font-medium whitespace-nowrap">{m.name}</td>
+                                                    <td className="p-3 text-muted-foreground whitespace-nowrap">{m.sku || "—"}</td>
+                                                    <td className="p-3 whitespace-nowrap">{m.unit}</td>
+                                                    <td className="p-3 font-bold text-right whitespace-nowrap">{m.currentStock}</td>
+                                                    <td className="p-3 text-right whitespace-nowrap">{formatIDR(m.averageCost)}</td>
+                                                    <td className="p-3 text-right font-medium whitespace-nowrap">{formatIDR(m.currentStock * m.averageCost)}</td>
+                                                    <td className="p-3 text-muted-foreground text-right whitespace-nowrap">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</td>
+                                                    <td className="p-3 whitespace-nowrap">
+                                                        <ProjectionBadge projection={proj} />
+                                                    </td>
+                                                    <td className="p-3 text-right whitespace-nowrap">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button variant="ghost" size="sm" onClick={() => openHistoryModal(m)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700" title="Riwayat Pembelian">
+                                                                <History className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900">
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                                <Trash className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {sortedMaterials.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                    Belum ada data bahan baku. Klik &quot;Tambah Bahan Baku&quot; untuk mulai.
+                                </div>
+                            ) : (
+                                sortedMaterials.map((m) => {
+                                    const proj = projections[m.id];
+                                    const isUrgent = proj && (proj.status === 'HABIS' || proj.status === 'KRITIS');
+                                    return (
+                                        <div
+                                            key={m.id}
+                                            className={`bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm ${isUrgent ? 'border-red-200 dark:border-red-900/50 bg-red-50/10 dark:bg-red-950/10' : ''}`}
+                                        >
+                                            <div className="flex justify-between items-start border-b pb-3">
+                                                <div className="space-y-1">
+                                                    <div className="font-bold text-slate-900 dark:text-slate-100 text-lg">
+                                                        {m.name}
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                                    <div className="flex gap-2 text-xs text-muted-foreground">
+                                                        <span>SKU: {m.sku || "—"}</span>
+                                                        <span>•</span>
+                                                        <span>Satuan: {m.unit}</span>
+                                                    </div>
+                                                </div>
+                                                <ProjectionBadge projection={proj} />
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Stok Saat Ini</div>
+                                                    <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                                        {m.currentStock} <span className="text-sm font-normal text-muted-foreground">{m.unit}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1 text-right">
+                                                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total Nilai</div>
+                                                    <div className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                                                        {formatIDR(m.currentStock * m.averageCost)}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between items-center bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-md border text-xs">
+                                                <div className="flex flex-col">
+                                                    <span className="text-muted-foreground">Harga Rata2:</span>
+                                                    <span className="font-medium text-slate-900 dark:text-slate-100">{formatIDR(m.averageCost)} / {m.unit}</span>
+                                                </div>
+                                                {m.packagingWeight > 0 && (
+                                                    <div className="flex flex-col text-right">
+                                                        <span className="text-muted-foreground">Berat Wadah:</span>
+                                                        <span className="font-medium text-slate-900 dark:text-slate-100">{m.packagingWeight} {m.unit}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-3 border-t flex justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => openHistoryModal(m)} className="h-8 text-xs px-3 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950">
+                                                    <History className="h-3.5 w-3.5 mr-1.5" /> Riwayat
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => openEditModal(m)} className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 border">
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(m.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border">
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -718,45 +771,66 @@ export function MaterialsClient() {
                             Belum ada riwayat pembelian untuk bahan baku ini.
                         </div>
                     ) : (
-                        <div className="overflow-hidden rounded-md border text-xs">
-                            <table className="w-full text-left block md:table">
-                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                    <tr>
-                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
-                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Jumlah</th>
-                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Harga Unit</th>
-                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Total</th>
-                                        <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Supplier/Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y block md:table-row-group">
-                                    {purchaseHistory.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50/50 block md:table-row border-b md:border-none p-3 md:p-0 space-y-2 md:space-y-0">
-                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell">
-                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider">Tanggal</span>
-                                                <span className="text-right md:text-left">{format(item.date, "dd MMM yyyy", { locale: idLocale })}</span>
-                                            </td>
-                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Jumlah</span>
-                                                <span>{item.quantity}</span>
-                                            </td>
-                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right text-muted-foreground">
-                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Harga Unit</span>
-                                                <span>{formatIDR(item.unitPrice)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-2.5 flex justify-between items-center md:table-cell text-right font-semibold">
-                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider text-left">Total</span>
-                                                <span>{formatIDR(item.totalAmount)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-2.5 flex flex-col items-end md:items-start md:table-cell max-w-full md:max-w-[150px] md:truncate text-muted-foreground mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-none">
-                                                <span className="md:hidden font-semibold text-slate-500 text-[10px] uppercase tracking-wider w-full text-left mb-1">Supplier/Notes</span>
-                                                <span className="font-semibold text-slate-700 dark:text-slate-300 block text-right md:text-left">{item.supplier || "—"}</span>
-                                                <span className="text-[10px] block text-right md:text-left">{item.notes || ""}</span>
-                                            </td>
+                        <div className="space-y-4">
+                            <div className="hidden md:block overflow-hidden rounded-md border text-xs">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                        <tr>
+                                            <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
+                                            <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Jumlah</th>
+                                            <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Harga Unit</th>
+                                            <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300 text-right">Total</th>
+                                            <th className="p-2.5 font-semibold text-slate-700 dark:text-slate-300">Supplier/Notes</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {purchaseHistory.map((item) => (
+                                            <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50">
+                                                <td className="p-2.5 whitespace-nowrap">
+                                                    {format(item.date, "dd MMM yyyy", { locale: idLocale })}
+                                                </td>
+                                                <td className="p-2.5 text-right font-medium whitespace-nowrap">
+                                                    {item.quantity}
+                                                </td>
+                                                <td className="p-2.5 text-right text-muted-foreground whitespace-nowrap">
+                                                    {formatIDR(item.unitPrice)}
+                                                </td>
+                                                <td className="p-2.5 text-right font-semibold whitespace-nowrap">
+                                                    {formatIDR(item.totalAmount)}
+                                                </td>
+                                                <td className="p-2.5">
+                                                    <div className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[150px]" title={item.supplier || ""}>{item.supplier || "—"}</div>
+                                                    {item.notes && <div className="text-[10px] text-muted-foreground truncate max-w-[150px]" title={item.notes}>{item.notes}</div>}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile View History */}
+                            <div className="md:hidden space-y-3">
+                                {purchaseHistory.map((item) => (
+                                    <div key={item.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-3 shadow-sm text-sm">
+                                        <div className="flex justify-between items-start border-b pb-2 mb-2">
+                                            <div className="font-medium text-slate-900 dark:text-slate-100">
+                                                {format(item.date, "dd MMM yyyy", { locale: idLocale })}
+                                            </div>
+                                            <div className="font-bold text-slate-900 dark:text-white">
+                                                {formatIDR(item.totalAmount)}
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs mb-2">
+                                            <span className="text-muted-foreground">Jumlah: <span className="font-medium text-slate-900 dark:text-slate-100">{item.quantity}</span></span>
+                                            <span className="text-muted-foreground">Harga/Unit: <span className="font-medium text-slate-900 dark:text-slate-100">{formatIDR(item.unitPrice)}</span></span>
+                                        </div>
+                                        <div className="text-xs bg-slate-50 dark:bg-zinc-900/50 p-2 rounded border">
+                                            <div className="font-medium text-slate-700 dark:text-slate-300">Supplier: {item.supplier || "—"}</div>
+                                            {item.notes && <div className="text-muted-foreground mt-0.5">{item.notes}</div>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                     <div className="flex justify-end pt-2 border-t">

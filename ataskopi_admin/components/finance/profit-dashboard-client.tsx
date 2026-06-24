@@ -395,64 +395,108 @@ export function ProfitDashboardClient() {
                     <CardDescription>Performa keuangan per bulan. Kolom &quot;Opex + Susut&quot; sudah termasuk biaya penyusutan aset.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bulan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Pendapatan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">OpEx</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Penyusutan</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Laba Bersih</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Margin</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y block md:table-row-group">
-                                {monthlyData.length === 0 ? (
-                                    <tr className="block md:table-row">
-                                        <td colSpan={7} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada data.
-                                        </td>
+                    <div className="space-y-4">
+                        <div className="hidden md:block overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bulan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Pendapatan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">COGS (HPP)</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">OpEx</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Penyusutan</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Laba Bersih</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Margin</th>
                                     </tr>
-                                ) : (
-                                    monthlyData.map((row) => (
-                                        <tr key={row.month} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Bulan</span>
-                                                <span className="text-right md:text-left">{format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-emerald-600 font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Pendapatan</span>
-                                                <span>{formatIDR(row.grossRevenue)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-orange-600 font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">COGS (HPP)</span>
-                                                <span>{formatIDR(row.cogs || 0)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-red-600 font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">OpEx</span>
-                                                <span>{formatIDR(row.opexAmount)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right text-slate-500 font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Penyusutan</span>
-                                                <span>{row.depreciationExpense > 0 ? formatIDR(row.depreciationExpense) : "—"}</span>
-                                            </td>
-                                            <td className={`p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold ${row.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Laba Bersih</span>
-                                                <span>{formatIDR(row.netProfit)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Margin</span>
-                                                <span className={`px-2 py-1 rounded-md text-xs font-medium ${row.margin >= 30 ? "bg-emerald-100 text-emerald-700" : row.margin >= 0 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
-                                                    {row.margin.toFixed(1)}%
-                                                </span>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {monthlyData.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                                Belum ada data.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        monthlyData.map((row) => (
+                                            <tr key={row.month} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                                                <td className="p-3 font-medium whitespace-nowrap">
+                                                    {format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}
+                                                </td>
+                                                <td className="p-3 text-right text-emerald-600 font-medium whitespace-nowrap">
+                                                    {formatIDR(row.grossRevenue)}
+                                                </td>
+                                                <td className="p-3 text-right text-orange-600 font-medium whitespace-nowrap">
+                                                    {formatIDR(row.cogs || 0)}
+                                                </td>
+                                                <td className="p-3 text-right text-red-600 font-medium whitespace-nowrap">
+                                                    {formatIDR(row.opexAmount)}
+                                                </td>
+                                                <td className="p-3 text-right text-slate-500 font-medium whitespace-nowrap">
+                                                    {row.depreciationExpense > 0 ? formatIDR(row.depreciationExpense) : "—"}
+                                                </td>
+                                                <td className={`p-3 text-right font-bold whitespace-nowrap ${row.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
+                                                    {formatIDR(row.netProfit)}
+                                                </td>
+                                                <td className="p-3 text-right whitespace-nowrap">
+                                                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${row.margin >= 30 ? "bg-emerald-100 text-emerald-700" : row.margin >= 0 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                                                        {row.margin.toFixed(1)}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {monthlyData.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                    Belum ada data.
+                                </div>
+                            ) : (
+                                monthlyData.map((row) => (
+                                    <div key={row.month} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm">
+                                        <div className="flex justify-between items-center border-b pb-3">
+                                            <div className="font-semibold text-slate-900 dark:text-slate-100">
+                                                {format(new Date(row.month), "MMMM yyyy", { locale: idLocale })}
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-md text-xs font-bold ${row.margin >= 30 ? "bg-emerald-100 text-emerald-700" : row.margin >= 0 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                                                Margin: {row.margin.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div className="space-y-1">
+                                                <div className="text-xs text-muted-foreground">Pendapatan</div>
+                                                <div className="font-medium text-emerald-600 dark:text-emerald-400">{formatIDR(row.grossRevenue)}</div>
+                                            </div>
+                                            <div className="space-y-1 text-right">
+                                                <div className="text-xs text-muted-foreground">COGS (HPP)</div>
+                                                <div className="font-medium text-orange-600 dark:text-orange-400">{formatIDR(row.cogs || 0)}</div>
+                                            </div>
+                                            
+                                            <div className="space-y-1">
+                                                <div className="text-xs text-muted-foreground">OpEx</div>
+                                                <div className="font-medium text-red-600 dark:text-red-400">{formatIDR(row.opexAmount)}</div>
+                                            </div>
+                                            <div className="space-y-1 text-right">
+                                                <div className="text-xs text-muted-foreground">Penyusutan</div>
+                                                <div className="font-medium text-slate-500 dark:text-slate-400">{row.depreciationExpense > 0 ? formatIDR(row.depreciationExpense) : "—"}</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t flex justify-between items-center">
+                                            <span className="font-medium text-sm text-slate-700 dark:text-slate-300">Laba Bersih</span>
+                                            <span className={`font-bold text-lg ${row.netProfit >= 0 ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400"}`}>
+                                                {formatIDR(row.netProfit)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>

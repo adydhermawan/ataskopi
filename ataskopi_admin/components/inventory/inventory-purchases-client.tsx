@@ -612,118 +612,213 @@ export function InventoryPurchasesClient() {
                     <CardDescription>Catat masuknya persediaan bahan baku. Transaksi ini menambah stok dan memperbarui harga modal rata-rata.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto rounded-md border">
-                        <table className="w-full text-sm block md:table">
-                            <thead className="bg-slate-50 dark:bg-zinc-900 border-b hidden md:table-header-group">
-                                <tr>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bahan Baku</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Jumlah</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total</th>
-                                    <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Pembayaran</th>
-                                    <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Barang</th>
-                                    <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Supplier</th>
-                                    <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y block md:table-row-group">
-                                {purchases.length === 0 ? (
-                                    <tr className="block md:table-row">
-                                        <td colSpan={8} className="p-8 text-center text-muted-foreground block md:table-cell">
-                                            Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
-                                        </td>
+                    <div className="space-y-4">
+                        <div className="hidden md:block overflow-x-auto rounded-md border">
+                            <table className="w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-zinc-900 border-b">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Bahan Baku</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Jumlah</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Total</th>
+                                        <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Pembayaran</th>
+                                        <th className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">Barang</th>
+                                        <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Supplier</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                     </tr>
-                                ) : (
-                                    purchases.map((p) => (
-                                        <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors block md:table-row border-b md:border-none p-4 md:p-0 space-y-3 md:space-y-0">
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-medium">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Tanggal</span>
-                                                <div className="text-right md:text-left">
-                                                    <span>{format(new Date(p.date), "dd MMM yyyy", { locale: idLocale })}</span>
-                                                    {p.dueDate && p.paymentStatus !== 'PAID' && (
-                                                        <span className="block text-[10px] text-muted-foreground">
-                                                            Jatuh tempo: {format(new Date(p.dueDate), "dd MMM yyyy", { locale: idLocale })}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell font-semibold text-slate-900 dark:text-white">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Bahan Baku</span>
-                                                <span className="text-right md:text-left">{p.rawMaterial?.name || "Bahan Baku"}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Jumlah</span>
-                                                <span>{p.quantity} {p.rawMaterial?.unit}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right font-bold text-slate-900 dark:text-white">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Total</span>
-                                                <span>{formatIDR(p.totalAmount)}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-center">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Pembayaran</span>
-                                                <div className="flex flex-col items-end md:items-center gap-1">
-                                                    <PaymentStatusBadge status={p.paymentStatus} />
-                                                    {p.paymentMethod === 'PAYLATER' && (
-                                                        <span className="text-[9px] text-muted-foreground">Paylater</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-center">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Barang</span>
-                                                <DeliveryStatusBadge status={p.deliveryStatus} />
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-muted-foreground">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider">Supplier</span>
-                                                <span className="text-right md:text-left">{p.supplier || "—"}</span>
-                                            </td>
-                                            <td className="p-0 md:p-3 flex justify-between items-center md:table-cell text-right pt-3 md:pt-3 border-t md:border-none mt-3 md:mt-0">
-                                                <span className="md:hidden font-semibold text-slate-500 text-xs uppercase tracking-wider text-left">Aksi</span>
-                                                <div className="flex justify-end gap-1 flex-wrap">
-                                                    {p.deliveryStatus === 'SHIPPING' && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleMarkReceived(p.id)}
-                                                            disabled={actionLoadingId === p.id}
-                                                            className="h-7 text-[10px] px-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
-                                                        >
-                                                            {actionLoadingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3 mr-1" />}
-                                                            Diterima
-                                                        </Button>
-                                                    )}
-                                                    {(p.paymentStatus === 'UNPAID' || p.paymentStatus === 'OVERDUE') && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleMarkPaid(p.id)}
-                                                            disabled={actionLoadingId === p.id}
-                                                            className="h-7 text-[10px] px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950"
-                                                        >
-                                                            {actionLoadingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CircleDollarSign className="h-3 w-3 mr-1" />}
-                                                            Lunas
-                                                        </Button>
-                                                    )}
-                                                    {user && (user.role === 'admin' || user.role === 'owner') && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => openEditModal(p)}
-                                                            className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                                                            title="Ubah Pembelian"
-                                                        >
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    )}
-                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                                                        <Trash className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {purchases.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                                                Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        purchases.map((p) => (
+                                            <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
+                                                <td className="p-3 font-medium whitespace-nowrap">
+                                                    <div>
+                                                        <span>{format(new Date(p.date), "dd MMM yyyy", { locale: idLocale })}</span>
+                                                        {p.dueDate && p.paymentStatus !== 'PAID' && (
+                                                            <span className="block text-[10px] text-muted-foreground mt-0.5">
+                                                                Jatuh tempo: {format(new Date(p.dueDate), "dd MMM yyyy", { locale: idLocale })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 font-semibold text-slate-900 dark:text-white">
+                                                    {p.rawMaterial?.name || "Bahan Baku"}
+                                                </td>
+                                                <td className="p-3 text-right whitespace-nowrap">
+                                                    {p.quantity} {p.rawMaterial?.unit}
+                                                </td>
+                                                <td className="p-3 text-right font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                                                    {formatIDR(p.totalAmount)}
+                                                </td>
+                                                <td className="p-3 text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <PaymentStatusBadge status={p.paymentStatus} />
+                                                        {p.paymentMethod === 'PAYLATER' && (
+                                                            <span className="text-[9px] text-muted-foreground">Paylater</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-center">
+                                                    <DeliveryStatusBadge status={p.deliveryStatus} />
+                                                </td>
+                                                <td className="p-3 text-muted-foreground truncate max-w-[150px]" title={p.supplier || ""}>
+                                                    {p.supplier || "—"}
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <div className="flex justify-end gap-1 flex-nowrap">
+                                                        {p.deliveryStatus === 'SHIPPING' && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleMarkReceived(p.id)}
+                                                                disabled={actionLoadingId === p.id}
+                                                                className="h-7 text-[10px] px-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950"
+                                                            >
+                                                                {actionLoadingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Package className="h-3 w-3 mr-1" />}
+                                                                Diterima
+                                                            </Button>
+                                                        )}
+                                                        {(p.paymentStatus === 'UNPAID' || p.paymentStatus === 'OVERDUE') && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleMarkPaid(p.id)}
+                                                                disabled={actionLoadingId === p.id}
+                                                                className="h-7 text-[10px] px-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950"
+                                                            >
+                                                                {actionLoadingId === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CircleDollarSign className="h-3 w-3 mr-1" />}
+                                                                Lunas
+                                                            </Button>
+                                                        )}
+                                                        {user && (user.role === 'admin' || user.role === 'owner') && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => openEditModal(p)}
+                                                                className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                                                                title="Ubah Pembelian"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        )}
+                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                            <Trash className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile View */}
+                        <div className="md:hidden space-y-4">
+                            {purchases.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
+                                    Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
+                                </div>
+                            ) : (
+                                purchases.map((p) => (
+                                    <div key={p.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm">
+                                        <div className="flex justify-between items-start border-b pb-3">
+                                            <div className="space-y-1">
+                                                <div className="font-bold text-slate-900 dark:text-slate-100 text-lg">
+                                                    {p.rawMaterial?.name || "Bahan Baku"}
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {format(new Date(p.date), "dd MMM yyyy", { locale: idLocale })}
+                                                </div>
+                                                {p.dueDate && p.paymentStatus !== 'PAID' && (
+                                                    <div className="text-xs text-red-500 dark:text-red-400 font-medium">
+                                                        Jatuh tempo: {format(new Date(p.dueDate), "dd MMM yyyy", { locale: idLocale })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-bold text-lg text-slate-900 dark:text-white">
+                                                    {formatIDR(p.totalAmount)}
+                                                </div>
+                                                <div className="text-sm text-slate-600 dark:text-slate-400">
+                                                    {p.quantity} {p.rawMaterial?.unit}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-wrap gap-2">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Status Pembayaran</span>
+                                                <div className="flex items-center gap-2">
+                                                    <PaymentStatusBadge status={p.paymentStatus} />
+                                                    {p.paymentMethod === 'PAYLATER' && (
+                                                        <span className="text-[10px] text-muted-foreground border px-1.5 py-0.5 rounded-sm">Paylater</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-1 ml-auto">
+                                                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold text-right">Status Barang</span>
+                                                <div className="flex justify-end">
+                                                    <DeliveryStatusBadge status={p.deliveryStatus} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {p.supplier && (
+                                            <div className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-zinc-900/50 p-2 rounded-md">
+                                                <span className="font-medium text-muted-foreground">Supplier:</span> {p.supplier}
+                                            </div>
+                                        )}
+
+                                        <div className="pt-3 border-t flex justify-end gap-2 flex-wrap">
+                                            {p.deliveryStatus === 'SHIPPING' && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleMarkReceived(p.id)}
+                                                    disabled={actionLoadingId === p.id}
+                                                    className="h-8 text-xs px-3 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950 flex-1 md:flex-none"
+                                                >
+                                                    {actionLoadingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Package className="h-3.5 w-3.5 mr-1.5" />}
+                                                    Diterima
+                                                </Button>
+                                            )}
+                                            {(p.paymentStatus === 'UNPAID' || p.paymentStatus === 'OVERDUE') && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleMarkPaid(p.id)}
+                                                    disabled={actionLoadingId === p.id}
+                                                    className="h-8 text-xs px-3 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950 flex-1 md:flex-none"
+                                                >
+                                                    {actionLoadingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <CircleDollarSign className="h-3.5 w-3.5 mr-1.5" />}
+                                                    Lunas
+                                                </Button>
+                                            )}
+                                            {user && (user.role === 'admin' || user.role === 'owner') && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openEditModal(p)}
+                                                    className="h-8 w-8 p-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 border md:border-none"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border md:border-none">
+                                                <Trash className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
