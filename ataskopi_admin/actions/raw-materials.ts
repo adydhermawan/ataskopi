@@ -24,18 +24,50 @@ export async function getRawMaterials(outletId: string) {
 export async function createRawMaterial(data: { outletId: string; name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number; packagingWeight?: number }) {
     await requirePermission('inventory', 'create')
     try {
-        await prisma.rawMaterial.create({
-            data: {
-                outletId: data.outletId,
-                name: data.name,
-                sku: data.sku,
-                unit: data.unit,
-                currentStock: data.currentStock || 0,
-                averageCost: data.averageCost || 0,
-                packagingWeight: data.packagingWeight || 0
+        const currentStock = data.currentStock || 0
+        const averageCost = data.averageCost || 0
+        const totalAmount = currentStock * averageCost
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Buat RawMaterial
+            const material = await tx.rawMaterial.create({
+                data: {
+                    outletId: data.outletId,
+                    name: data.name,
+                    sku: data.sku,
+                    unit: data.unit,
+                    currentStock: currentStock,
+                    averageCost: averageCost,
+                    packagingWeight: data.packagingWeight || 0
+                }
+            })
+
+            // 2. Jika ada stok awal, catat sebagai Pembelian Lunas
+            if (currentStock > 0 && averageCost > 0) {
+                await tx.inventoryPurchase.create({
+                    data: {
+                        outletId: data.outletId,
+                        rawMaterialId: material.id,
+                        date: new Date(),
+                        quantity: currentStock,
+                        unitPrice: averageCost,
+                        totalAmount: totalAmount,
+                        supplier: "Initial Stock",
+                        notes: "Stok awal saat input bahan baku",
+                        paymentMethod: "CASH",
+                        paymentStatus: "PAID",
+                        paidAt: new Date(),
+                        deliveryStatus: "RECEIVED",
+                        receivedAt: new Date(),
+                    }
+                })
             }
         })
+
         revalidatePath('/inventory/materials')
+        revalidatePath('/inventory/purchases')
+        revalidatePath('/finance/cash-flow')
+        revalidatePath('/finance/balance-sheet')
         return { success: true }
     } catch (error) {
         console.error("Failed to create raw material:", error)

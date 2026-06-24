@@ -229,15 +229,10 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     const accountsPayable = unpaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
     const accountsPayableCount = unpaidPurchases.length
 
-    // 4.5. Deteksi Modal Barang (stok awal yang diinput tanpa transaksi pembelian)
-    // Jika Total Persediaan saat ini + COGS > Total Pembelian Tercatat, selisihnya adalah barang modal awal.
-    const unrecordedInitialInventory = Math.max(0, inventoryValue + cumulativeCogs - totalPurchases)
-    const virtualTotalPurchases = totalPaidPurchases + unrecordedInitialInventory
-
     // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor - Total Pengeluaran Riil (KAS saja)
-    // Total Pengeluaran Riil = virtualTotalPurchases (Bahan Baku PAID) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
-    const cash = modalAwal + cumulativeRevenue - (virtualTotalPurchases + cumulativeExpenses + fixedAssetsCostValue)
-
+    // Total Pengeluaran Riil = totalPaidPurchases (Bahan Baku PAID) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
+    const cash = modalAwal + cumulativeRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
+    
     const totalAssets = cash + inventoryValue + inTransitInventoryValue + fixedAssetsValue
 
     return {
