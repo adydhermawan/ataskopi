@@ -297,16 +297,29 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
 
         let avgDailyUsage = 0
         let projectedDays: number | null = null
+        let status: StockProjection['status'] = currentStock <= 0 ? 'HABIS' : 'NO_DATA'
 
         if (totalActiveDays > 0 && totalWeightedUsage > 0) {
             avgDailyUsage = totalWeightedUsage / totalActiveDays
-            projectedDays = currentStock > 0 ? Math.round(currentStock / avgDailyUsage) : 0
+
+            // Hitung jumlah hari aktif sejak opname terakhir sampai hari ini (tidak termasuk hari opname itu sendiri)
+            const nextDayAfterOpname = new Date(lastOpname.date)
+            nextDayAfterOpname.setDate(nextDayAfterOpname.getDate() + 1)
+            const activeDaysSinceLastOpname = countActiveDays(nextDayAfterOpname, new Date())
+
+            // Estimasi stok berjalan hari ini
+            const estimatedCurrentStock = Math.max(0, currentStock - (activeDaysSinceLastOpname * avgDailyUsage))
+
+            projectedDays = estimatedCurrentStock > 0 ? Math.round(estimatedCurrentStock / avgDailyUsage) : 0
+            status = getProjectionStatus(estimatedCurrentStock, projectedDays)
+        } else {
+            status = getProjectionStatus(currentStock, projectedDays)
         }
 
         result[materialId] = {
             avgDailyUsage: Math.round(avgDailyUsage * 100) / 100,
             projectedDays,
-            status: getProjectionStatus(currentStock, projectedDays),
+            status,
             lastOpnameDate: lastOpname.date.toISOString(),
             opnameCount: history.length,
         }
