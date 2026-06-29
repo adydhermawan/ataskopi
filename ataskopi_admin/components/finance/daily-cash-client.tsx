@@ -70,7 +70,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
     const [webRevenue, setWebRevenue] = useState(0)
 
     const form = useForm<z.infer<typeof saveRealRevenueSchema>>({
-        resolver: zodResolver(saveRealRevenueSchema),
+        resolver: zodResolver(saveRealRevenueSchema) as any,
         defaultValues: {
             id: null,
             date: format(new Date(), 'yyyy-MM-dd'),
@@ -309,10 +309,10 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                     </DialogHeader>
 
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as any}
                                     name="date"
                                     render={({ field }) => (
                                         <FormItem>
@@ -346,7 +346,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                 <h3 className="font-medium text-lg">Input Kasir</h3>
                                 
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as any}
                                     name="cashAmount"
                                     render={({ field }) => (
                                         <FormItem>
@@ -361,7 +361,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                 />
 
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as any}
                                     name="qrisAmount"
                                     render={({ field }) => (
                                         <FormItem>
@@ -376,7 +376,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
-                                        control={form.control}
+                                        control={form.control as any}
                                         name="otherAmount"
                                         render={({ field }) => (
                                             <FormItem>
@@ -389,7 +389,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                         )}
                                     />
                                     <FormField
-                                        control={form.control}
+                                        control={form.control as any}
                                         name="otherMethodName"
                                         render={({ field }) => (
                                             <FormItem>
@@ -426,7 +426,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                             </div>
 
                             <FormField
-                                control={form.control}
+                                control={form.control as any}
                                 name="notes"
                                 render={({ field }) => (
                                     <FormItem>

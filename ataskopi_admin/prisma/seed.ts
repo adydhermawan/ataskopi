@@ -626,19 +626,19 @@ async function main() {
             {
                 outletId: firstOutlet.id,
                 date: new Date('2026-05-31T00:00:00Z'),
-                amount: 358000,
+                cashAmount: 358000,
                 notes: 'Omset real catatan manual'
             },
             {
                 outletId: firstOutlet.id,
                 date: new Date('2026-06-01T00:00:00Z'),
-                amount: 389000,
+                cashAmount: 389000,
                 notes: 'Omset real catatan manual'
             },
             {
                 outletId: firstOutlet.id,
                 date: new Date('2026-06-02T00:00:00Z'),
-                amount: 266000,
+                cashAmount: 266000,
                 notes: 'Omset real catatan manual'
             }
         ]

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
 import {
@@ -107,14 +106,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
     const [criticalMaterials, setCriticalMaterials] = useState<any[]>([]);
     const [loadingMaterials, setLoadingMaterials] = useState(false);
 
-    // Modal state
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingLog, setEditingLog] = useState<any | null>(null);
-    const [formDate, setFormDate] = useState("");
-    const [formOutletId, setFormOutletId] = useState("");
-    const [formAmount, setFormAmount] = useState("");
-    const [formNotes, setFormNotes] = useState("");
-    const [formSubmitting, setFormSubmitting] = useState(false);
+    // Modal state removed as it's now a separate page
 
     // Fetch raw material warning projections
     useEffect(() => {
@@ -327,48 +319,6 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
         }).format(val);
     };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormSubmitting(true);
-        try {
-            const res = await saveDailyRealRevenue({
-                id: editingLog?.id,
-                date: formDate,
-                outletId: formOutletId,
-                amount: Number(formAmount),
-                notes: formNotes,
-            });
-
-            if (res.success) {
-                toast.success(editingLog ? "Catatan omset berhasil diperbarui" : "Omset real berhasil dicatat");
-                setIsModalOpen(false);
-                fetchDashboard();
-            } else {
-                toast.error(res.error || "Gagal menyimpan omset real");
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error("Terjadi kesalahan sistem");
-        } finally {
-            setFormSubmitting(false);
-        }
-    };
-
-    const handleDeleteLog = async (id: string) => {
-        if (!confirm("Apakah Anda yakin ingin menghapus catatan omset real ini?")) return;
-        try {
-            const res = await deleteDailyRealRevenue(id);
-            if (res.success) {
-                toast.success("Catatan omset berhasil dihapus");
-                fetchDashboard();
-            } else {
-                toast.error("Gagal menghapus catatan");
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error("Terjadi kesalahan sistem");
-        }
-    };
 
     const renderComparison = (current: number, previous: number, isCurrency = false) => {
         if (previous === 0) return <span className="text-muted-foreground text-xs ml-2">N/A</span>;
