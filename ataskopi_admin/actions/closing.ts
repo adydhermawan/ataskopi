@@ -1,0 +1,153 @@
+"use server"
+
+import { db } from "@/lib/db"
+import { requirePermission } from "@/lib/auth-utils"
+import { revalidatePath } from "next/cache"
+import { startOfDay, endOfDay, addDays } from "date-fns"
+
+export async function getDraftClosing(outletId: string, targetDateStr: string) {
+    const user = await requirePermission('finance', 'view')
+    if (user.role === 'kasir' && user.outletId && user.outletId !== outletId) {
+        throw new Error("Unauthorized")
+    }
+
+    const endDate = endOfDay(new Date(targetDateStr))
+
+    // 1. Find previous closing
+    const lastClosing = await db.closing.findFirst({
+        where: { outletId, status: "COMPLETED" },
+        orderBy: { endDate: 'desc' },
+        include: { balances: true }
+    })
+
+    const outlet = await db.outlet.findUnique({ where: { id: outletId } })
+    if (!outlet) throw new Error("Outlet not found")
+
+    let startDate: Date
+    let openingCash = 0
+    let openingQris = 0
+
+    if (lastClosing) {
+        // Start from the exact moment after the last closing, but we'll use start of the next day for simplicity if closings are daily
+        startDate = addDays(startOfDay(lastClosing.endDate), 1)
+        
+        const cashBal = lastClosing.balances.find(b => b.paymentMethod === 'CASH')
+        if (cashBal) openingCash = Number(cashBal.actualAmount)
+        
+        const qrisBal = lastClosing.balances.find(b => b.paymentMethod === 'QRIS')
+        if (qrisBal) openingQris = Number(qrisBal.actualAmount)
+    } else {
+        // No previous closing, start from 30 days ago or beginning
+        startDate = addDays(startOfDay(endDate), -30)
+        openingCash = Number(outlet.modalAwal)
+        openingQris = 0
+    }
+
+    // Ensure we don't calculate if endDate is before startDate
+    if (endDate < startDate) {
+        throw new Error("Tanggal tutup buku tidak boleh lebih awal dari tutup buku sebelumnya.")
+    }
+
+    // 2. Aggregate Sales (Orders)
+    const orders = await db.order.findMany({
+        where: {
+            outletId,
+            createdAt: { gte: startDate, lte: endDate },
+            paymentStatus: 'paid' // or 'PAID' depending on your enum/string
+        },
+        select: {
+            paymentMethod: true,
+            total: true
+        }
+    })
+
+    let cashSales = 0
+    let qrisSales = 0
+
+    for (const order of orders) {
+        const amount = Number(order.total)
+        if (order.paymentMethod?.toUpperCase() === 'CASH') {
+            cashSales += amount
+        } else if (order.paymentMethod?.toUpperCase() === 'QRIS') {
+            qrisSales += amount
+        }
+    }
+
+    // 3. Aggregate Purchases (Cash Out)
+    const purchases = await db.inventoryPurchase.findMany({
+        where: {
+            outletId,
+            date: { gte: startDate, lte: endDate },
+            paymentMethod: 'CASH', // Only deduct cash purchases
+        },
+        select: { totalAmount: true }
+    })
+
+    let cashPurchases = 0
+    for (const p of purchases) {
+        cashPurchases += Number(p.totalAmount)
+    }
+
+    // 4. Calculate Expected
+    const expectedCash = openingCash + cashSales - cashPurchases
+    const expectedQris = openingQris + qrisSales
+
+    return {
+        startDate,
+        endDate,
+        openingCash,
+        openingQris,
+        cashSales,
+        qrisSales,
+        cashPurchases,
+        expectedCash,
+        expectedQris
+    }
+}
+
+export async function submitClosing(data: {
+    outletId: string,
+    startDate: Date,
+    endDate: Date,
+    notes?: string,
+    balances: {
+        paymentMethod: string,
+        systemAmount: number,
+        actualAmount: number,
+        notes?: string
+    }[]
+}) {
+    const user = await requirePermission('finance', 'create')
+    
+    const closing = await db.closing.create({
+        data: {
+            outletId: data.outletId,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            status: "COMPLETED",
+            notes: data.notes,
+            closedBy: user.name,
+            balances: {
+                create: data.balances.map(b => ({
+                    paymentMethod: b.paymentMethod,
+                    systemAmount: b.systemAmount,
+                    actualAmount: b.actualAmount,
+                    varianceAmount: b.actualAmount - b.systemAmount,
+                    notes: b.notes
+                }))
+            }
+        }
+    })
+
+    revalidatePath('/(dashboard)/finance/closing', 'page')
+    return closing
+}
+
+export async function getClosings(outletId: string) {
+    await requirePermission('finance', 'view')
+    return db.closing.findMany({
+        where: { outletId },
+        orderBy: { endDate: 'desc' },
+        include: { balances: true }
+    })
+}

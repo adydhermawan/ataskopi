@@ -139,6 +139,12 @@ export const navItems: NavItem[] = [
                 roles: ["admin", "owner"],
             },
             {
+                title: "Tutup Buku",
+                href: "/finance/closing",
+                icon: FileText,
+                roles: ["admin", "owner"],
+            },
+            {
                 title: "Laba Rugi",
                 href: "/finance/profit",
                 icon: TrendingUp,

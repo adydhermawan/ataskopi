@@ -227,6 +227,7 @@ model Outlet {
   assets             Asset[]
   stockOpnames       StockOpname[]
   inventoryPurchases InventoryPurchase[]
+  closings           Closing[]
   modalAwal          Decimal             @default(0) @map("modal_awal") @db.Decimal(12, 2)
 
   @@map("outlets")
@@ -590,4 +591,37 @@ model InventoryPurchase {
   rawMaterial RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
 
   @@map("inventory_purchases")
+}
+
+model Closing {
+  id        String   @id @default(uuid())
+  outletId  String   @map("outlet_id")
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  status    String   @default("COMPLETED") // DRAFT, COMPLETED
+  notes     String?
+  closedBy  String   @map("closed_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  outlet   Outlet           @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  balances ClosingBalance[]
+
+  @@map("closings")
+}
+
+model ClosingBalance {
+  id              String   @id @default(uuid())
+  closingId       String   @map("closing_id")
+  paymentMethod   String   @map("payment_method") // CASH, QRIS, OTHER
+  systemAmount    Decimal  @map("system_amount") @db.Decimal(12, 2)
+  actualAmount    Decimal  @map("actual_amount") @db.Decimal(12, 2)
+  varianceAmount  Decimal  @map("variance_amount") @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  closing Closing @relation(fields: [closingId], references: [id], onDelete: Cascade)
+
+  @@map("closing_balances")
 }
