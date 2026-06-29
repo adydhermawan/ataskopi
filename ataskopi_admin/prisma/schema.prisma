@@ -208,26 +208,26 @@ model UserVoucher {
 }
 
 model Outlet {
-  id             String          @id @default(uuid())
-  name           String
-  address        String?
-  phone          String?
-  latitude       Decimal?        @db.Decimal(10, 8)
-  longitude      Decimal?        @db.Decimal(11, 8)
-  operatingHours Json?           @map("operating_hours")
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  orders         Order[]
-  outletProducts OutletProduct[]
-  tables         Table[]
-  users          User[]
-  dailyRealRevenues DailyRealRevenue[]
-  rawMaterials   RawMaterial[]
-  expenses       Expense[]
-  assets         Asset[]
-  stockOpnames   StockOpname[]
+  id                 String              @id @default(uuid())
+  name               String
+  address            String?
+  phone              String?
+  latitude           Decimal?            @db.Decimal(10, 8)
+  longitude          Decimal?            @db.Decimal(11, 8)
+  operatingHours     Json?               @map("operating_hours")
+  isActive           Boolean             @default(true) @map("is_active")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  orders             Order[]
+  outletProducts     OutletProduct[]
+  tables             Table[]
+  users              User[]
+  dailyRealRevenues  DailyRealRevenue[]
+  rawMaterials       RawMaterial[]
+  expenses           Expense[]
+  assets             Asset[]
+  stockOpnames       StockOpname[]
   inventoryPurchases InventoryPurchase[]
-  modalAwal      Decimal         @default(0) @map("modal_awal") @db.Decimal(12, 2)
+  modalAwal          Decimal             @default(0) @map("modal_awal") @db.Decimal(12, 2)
 
   @@map("outlets")
 }
@@ -401,37 +401,38 @@ enum factor_type {
   totp
   webauthn
 }
+
 model DailySalesSummary {
-  id              String   @id @default(uuid())
-  date            DateTime @db.Date
-  outletId        String   @map("outlet_id")
-  totalRevenue    Decimal  @db.Decimal(12, 2)
-  totalOrders     Int
-  totalItems      Int
-  averageTicket   Decimal  @db.Decimal(10, 2)
-  topProducts     Json     // [{productId, name, qty, revenue}]
-  paymentMix      Json     // {CASH: count, QRIS: count, etc}
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  date          DateTime @db.Date
+  outletId      String   @map("outlet_id")
+  totalRevenue  Decimal  @db.Decimal(12, 2)
+  totalOrders   Int
+  totalItems    Int
+  averageTicket Decimal  @db.Decimal(10, 2)
+  topProducts   Json // [{productId, name, qty, revenue}]
+  paymentMix    Json // {CASH: count, QRIS: count, etc}
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@unique([date, outletId])
   @@map("daily_sales_summary")
 }
 
 model OrderModeSetting {
-  id                   String   @id @default(uuid())
-  dineIn               Boolean  @default(true) @map("dine_in")
-  pickup               Boolean  @default(true) @map("pickup")
-  delivery             Boolean  @default(true) @map("delivery")
-  dineInMethod         String   @default("SCAN_ONLY") @map("dine_in_method")
-  taxEnabled           Boolean  @default(true) @map("tax_enabled")
-  qrisEnabled          Boolean  @default(true) @map("qris_enabled")
-  cashEnabled          Boolean  @default(true) @map("cash_enabled")
-  defaultPaymentMethod String   @default("qris") @map("default_payment_method")
-  qrisQrCodeUrl        String?  @map("qris_qr_code_url")
+  id                    String   @id @default(uuid())
+  dineIn                Boolean  @default(true) @map("dine_in")
+  pickup                Boolean  @default(true) @map("pickup")
+  delivery              Boolean  @default(true) @map("delivery")
+  dineInMethod          String   @default("SCAN_ONLY") @map("dine_in_method")
+  taxEnabled            Boolean  @default(true) @map("tax_enabled")
+  qrisEnabled           Boolean  @default(true) @map("qris_enabled")
+  cashEnabled           Boolean  @default(true) @map("cash_enabled")
+  defaultPaymentMethod  String   @default("qris") @map("default_payment_method")
+  qrisQrCodeUrl         String?  @map("qris_qr_code_url")
   dailyCurationsEnabled Boolean  @default(true) @map("daily_curations_enabled")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("order_mode_settings")
 }
@@ -448,48 +449,48 @@ model ServerErrorLog {
 }
 
 model DailyRealRevenue {
-  id              String   @id @default(uuid())
-  date            DateTime @db.Date
-  outletId        String   @map("outlet_id")
+  id       String   @id @default(uuid())
+  date     DateTime @db.Date
+  outletId String   @map("outlet_id")
 
   // Breakdown per metode pembayaran
-  cashAmount      Decimal  @default(0) @map("amount") @db.Decimal(12, 2)    // Uang kas fisik di laci (netto setelah belanja cash)
-  qrisAmount      Decimal  @default(0) @map("qris_amount") @db.Decimal(12, 2)    // Total penjualan QRIS
-  otherAmount     Decimal  @default(0) @map("other_amount") @db.Decimal(12, 2)   // Transfer/metode lain
-  otherMethodName String?  @map("other_method_name")                              // Nama metode lain jika ada
+  cashAmount      Decimal @default(0) @map("amount") @db.Decimal(12, 2) // Uang kas fisik di laci (netto setelah belanja cash)
+  qrisAmount      Decimal @default(0) @map("qris_amount") @db.Decimal(12, 2) // Total penjualan QRIS
+  otherAmount     Decimal @default(0) @map("other_amount") @db.Decimal(12, 2) // Transfer/metode lain
+  otherMethodName String? @map("other_method_name") // Nama metode lain jika ada
 
   // Computed/derived (disimpan untuk kemudahan query)
-  totalAmount     Decimal  @default(0) @map("total_amount") @db.Decimal(12, 2)   // cashAmount + qrisAmount + otherAmount
-  grossRevenue    Decimal  @default(0) @map("gross_revenue") @db.Decimal(12, 2)  // totalAmount + cashPurchases (omset kotor)
+  totalAmount  Decimal @default(0) @map("total_amount") @db.Decimal(12, 2) // cashAmount + qrisAmount + otherAmount
+  grossRevenue Decimal @default(0) @map("gross_revenue") @db.Decimal(12, 2) // totalAmount + cashPurchases (omset kotor)
 
   // Referensi otomatis (snapshot saat pencatatan)
-  cashPurchases   Decimal  @default(0) @map("cash_purchases") @db.Decimal(12, 2) // Belanja cash hari itu (dari InventoryPurchase)
-  webRevenue      Decimal  @default(0) @map("web_revenue") @db.Decimal(12, 2)    // Omset dari order web (untuk perbandingan)
+  cashPurchases Decimal @default(0) @map("cash_purchases") @db.Decimal(12, 2) // Belanja cash hari itu (dari InventoryPurchase)
+  webRevenue    Decimal @default(0) @map("web_revenue") @db.Decimal(12, 2) // Omset dari order web (untuk perbandingan)
 
-  notes           String?
-  isClosed        Boolean  @default(false) @map("is_closed")                      // Flag closing harian
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  notes     String?
+  isClosed  Boolean  @default(false) @map("is_closed") // Flag closing harian
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  outlet          Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  outlet Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@unique([date, outletId])
   @@map("daily_real_revenue")
 }
 
 model RawMaterial {
-  id          String   @id @default(uuid())
-  outletId    String   @map("outlet_id")
-  name        String
-  sku         String?
-  unit        String   // e.g., gram, ml, pcs
-  currentStock Decimal @default(0) @map("current_stock") @db.Decimal(10, 2)
-  averageCost Decimal  @default(0) @map("average_cost") @db.Decimal(12, 2)
-  packagingWeight Decimal @default(0) @map("packaging_weight") @db.Decimal(10, 2)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  outlet           Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  outletId        String   @map("outlet_id")
+  name            String
+  sku             String?
+  unit            String // e.g., gram, ml, pcs
+  currentStock    Decimal  @default(0) @map("current_stock") @db.Decimal(10, 2)
+  averageCost     Decimal  @default(0) @map("average_cost") @db.Decimal(12, 2)
+  packagingWeight Decimal  @default(0) @map("packaging_weight") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  outlet           Outlet              @relation(fields: [outletId], references: [id], onDelete: Cascade)
   stockOpnameItems StockOpnameItem[]
   purchases        InventoryPurchase[]
 
@@ -497,32 +498,32 @@ model RawMaterial {
 }
 
 model Expense {
-  id            String   @id @default(uuid())
-  outletId      String   @map("outlet_id")
-  date          DateTime @db.Date
-  category      String   // e.g., OPERATIONAL, SALARY, UTILITY, RENT, OTHER
-  amount        Decimal  @db.Decimal(12, 2)
-  description   String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  outletId    String   @map("outlet_id")
+  date        DateTime @db.Date
+  category    String // e.g., OPERATIONAL, SALARY, UTILITY, RENT, OTHER
+  amount      Decimal  @db.Decimal(12, 2)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  outlet       Outlet       @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  outlet Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
 }
 
 model StockOpname {
-  id          String   @id @default(uuid())
-  outletId    String   @map("outlet_id")
-  date        DateTime @db.Date
-  status      String   @default("DRAFT") // DRAFT, COMPLETED
-  notes       String?
-  cogsAmount  Decimal  @default(0) @map("cogs_amount") @db.Decimal(12, 2)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  outletId   String   @map("outlet_id")
+  date       DateTime @db.Date
+  status     String   @default("DRAFT") // DRAFT, COMPLETED
+  notes      String?
+  cogsAmount Decimal  @default(0) @map("cogs_amount") @db.Decimal(12, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  outlet      Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  items       StockOpnameItem[]
+  outlet Outlet            @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  items  StockOpnameItem[]
 
   @@map("stock_opnames")
 }
@@ -539,8 +540,8 @@ model StockOpnameItem {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  stockOpname   StockOpname @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
-  rawMaterial   RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
+  stockOpname StockOpname @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
+  rawMaterial RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
 
   @@unique([stockOpnameId, rawMaterialId])
   @@map("stock_opname_items")
@@ -559,34 +560,34 @@ model Asset {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  outlet              Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  outlet Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@map("assets")
 }
 
 model InventoryPurchase {
-  id              String      @id @default(uuid())
-  outletId        String      @map("outlet_id")
-  rawMaterialId   String      @map("raw_material_id")
-  date            DateTime    @db.Date
-  quantity        Decimal     @db.Decimal(10, 2)
-  unitPrice       Decimal     @map("unit_price") @db.Decimal(12, 2)
-  totalAmount     Decimal     @map("total_amount") @db.Decimal(12, 2)
-  supplier        String?
-  notes           String?
-  paymentMethod   String      @default("CASH") @map("payment_method")       // CASH | PAYLATER
-  paymentSource   String?     @map("payment_source")                        // Nama layanan: Jago Atas Kopi, Mandiri, Shoppe Paylatter, dll.
-  paymentStatus   String      @default("PAID") @map("payment_status")       // PAID | UNPAID | OVERDUE
-  dueDate         DateTime?   @map("due_date") @db.Date                     // Tanggal jatuh tempo paylater
-  paidAt          DateTime?   @map("paid_at")                               // Tanggal pelunasan
-  deliveryStatus  String      @default("RECEIVED") @map("delivery_status")  // RECEIVED | SHIPPING
-  receivedAt      DateTime?   @map("received_at")                           // Tanggal barang diterima
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  outletId       String    @map("outlet_id")
+  rawMaterialId  String    @map("raw_material_id")
+  date           DateTime  @db.Date
+  omzetDate      DateTime? @map("omzet_date") @db.Date
+  quantity       Decimal   @db.Decimal(10, 2)
+  unitPrice      Decimal   @map("unit_price") @db.Decimal(12, 2)
+  totalAmount    Decimal   @map("total_amount") @db.Decimal(12, 2)
+  supplier       String?
+  notes          String?
+  paymentMethod  String    @default("CASH") @map("payment_method") // CASH | PAYLATER
+  paymentSource  String?   @map("payment_source") // Nama layanan: Jago Atas Kopi, Mandiri, Shoppe Paylatter, dll.
+  paymentStatus  String    @default("PAID") @map("payment_status") // PAID | UNPAID | OVERDUE
+  dueDate        DateTime? @map("due_date") @db.Date // Tanggal jatuh tempo paylater
+  paidAt         DateTime? @map("paid_at") // Tanggal pelunasan
+  deliveryStatus String    @default("RECEIVED") @map("delivery_status") // RECEIVED | SHIPPING
+  receivedAt     DateTime? @map("received_at") // Tanggal barang diterima
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  outlet        Outlet       @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  rawMaterial   RawMaterial  @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
+  outlet      Outlet      @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  rawMaterial RawMaterial @relation(fields: [rawMaterialId], references: [id], onDelete: Restrict)
 
   @@map("inventory_purchases")
 }
-

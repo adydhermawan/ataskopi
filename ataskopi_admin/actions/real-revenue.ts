@@ -15,9 +15,13 @@ async function getCashPurchasesForDate(outletId: string, date: Date): Promise<nu
     const purchases = await prisma.inventoryPurchase.findMany({
         where: {
             outletId,
-            date: dateKey,
             paymentMethod: 'CASH',
             paymentStatus: 'PAID',
+            paymentSource: { in: ['Cash', 'CASH', null, ''] },
+            OR: [
+                { omzetDate: dateKey },
+                { omzetDate: null, date: dateKey }
+            ]
         }
     })
     return purchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)

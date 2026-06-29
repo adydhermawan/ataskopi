@@ -390,14 +390,6 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                 Outlet: {user?.outletId ? outlets.find(o => o.id === user.outletId)?.name || "Designated Outlet" : "Semua"}
                             </div>
                         )}
-                        <Button 
-                            asChild
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 h-9"
-                        >
-                            <Link href="/finance/daily-cash">
-                                <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Catat Kas Harian</span>
-                            </Link>
-                        </Button>
                     </div>
                 </div>
 
@@ -736,11 +728,6 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                             Ringkasan catatan omset harian real.
                         </CardDescription>
                     </div>
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href="/finance/daily-cash">
-                            Lihat Detail
-                        </Link>
-                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">

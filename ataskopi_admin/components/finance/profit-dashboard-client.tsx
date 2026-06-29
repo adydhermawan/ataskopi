@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
     getNetProfitAnalytics,
@@ -31,7 +32,7 @@ import {
     Pie,
     Cell,
 } from "recharts";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
@@ -58,6 +59,11 @@ export function ProfitDashboardClient() {
     const [outlets, setOutlets] = useState<Array<{ id: string; name: string }>>([]);
     const [outletId, setOutletId] = useState<string | null>(null);
     const [periodMonths, setPeriodMonths] = useState("6");
+    
+    // Date Range State
+    const [dateFilter, setDateFilter] = useState<'7_days' | 'this_month' | '30_days' | 'custom'>('this_month');
+    const [customStartDate, setCustomStartDate] = useState(format(subDays(new Date(), 6), 'yyyy-MM-dd'));
+    const [customEndDate, setCustomEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     // Data
     const [currentMonth, setCurrentMonth] = useState<{
@@ -116,8 +122,22 @@ export function ProfitDashboardClient() {
             setLoading(true);
             try {
                 const now = new Date();
-                const monthStart = startOfMonth(now);
-                const monthEnd = endOfMonth(now);
+                let monthStart: Date;
+                let monthEnd: Date;
+                
+                if (dateFilter === '7_days') {
+                    monthStart = subDays(now, 6);
+                    monthEnd = now;
+                } else if (dateFilter === '30_days') {
+                    monthStart = subDays(now, 29);
+                    monthEnd = now;
+                } else if (dateFilter === 'this_month') {
+                    monthStart = startOfMonth(now);
+                    monthEnd = endOfMonth(now);
+                } else {
+                    monthStart = new Date(customStartDate);
+                    monthEnd = new Date(customEndDate);
+                }
 
                 const [currentData, monthly, daily] = await Promise.all([
                     getNetProfitAnalytics(outletId, monthStart, monthEnd),
@@ -134,8 +154,12 @@ export function ProfitDashboardClient() {
                 setLoading(false);
             }
         }
-        if (user && outletId) fetchAll();
-    }, [user, outletId, periodMonths]);
+        if (user && outletId) {
+            if (dateFilter !== 'custom' || (customStartDate && customEndDate)) {
+                fetchAll();
+            }
+        }
+    }, [user, outletId, periodMonths, dateFilter, customStartDate, customEndDate]);
 
     const formatIDR = (val: number) =>
         new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
@@ -164,37 +188,96 @@ export function ProfitDashboardClient() {
     return (
         <div className="space-y-6">
             {/* Header controls */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
-                <div className="flex items-center gap-3 flex-wrap">
-                    {user && (user.role === "admin" || user.role === "owner") ? (
+            <div className="flex flex-col gap-4 bg-white dark:bg-zinc-950 p-4 rounded-xl border shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button 
+                            variant={dateFilter === '7_days' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('7_days')}
+                        >
+                            7 Hari Terakhir
+                        </Button>
+                        <Button 
+                            variant={dateFilter === 'this_month' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('this_month')}
+                        >
+                            Bulan Ini
+                        </Button>
+                        <Button 
+                            variant={dateFilter === '30_days' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('30_days')}
+                        >
+                            30 Hari Terakhir
+                        </Button>
+                        <Button 
+                            variant={dateFilter === 'custom' ? 'default' : 'outline'} 
+                            size="sm" 
+                            onClick={() => setDateFilter('custom')}
+                        >
+                            Custom Range
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">Outlet:</span>
+                            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Trend Bulanan:</span>
                             <select
-                                value={outletId || ""}
-                                onChange={(e) => setOutletId(e.target.value || null)}
+                                value={periodMonths}
+                                onChange={(e) => setPeriodMonths(e.target.value)}
                                 className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
-                                {outlets.map((o) => (
-                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                {PERIOD_OPTIONS.map((p) => (
+                                    <option key={p.value} value={p.value}>{p.label}</option>
                                 ))}
                             </select>
                         </div>
-                    ) : null}
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">Trend:</span>
-                        <select
-                            value={periodMonths}
-                            onChange={(e) => setPeriodMonths(e.target.value)}
-                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        >
-                            {PERIOD_OPTIONS.map((p) => (
-                                <option key={p.value} value={p.value}>{p.label}</option>
-                            ))}
-                        </select>
+                        {user && (user.role === "admin" || user.role === "owner") ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-muted-foreground hidden sm:inline">Outlet:</span>
+                                <select
+                                    value={outletId || ""}
+                                    onChange={(e) => setOutletId(e.target.value || null)}
+                                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    <option value="">Semua Outlet</option>
+                                    {outlets.map((o) => (
+                                        <option key={o.id} value={o.id}>{o.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : null}
                     </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                    Data bulan: <strong>{format(new Date(), "MMMM yyyy", { locale: idLocale })}</strong>
+
+                {dateFilter === 'custom' && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                        <span className="text-sm text-muted-foreground">Dari:</span>
+                        <input 
+                            type="date" 
+                            value={customStartDate} 
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                        />
+                        <span className="text-sm text-muted-foreground ml-2">Sampai:</span>
+                        <input 
+                            type="date" 
+                            value={customEndDate} 
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                        />
+                    </div>
+                )}
+                
+                <div className="text-sm text-muted-foreground pt-1">
+                    Menampilkan data untuk: <strong>
+                        {dateFilter === '7_days' ? '7 Hari Terakhir' : 
+                         dateFilter === 'this_month' ? 'Bulan Ini' : 
+                         dateFilter === '30_days' ? '30 Hari Terakhir' : 
+                         `${format(new Date(customStartDate), 'dd MMM yyyy', { locale: idLocale })} - ${format(new Date(customEndDate), 'dd MMM yyyy', { locale: idLocale })}`}
+                    </strong>
                 </div>
             </div>
 
@@ -209,7 +292,7 @@ export function ProfitDashboardClient() {
                         <div className="text-2xl font-bold text-emerald-600">
                             {formatIDR(currentMonth?.grossRevenue || 0)}
                         </div>
-                        <p className="text-xs text-muted-foreground">Omset real bulan ini</p>
+                        <p className="text-xs text-muted-foreground">Omset real sesuai filter</p>
                     </CardContent>
                 </Card>
 
@@ -271,7 +354,7 @@ export function ProfitDashboardClient() {
                     <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     <p className="text-xs">
                         Laba Bersih sudah memperhitungkan <strong>Biaya Penyusutan Aset sebesar {formatIDR(currentMonth?.depreciationExpense || 0)}/bulan</strong>. 
-                        Pembelian aset (CapEx) tidak langsung memotong laba bulan ini — nilainya disusutkan secara bertahap sesuai masa manfaat.
+                        Pembelian aset (CapEx) tidak langsung memotong laba, nilainya disusutkan secara bertahap sesuai masa manfaat.
                     </p>
                 </div>
             )}
@@ -315,7 +398,7 @@ export function ProfitDashboardClient() {
                 <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm">
                     <CardHeader>
                         <CardTitle>Breakdown Opex + Penyusutan</CardTitle>
-                        <CardDescription>Proporsi biaya operasional dan penyusutan bulan ini</CardDescription>
+                        <CardDescription>Proporsi biaya operasional dan penyusutan di periode ini</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[320px] flex items-center justify-center">
                         {pieData.length > 0 ? (
@@ -340,7 +423,7 @@ export function ProfitDashboardClient() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="text-center text-muted-foreground text-sm">
-                                Belum ada data biaya operasional bulan ini.
+                                Belum ada data biaya operasional di periode ini.
                             </div>
                         )}
                     </CardContent>
@@ -350,7 +433,7 @@ export function ProfitDashboardClient() {
             {/* Charts row 2: Daily Trend */}
             <Card className="shadow-sm">
                 <CardHeader>
-                    <CardTitle>Trend Harian (Bulan Ini)</CardTitle>
+                    <CardTitle>Trend Harian</CardTitle>
                     <CardDescription>Pendapatan vs COGS + Opex harian</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[280px] pt-4">
@@ -382,7 +465,7 @@ export function ProfitDashboardClient() {
                         </ResponsiveContainer>
                     ) : (
                         <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                            Belum ada data bulan ini. Catat omset real, opex, dan lakukan stock opname untuk melihat trend.
+                            Belum ada data di periode ini. Catat omset real, opex, dan lakukan stock opname untuk melihat trend.
                         </div>
                     )}
                 </CardContent>

@@ -132,6 +132,7 @@ export async function createInventoryPurchase(data: {
     notes?: string;
     paymentMethod?: string;   // "CASH" | "PAYLATER"
     paymentSource?: string;   // Nama layanan: "Jago Atas Kopi", "Mandiri", etc.
+    omzetDate?: Date;         // Tanggal ambil omzet kas harian
     dueDate?: Date;
     deliveryStatus?: string;  // "RECEIVED" | "SHIPPING"
 }) {
@@ -156,6 +157,7 @@ export async function createInventoryPurchase(data: {
                     paymentMethod,
                     paymentSource: data.paymentSource || null,
                     paymentStatus,
+                    omzetDate: data.omzetDate || null,
                     dueDate: paymentMethod === 'PAYLATER' && data.dueDate ? data.dueDate : null,
                     paidAt: paymentMethod === 'CASH' ? new Date() : null,
                     deliveryStatus,
@@ -361,6 +363,7 @@ export async function updateInventoryPurchase(
         paymentMethod: string;
         paymentSource?: string | null;
         paymentStatus: string;
+        omzetDate?: Date | null;
         dueDate?: Date | null;
     }
 ) {
@@ -403,6 +406,7 @@ export async function updateInventoryPurchase(
                 paymentMethod,
                 paymentSource: data.paymentSource !== undefined ? data.paymentSource : undefined,
                 paymentStatus,
+                omzetDate: data.omzetDate !== undefined ? data.omzetDate : undefined,
                 dueDate,
                 paidAt,
             }

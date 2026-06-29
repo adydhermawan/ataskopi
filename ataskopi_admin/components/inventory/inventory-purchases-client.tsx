@@ -99,6 +99,7 @@ const FILTER_DELIVERY_OPTIONS = [
 
 const PAYMENT_SOURCE_OPTIONS = [
     { value: "", label: "— Pilih Layanan —" },
+    { value: "Cash", label: "Cash (Uang Fisik)" },
     { value: "Jago Atas Kopi", label: "Jago Atas Kopi" },
     { value: "Jago Ady", label: "Jago Ady" },
     { value: "Mandiri", label: "Mandiri" },
@@ -181,6 +182,7 @@ export function InventoryPurchasesClient() {
     const [formPaymentMethod, setFormPaymentMethod] = useState("CASH");
     const [formPaymentSource, setFormPaymentSource] = useState("");
     const [formDueDate, setFormDueDate] = useState("");
+    const [formOmzetDate, setFormOmzetDate] = useState("");
     const [formDeliveryStatus, setFormDeliveryStatus] = useState("RECEIVED");
     const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -195,6 +197,7 @@ export function InventoryPurchasesClient() {
     const [editPaymentSource, setEditPaymentSource] = useState("");
     const [editPaymentStatus, setEditPaymentStatus] = useState("PAID");
     const [editDueDate, setEditDueDate] = useState("");
+    const [editOmzetDate, setEditOmzetDate] = useState("");
 
     useEffect(() => {
         if (user && user.role === "kasir" && user.outletId) {
@@ -323,6 +326,7 @@ export function InventoryPurchasesClient() {
         setFormPaymentMethod("CASH");
         setFormPaymentSource("");
         setFormDueDate(addDays(new Date(), 30).toLocaleDateString("en-CA"));
+        setFormOmzetDate(new Date().toLocaleDateString("en-CA"));
         setFormDeliveryStatus("RECEIVED");
         setIsModalOpen(true);
     };
@@ -373,6 +377,9 @@ export function InventoryPurchasesClient() {
                 notes: formNotes || undefined,
                 paymentMethod: formPaymentMethod,
                 paymentSource: formPaymentSource || undefined,
+                omzetDate: formPaymentMethod === "CASH" && formPaymentSource === "Cash" && formOmzetDate 
+                    ? new Date(formOmzetDate + "T00:00:00Z") 
+                    : undefined,
                 dueDate: formPaymentMethod === "PAYLATER" && formDueDate
                     ? new Date(formDueDate + "T00:00:00Z")
                     : undefined,
@@ -403,6 +410,7 @@ export function InventoryPurchasesClient() {
         setEditPaymentSource(p.paymentSource || "");
         setEditPaymentStatus(p.paymentStatus);
         setEditDueDate(p.dueDate ? format(new Date(p.dueDate), "yyyy-MM-dd") : addDays(new Date(), 30).toLocaleDateString("en-CA"));
+        setEditOmzetDate(p.omzetDate ? format(new Date(p.omzetDate), "yyyy-MM-dd") : format(new Date(p.date), "yyyy-MM-dd"));
         setIsEditModalOpen(true);
     };
 
@@ -421,6 +429,9 @@ export function InventoryPurchasesClient() {
                 paymentMethod: editPaymentMethod,
                 paymentSource: editPaymentSource || null,
                 paymentStatus: editPaymentStatus,
+                omzetDate: editPaymentMethod === "CASH" && editPaymentSource === "Cash" && editOmzetDate 
+                    ? new Date(editOmzetDate + "T00:00:00Z") 
+                    : null,
                 dueDate: editPaymentMethod === "PAYLATER" && editDueDate ? new Date(editDueDate + "T00:00:00Z") : null,
             }) as any;
 
@@ -998,6 +1009,19 @@ export function InventoryPurchasesClient() {
                                     ))}
                                 </select>
                             </div>
+                            {formPaymentMethod === "CASH" && formPaymentSource === "Cash" && (
+                                <div className="space-y-1 pt-1">
+                                    <label className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Tanggal Ambil Omzet (Opsional)</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formOmzetDate}
+                                        onChange={(e) => setFormOmzetDate(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground leading-tight">Ubah tanggal ini jika uang belanja diambil dari hari lain.</p>
+                                </div>
+                            )}
                             {formPaymentMethod === "PAYLATER" && (
                                 <div className="space-y-1 pt-1">
                                     <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Jatuh Tempo *</label>
@@ -1151,6 +1175,20 @@ export function InventoryPurchasesClient() {
                             ))}
                         </select>
                     </div>
+
+                    {editPaymentMethod === "CASH" && editPaymentSource === "Cash" && (
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Tanggal Ambil Omzet</label>
+                            <input
+                                type="date"
+                                required
+                                value={editOmzetDate}
+                                onChange={(e) => setEditOmzetDate(e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500"
+                            />
+                            <p className="text-xs text-muted-foreground leading-tight">Ubah tanggal ini jika uang belanja diambil dari omzet hari lain.</p>
+                        </div>
+                    )}
 
                     {editPaymentMethod === "PAYLATER" && (
                         <>
