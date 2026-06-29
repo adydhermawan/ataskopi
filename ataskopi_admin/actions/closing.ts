@@ -62,13 +62,26 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
 
     let cashSales = 0
     let qrisSales = 0
-    let cashPurchases = 0
 
     for (const rev of revenues) {
-        // Omset Cash Kotor = Uang Kas Netto (cashAmount) + Belanja Cash (cashPurchases)
+        // Omset Cash Kotor dari DailyRealRevenue agar klop dengan Net Profit
         cashSales += Number(rev.cashAmount) + Number(rev.cashPurchases)
         qrisSales += Number(rev.qrisAmount)
-        cashPurchases += Number(rev.cashPurchases)
+    }
+
+    // 3. Aggregate Purchases (Cash Out) from actual InventoryPurchases
+    const purchases = await db.inventoryPurchase.findMany({
+        where: {
+            outletId,
+            date: { gte: startDate, lte: endDate },
+            paymentMethod: 'CASH', // Only deduct cash purchases
+        },
+        select: { totalAmount: true }
+    })
+
+    let cashPurchases = 0
+    for (const p of purchases) {
+        cashPurchases += Number(p.totalAmount)
     }
 
     // 4. Calculate Expected
