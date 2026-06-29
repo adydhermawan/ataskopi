@@ -2,6 +2,8 @@ import { requirePermission } from "@/lib/auth-utils"
 import { getOutlets } from "@/actions/outlets"
 import { DailyCashClient } from "@/components/finance/daily-cash-client"
 
+export const dynamic = 'force-dynamic'
+
 export default async function DailyCashPage() {
     const user = await requirePermission('finance', 'view')
     
