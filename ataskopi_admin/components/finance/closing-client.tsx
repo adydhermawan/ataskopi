@@ -167,7 +167,7 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                         </SelectContent>
                     </Select>
                 </div>
-                {(userRole === 'owner' || userRole === 'manager') && (
+                {(userRole === 'admin' || userRole === 'owner' || userRole === 'manager') && (
                     <Button onClick={() => {
                         setIsDialogOpen(true)
                         setDraftData(null)
