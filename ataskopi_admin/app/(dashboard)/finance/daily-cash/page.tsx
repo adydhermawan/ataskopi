@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/auth-utils"
 import { getOutlets } from "@/actions/outlets"
 import { DailyCashClient } from "@/components/finance/daily-cash-client"
+import { PageHeader } from "@/components/layout/page-header"
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +17,8 @@ export default async function DailyCashPage() {
     }
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Catatan Kas Harian</h2>
-            </div>
+        <div className="space-y-6">
+            <PageHeader title="Catatan Kas Harian" />
             <DailyCashClient outlets={outlets} userRole={user.role} userOutletId={user.outletId} />
         </div>
     )

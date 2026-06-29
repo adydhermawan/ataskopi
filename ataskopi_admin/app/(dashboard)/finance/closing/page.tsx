@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/auth-utils"
 import { getOutlets } from "@/actions/outlets"
 import { ClosingClient } from "@/components/finance/closing-client"
+import { PageHeader } from "@/components/layout/page-header"
 
 export const dynamic = 'force-dynamic'
 
@@ -14,10 +15,8 @@ export default async function ClosingPage() {
     }
 
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Tutup Buku (Closing)</h2>
-            </div>
+        <div className="space-y-6">
+            <PageHeader title="Tutup Buku (Closing)" />
             <ClosingClient outlets={outlets} userRole={user.role} userOutletId={user.outletId} />
         </div>
     )

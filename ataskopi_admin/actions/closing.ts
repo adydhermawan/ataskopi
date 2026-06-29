@@ -37,8 +37,12 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         const qrisBal = lastClosing.balances.find(b => b.paymentMethod === 'QRIS')
         if (qrisBal) openingQris = Number(qrisBal.actualAmount)
     } else {
-        // No previous closing, start from 30 days ago or beginning
-        startDate = addDays(startOfDay(endDate), -30)
+        // No previous closing, start from the first daily real revenue transaction
+        const firstRev = await db.dailyRealRevenue.findFirst({
+            where: { outletId },
+            orderBy: { date: 'asc' }
+        })
+        startDate = firstRev ? startOfDay(firstRev.date) : addDays(startOfDay(endDate), -30)
         openingCash = Number(outlet.modalAwal)
         openingQris = 0
     }
@@ -48,44 +52,23 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         throw new Error("Tanggal tutup buku tidak boleh lebih awal dari tutup buku sebelumnya.")
     }
 
-    // 2. Aggregate Sales (Orders)
-    const orders = await db.order.findMany({
+    // 2. Aggregate Sales & Purchases from DailyRealRevenue to match Net Profit Dashboard
+    const revenues = await db.dailyRealRevenue.findMany({
         where: {
             outletId,
-            createdAt: { gte: startDate, lte: endDate },
-            paymentStatus: 'paid' // or 'PAID' depending on your enum/string
-        },
-        select: {
-            paymentMethod: true,
-            total: true
+            date: { gte: startDate, lte: endDate }
         }
     })
 
     let cashSales = 0
     let qrisSales = 0
-
-    for (const order of orders) {
-        const amount = Number(order.total)
-        if (order.paymentMethod?.toUpperCase() === 'CASH') {
-            cashSales += amount
-        } else if (order.paymentMethod?.toUpperCase() === 'QRIS') {
-            qrisSales += amount
-        }
-    }
-
-    // 3. Aggregate Purchases (Cash Out)
-    const purchases = await db.inventoryPurchase.findMany({
-        where: {
-            outletId,
-            date: { gte: startDate, lte: endDate },
-            paymentMethod: 'CASH', // Only deduct cash purchases
-        },
-        select: { totalAmount: true }
-    })
-
     let cashPurchases = 0
-    for (const p of purchases) {
-        cashPurchases += Number(p.totalAmount)
+
+    for (const rev of revenues) {
+        // Omset Cash Kotor = Uang Kas Netto (cashAmount) + Belanja Cash (cashPurchases)
+        cashSales += Number(rev.cashAmount) + Number(rev.cashPurchases)
+        qrisSales += Number(rev.qrisAmount)
+        cashPurchases += Number(rev.cashPurchases)
     }
 
     // 4. Calculate Expected
