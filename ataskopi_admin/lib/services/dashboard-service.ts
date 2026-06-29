@@ -226,7 +226,7 @@ export class DashboardService {
     }
 
     /**
-     * Gets today's manually logged real revenue
+     * Gets today's manually logged real revenue with breakdown
      */
     static async getTodayRealRevenue(outletId: string | null) {
         const now = new Date();
@@ -239,8 +239,21 @@ export class DashboardService {
             }
         });
 
-        const totalAmount = records.reduce((sum, r) => sum.add(r.amount), new Prisma.Decimal(0));
-        return totalAmount.toNumber();
+        const cashAmount = records.reduce((sum, r) => sum.add(r.cashAmount), new Prisma.Decimal(0));
+        const qrisAmount = records.reduce((sum, r) => sum.add(r.qrisAmount), new Prisma.Decimal(0));
+        const otherAmount = records.reduce((sum, r) => sum.add(r.otherAmount), new Prisma.Decimal(0));
+        const totalAmount = records.reduce((sum, r) => sum.add(r.totalAmount), new Prisma.Decimal(0));
+        const grossRevenue = records.reduce((sum, r) => sum.add(r.grossRevenue), new Prisma.Decimal(0));
+        const cashPurchases = records.reduce((sum, r) => sum.add(r.cashPurchases), new Prisma.Decimal(0));
+
+        return {
+            cashAmount: cashAmount.toNumber(),
+            qrisAmount: qrisAmount.toNumber(),
+            otherAmount: otherAmount.toNumber(),
+            totalAmount: totalAmount.toNumber(),
+            grossRevenue: grossRevenue.toNumber(),
+            cashPurchases: cashPurchases.toNumber(),
+        };
     }
 
     /**
@@ -267,7 +280,15 @@ export class DashboardService {
             id: r.id,
             date: r.date,
             outletId: r.outletId,
-            amount: r.amount.toNumber(),
+            cashAmount: r.cashAmount.toNumber(),
+            qrisAmount: r.qrisAmount.toNumber(),
+            otherAmount: r.otherAmount.toNumber(),
+            otherMethodName: r.otherMethodName,
+            totalAmount: r.totalAmount.toNumber(),
+            grossRevenue: r.grossRevenue.toNumber(),
+            cashPurchases: r.cashPurchases.toNumber(),
+            webRevenue: r.webRevenue.toNumber(),
+            isClosed: r.isClosed,
             notes: r.notes,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt
@@ -387,7 +408,15 @@ export class DashboardService {
             id: r.id,
             date: r.date,
             outletId: r.outletId,
-            amount: r.amount.toNumber(),
+            cashAmount: r.cashAmount.toNumber(),
+            qrisAmount: r.qrisAmount.toNumber(),
+            otherAmount: r.otherAmount.toNumber(),
+            otherMethodName: r.otherMethodName,
+            totalAmount: r.totalAmount.toNumber(),
+            grossRevenue: r.grossRevenue.toNumber(),
+            cashPurchases: r.cashPurchases.toNumber(),
+            webRevenue: r.webRevenue.toNumber(),
+            isClosed: r.isClosed,
             notes: r.notes,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt
@@ -404,14 +433,22 @@ export class DashboardService {
         const totalRevenue = summaries.reduce((acc, curr) => acc + Number(curr.totalRevenue), 0);
         const totalOrders = summaries.reduce((acc, curr) => acc + curr.totalOrders, 0);
         const totalItems = summaries.reduce((acc, curr) => acc + curr.totalItems, 0);
-        const totalRealRevenue = realRevenues.reduce((acc, curr) => acc + curr.amount, 0);
+        const totalRealRevenue = realRevenues.reduce((acc, curr) => acc + curr.totalAmount, 0);
+        const totalCashRevenue = realRevenues.reduce((acc, curr) => acc + curr.cashAmount, 0);
+        const totalQrisRevenue = realRevenues.reduce((acc, curr) => acc + curr.qrisAmount, 0);
+        const totalOtherRevenue = realRevenues.reduce((acc, curr) => acc + curr.otherAmount, 0);
+        const totalGrossRevenue = realRevenues.reduce((acc, curr) => acc + curr.grossRevenue, 0);
         
         return {
             totalRevenue,
             totalOrders,
             totalItems,
             averageTicket: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-            totalRealRevenue
+            totalRealRevenue,
+            totalCashRevenue,
+            totalQrisRevenue,
+            totalOtherRevenue,
+            totalGrossRevenue,
         };
     }
 

@@ -63,7 +63,7 @@ export async function getIncomeStatement(outletId: string, startDate: Date, endD
             date: { gte: startDate, lte: endDate }
         }
     })
-    const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
+    const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.totalAmount), 0)
 
     // 2. COGS from completed StockOpnames in the period
     const stockOpnames = await prisma.stockOpname.findMany({
@@ -189,7 +189,10 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
             date: { lte: asOfDate }
         }
     })
-    const cumulativeRevenue = allRevenues.reduce((sum, r) => sum + Number(r.amount), 0)
+    const cumulativeRevenue = allRevenues.reduce((sum, r) => sum + Number(r.totalAmount), 0)
+    const cumulativeCashRevenue = allRevenues.reduce((sum, r) => sum + Number(r.cashAmount), 0)
+    const cumulativeQrisRevenue = allRevenues.reduce((sum, r) => sum + Number(r.qrisAmount), 0)
+    const cumulativeOtherRevenue = allRevenues.reduce((sum, r) => sum + Number(r.otherAmount), 0)
 
     const allCogs = await prisma.stockOpname.findMany({
         where: {
@@ -229,15 +232,21 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     const accountsPayable = unpaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
     const accountsPayableCount = unpaidPurchases.length
 
-    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor - Total Pengeluaran Riil (KAS saja)
-    // Total Pengeluaran Riil = totalPaidPurchases (Bahan Baku PAID) + cumulativeExpenses (OpEx) + fixedAssetsCostValue (CapEx)
-    const cash = modalAwal + cumulativeRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
+    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor (KAS) - Total Pengeluaran Riil (KAS saja)
+    // Asumsi: Semua pengeluaran (OpEx, CapEx, Pembelian Cash) dibayar dari KAS Fisik
+    const cash = modalAwal + cumulativeCashRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
     
-    const totalAssets = cash + inventoryValue + inTransitInventoryValue + fixedAssetsValue
+    // Saldo QRIS dan Lain-lain
+    const qrisBalance = cumulativeQrisRevenue
+    const otherBalance = cumulativeOtherRevenue
+    
+    const totalAssets = cash + qrisBalance + otherBalance + inventoryValue + inTransitInventoryValue + fixedAssetsValue
 
     return {
         asOfDate,
         cash,
+        qrisBalance,
+        otherBalance,
         inventory: {
             details: materialsDetails,
             totalValue: inventoryValue

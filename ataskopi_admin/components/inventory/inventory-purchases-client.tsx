@@ -56,6 +56,7 @@ interface Purchase {
     supplier: string | null;
     notes: string | null;
     paymentMethod: string;
+    paymentSource: string | null;
     paymentStatus: string;
     dueDate: Date | null;
     paidAt: Date | null;
@@ -94,6 +95,16 @@ const FILTER_DELIVERY_OPTIONS = [
     { value: "ALL", label: "Semua Barang" },
     { value: "SHIPPING", label: "Dalam Pengiriman" },
     { value: "RECEIVED", label: "Diterima" },
+];
+
+const PAYMENT_SOURCE_OPTIONS = [
+    { value: "", label: "— Pilih Layanan —" },
+    { value: "Jago Atas Kopi", label: "Jago Atas Kopi" },
+    { value: "Jago Ady", label: "Jago Ady" },
+    { value: "Mandiri", label: "Mandiri" },
+    { value: "Denik", label: "Denik" },
+    { value: "Shoppe Paylatter", label: "Shoppe Paylatter" },
+    { value: "Gopaylatter", label: "Gopaylatter" },
 ];
 
 function PaymentStatusBadge({ status }: { status: string }) {
@@ -168,6 +179,7 @@ export function InventoryPurchasesClient() {
     const [formSupplier, setFormSupplier] = useState("");
     const [formNotes, setFormNotes] = useState("");
     const [formPaymentMethod, setFormPaymentMethod] = useState("CASH");
+    const [formPaymentSource, setFormPaymentSource] = useState("");
     const [formDueDate, setFormDueDate] = useState("");
     const [formDeliveryStatus, setFormDeliveryStatus] = useState("RECEIVED");
     const [formSubmitting, setFormSubmitting] = useState(false);
@@ -180,6 +192,7 @@ export function InventoryPurchasesClient() {
     const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
     const [editDate, setEditDate] = useState("");
     const [editPaymentMethod, setEditPaymentMethod] = useState("CASH");
+    const [editPaymentSource, setEditPaymentSource] = useState("");
     const [editPaymentStatus, setEditPaymentStatus] = useState("PAID");
     const [editDueDate, setEditDueDate] = useState("");
 
@@ -308,6 +321,7 @@ export function InventoryPurchasesClient() {
         setFormSupplier("");
         setFormNotes("");
         setFormPaymentMethod("CASH");
+        setFormPaymentSource("");
         setFormDueDate(addDays(new Date(), 30).toLocaleDateString("en-CA"));
         setFormDeliveryStatus("RECEIVED");
         setIsModalOpen(true);
@@ -358,6 +372,7 @@ export function InventoryPurchasesClient() {
                 supplier: formSupplier || undefined,
                 notes: formNotes || undefined,
                 paymentMethod: formPaymentMethod,
+                paymentSource: formPaymentSource || undefined,
                 dueDate: formPaymentMethod === "PAYLATER" && formDueDate
                     ? new Date(formDueDate + "T00:00:00Z")
                     : undefined,
@@ -385,6 +400,7 @@ export function InventoryPurchasesClient() {
         setEditingPurchase(p);
         setEditDate(format(new Date(p.date), "yyyy-MM-dd"));
         setEditPaymentMethod(p.paymentMethod);
+        setEditPaymentSource(p.paymentSource || "");
         setEditPaymentStatus(p.paymentStatus);
         setEditDueDate(p.dueDate ? format(new Date(p.dueDate), "yyyy-MM-dd") : addDays(new Date(), 30).toLocaleDateString("en-CA"));
         setIsEditModalOpen(true);
@@ -403,6 +419,7 @@ export function InventoryPurchasesClient() {
             const res = await updateInventoryPurchase(editingPurchase.id, {
                 date: new Date(editDate + "T00:00:00Z"),
                 paymentMethod: editPaymentMethod,
+                paymentSource: editPaymentSource || null,
                 paymentStatus: editPaymentStatus,
                 dueDate: editPaymentMethod === "PAYLATER" && editDueDate ? new Date(editDueDate + "T00:00:00Z") : null,
             }) as any;
@@ -662,6 +679,9 @@ export function InventoryPurchasesClient() {
                                                         {p.paymentMethod === 'PAYLATER' && (
                                                             <span className="text-[9px] text-muted-foreground">Paylater</span>
                                                         )}
+                                                        {p.paymentSource && (
+                                                            <span className="text-[9px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{p.paymentSource}</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-3 text-center">
@@ -759,6 +779,9 @@ export function InventoryPurchasesClient() {
                                                     <PaymentStatusBadge status={p.paymentStatus} />
                                                     {p.paymentMethod === 'PAYLATER' && (
                                                         <span className="text-[10px] text-muted-foreground border px-1.5 py-0.5 rounded-sm">Paylater</span>
+                                                    )}
+                                                    {p.paymentSource && (
+                                                        <span className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-sm">{p.paymentSource}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -963,6 +986,18 @@ export function InventoryPurchasesClient() {
                                     🏷️ Paylater / Hutang
                                 </button>
                             </div>
+                            <div className="space-y-1 pt-1">
+                                <label className="text-xs font-medium">Nama Layanan (Bank/Cash)</label>
+                                <select
+                                    value={formPaymentSource}
+                                    onChange={(e) => setFormPaymentSource(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    {PAYMENT_SOURCE_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                             {formPaymentMethod === "PAYLATER" && (
                                 <div className="space-y-1 pt-1">
                                     <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Jatuh Tempo *</label>
@@ -1100,6 +1135,21 @@ export function InventoryPurchasesClient() {
                                 🏷️ Paylater / Hutang
                             </button>
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-1.5">
+                            Nama Layanan (Bank/Cash)
+                        </label>
+                        <select
+                            value={editPaymentSource}
+                            onChange={(e) => setEditPaymentSource(e.target.value)}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                            {PAYMENT_SOURCE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {editPaymentMethod === "PAYLATER" && (

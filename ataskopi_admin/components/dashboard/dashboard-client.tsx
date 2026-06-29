@@ -8,9 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { toast } from "sonner";
 import {
-    getDailyRealRevenues,
-    saveDailyRealRevenue,
-    deleteDailyRealRevenue
+    getDailyRealRevenues
 } from "@/actions/real-revenue";
 import { getRawMaterials, getCachedStockProjections } from "@/actions/raw-materials";
 import {
@@ -443,17 +441,12 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                             </div>
                         )}
                         <Button 
-                            onClick={() => {
-                                setEditingLog(null);
-                                setFormDate(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD local format
-                                setFormOutletId(user?.outletId || outletId || (outlets[0]?.id || ""));
-                                setFormAmount("");
-                                setFormNotes("");
-                                setIsModalOpen(true);
-                            }}
+                            asChild
                             className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 h-9"
                         >
-                            <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Catat Omset</span>
+                            <Link href="/finance/daily-cash">
+                                <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Catat Kas Harian</span>
+                            </Link>
                         </Button>
                     </div>
                 </div>
@@ -786,11 +779,18 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
 
             {/* Real Revenue Table Manager */}
             <Card className="shadow-sm border">
-                <CardHeader className="pb-2">
-                    <CardTitle>Riwayat Omset Real (Sesuai Filter)</CardTitle>
-                    <CardDescription>
-                        Daftar catatan omset harian real yang diinput secara manual untuk perbandingan.
-                    </CardDescription>
+                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Riwayat Omset Real (Sesuai Filter)</CardTitle>
+                        <CardDescription>
+                            Ringkasan catatan omset harian real.
+                        </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                        <Link href="/finance/daily-cash">
+                            Lihat Detail
+                        </Link>
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -800,9 +800,8 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                     <tr>
                                         <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Tanggal</th>
                                         <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Outlet</th>
-                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Omset Real</th>
+                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Omset Kotor</th>
                                         <th className="p-3 text-left font-semibold text-slate-700 dark:text-slate-300">Catatan</th>
-                                        <th className="p-3 text-right font-semibold text-slate-700 dark:text-slate-300">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -822,39 +821,10 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                                     {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
                                                 </td>
                                                 <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                                    {formatIDR(log.amount)}
+                                                    {formatIDR(log.grossRevenue || log.amount || log.totalAmount)}
                                                 </td>
                                                 <td className="p-3 text-muted-foreground max-w-xs truncate" title={log.notes || ""}>
                                                     {log.notes || "-"}
-                                                </td>
-                                                <td className="p-3 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setEditingLog(log);
-                                                                setFormDate(log.date.split('T')[0]);
-                                                                setFormOutletId(log.outletId);
-                                                                setFormAmount(log.amount.toString());
-                                                                setFormNotes(log.notes || "");
-                                                                setIsModalOpen(true);
-                                                            }}
-                                                            className="h-8 w-8 p-0"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        {user && (user.role === 'admin' || user.role === 'owner') && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => handleDeleteLog(log.id)}
-                                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                                            >
-                                                                <Trash className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -881,39 +851,12 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                                     {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setEditingLog(log);
-                                                        setFormDate(log.date.split('T')[0]);
-                                                        setFormOutletId(log.outletId);
-                                                        setFormAmount(log.amount.toString());
-                                                        setFormNotes(log.notes || "");
-                                                        setIsModalOpen(true);
-                                                    }}
-                                                    className="h-8 w-8 p-0"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                {user && (user.role === 'admin' || user.role === 'owner') && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDeleteLog(log.id)}
-                                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                                    >
-                                                        <Trash className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
                                         </div>
                                         
                                         <div className="grid gap-3 text-sm">
                                             <div className="flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-md border border-slate-100 dark:border-slate-800/30">
-                                                <span className="text-muted-foreground font-medium">Omset Real:</span>
-                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatIDR(log.amount)}</span>
+                                                <span className="text-muted-foreground font-medium">Omset Kotor:</span>
+                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatIDR(log.grossRevenue || log.amount || log.totalAmount)}</span>
                                             </div>
                                             
                                             {log.notes && (
@@ -931,88 +874,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                 </CardContent>
             </Card>
 
-            {/* Input / Edit Modal */}
-            <Modal
-                title={editingLog ? "Edit Omset Real" : "Catat Omset Real"}
-                description={editingLog ? "Perbarui catatan omset harian real" : "Masukkan jumlah pendapatan real (offline + online) harian untuk outlet terpilih."}
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-            >
-                <form onSubmit={handleFormSubmit} className="space-y-4 pt-2">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Tanggal</label>
-                        <input
-                            type="date"
-                            required
-                            value={formDate}
-                            onChange={(e) => setFormDate(e.target.value)}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Outlet</label>
-                        {user && (user.role === 'admin' || user.role === 'owner') ? (
-                            <select
-                                required
-                                value={formOutletId}
-                                onChange={(e) => setFormOutletId(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            >
-                                <option value="" disabled>Pilih Outlet</option>
-                                {outlets.map((o) => (
-                                    <option key={o.id} value={o.id}>{o.name}</option>
-                                ))}
-                            </select>
-                        ) : (
-                            <div className="h-9 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground flex items-center">
-                                {outlets.find(o => o.id === formOutletId)?.name || "Designated Outlet"}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Jumlah Omset Real (Rp)</label>
-                        <input
-                            type="number"
-                            required
-                            min="0"
-                            placeholder="Contoh: 1500000"
-                            value={formAmount}
-                            onChange={(e) => setFormAmount(e.target.value)}
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Catatan (Optional)</label>
-                        <textarea
-                            placeholder="Keterangan tambahan (misal: cuaca hujan, ramai event offline)"
-                            value={formNotes || ""}
-                            onChange={(e) => setFormNotes(e.target.value)}
-                            rows={3}
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsModalOpen(false)}
-                            disabled={formSubmitting}
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={formSubmitting}
-                        >
-                            {formSubmitting ? "Menyimpan..." : "Simpan"}
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+            {/* Modal removed as it's now a separate page */}
         </div>
     );
 }

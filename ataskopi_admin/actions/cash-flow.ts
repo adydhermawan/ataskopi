@@ -6,14 +6,18 @@ import { requirePermission } from "@/lib/auth-utils"
 export async function getCashFlowReport(outletId: string, startDate: Date, endDate: Date) {
     await requirePermission('finance', 'view')
 
-    // Cash In: Revenue from DailyRealRevenue
+    // Cash In: Revenue from DailyRealRevenue (with breakdown)
     const revenues = await prisma.dailyRealRevenue.findMany({
         where: {
             outletId,
             date: { gte: startDate, lte: endDate }
         }
     })
-    const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
+    const totalCashRevenue = revenues.reduce((sum, r) => sum + Number(r.cashAmount), 0)
+    const totalQrisRevenue = revenues.reduce((sum, r) => sum + Number(r.qrisAmount), 0)
+    const totalOtherRevenue = revenues.reduce((sum, r) => sum + Number(r.otherAmount), 0)
+    const totalRevenue = revenues.reduce((sum, r) => sum + Number(r.totalAmount > 0 ? r.totalAmount : r.cashAmount), 0)
+    const totalGrossRevenue = revenues.reduce((sum, r) => sum + Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount), 0)
 
     // Cash Out — COGS: Inventory Purchases (only PAID — paylater excluded until paid)
     const purchases = await prisma.inventoryPurchase.findMany({
@@ -62,7 +66,11 @@ export async function getCashFlowReport(outletId: string, startDate: Date, endDa
 
     return {
         cashIn: {
-            revenue: totalRevenue
+            revenue: totalRevenue,
+            cashRevenue: totalCashRevenue,
+            qrisRevenue: totalQrisRevenue,
+            otherRevenue: totalOtherRevenue,
+            grossRevenue: totalGrossRevenue,
         },
         cashOut: {
             purchases: totalPurchases,
@@ -109,7 +117,7 @@ export async function getMonthlyCashFlowTrend(outletId: string, months: number =
             where: { outletId, purchaseDate: { gte: startDate, lte: endDate } }
         })
 
-        const cashIn = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
+        const cashIn = revenues.reduce((sum, r) => sum + Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount), 0)
         const purchasesTotal = purchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
         const opex = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
         const capex = assets.reduce((sum, a) => sum + Number(a.purchasePrice), 0)

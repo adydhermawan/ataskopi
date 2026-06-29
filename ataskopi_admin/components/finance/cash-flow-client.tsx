@@ -35,6 +35,10 @@ import { id as idLocale } from "date-fns/locale";
 interface CashFlowReportData {
     cashIn: {
         revenue: number;
+        cashRevenue: number;
+        qrisRevenue: number;
+        otherRevenue: number;
+        grossRevenue: number;
     };
     cashOut: {
         purchases: number;
@@ -177,7 +181,16 @@ export function CashFlowClient() {
           ].filter((item) => item.value > 0)
         : [];
 
+    const cashInPieData = reportData
+        ? [
+              { name: "Kas Fisik", value: reportData.cashIn.cashRevenue || 0 },
+              { name: "QRIS", value: reportData.cashIn.qrisRevenue || 0 },
+              { name: "Lain-lain", value: reportData.cashIn.otherRevenue || 0 },
+          ].filter((item) => item.value > 0)
+        : [];
+
     const totalCashOut = reportData?.cashOut.totalCashOut || 0;
+    const totalCashIn = reportData?.cashIn.revenue || 0;
 
     return (
         <div className="space-y-6">
@@ -316,6 +329,72 @@ export function CashFlowClient() {
                                 <div className="space-y-4 flex-grow w-full">
                                     {pieData.map((item, idx) => {
                                         const percentage = totalCashOut > 0 ? (item.value / totalCashOut) * 100 : 0;
+                                        return (
+                                            <div key={item.name} className="space-y-1">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                                                        <span className="font-medium text-slate-700 dark:text-slate-300">{item.name}</span>
+                                                    </div>
+                                                    <span className="font-semibold">{formatIDR(item.value)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-2 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full"
+                                                            style={{
+                                                                backgroundColor: PIE_COLORS[idx % PIE_COLORS.length],
+                                                                width: `${percentage}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground w-10 text-right">{percentage.toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* New Column: Kas Masuk Breakdown & Pie Chart */}
+                <Card className="shadow-sm border">
+                    <CardHeader className="bg-slate-50 dark:bg-zinc-900/50 border-b">
+                        <CardTitle className="text-base font-semibold">Sumber Kas Masuk</CardTitle>
+                        <CardDescription>Komposisi penerimaan dana masuk pada periode terpilih</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        {cashInPieData.length === 0 ? (
+                            <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                                Tidak ada data kas masuk pada periode ini.
+                            </div>
+                        ) : (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                                <div className="h-[200px] w-[200px] flex-shrink-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={cashInPieData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={4}
+                                                dataKey="value"
+                                            >
+                                                {cashInPieData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <RechartsTooltip formatter={(value: any) => formatIDR(value)} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="space-y-4 flex-grow w-full">
+                                    {cashInPieData.map((item, idx) => {
+                                        const percentage = totalCashIn > 0 ? (item.value / totalCashIn) * 100 : 0;
                                         return (
                                             <div key={item.name} className="space-y-1">
                                                 <div className="flex justify-between items-center text-xs">

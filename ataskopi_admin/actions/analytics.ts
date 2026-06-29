@@ -70,7 +70,7 @@ export async function getNetProfitAnalytics(outletId: string, startDate: Date, e
         }
     })
     
-    const grossRevenue = revenues.reduce((sum, rev) => sum + Number(rev.amount), 0)
+    const grossRevenue = revenues.reduce((sum, rev) => sum + Number(rev.grossRevenue > 0 ? rev.grossRevenue : rev.cashAmount), 0)
 
     // Get COGS from completed StockOpnames in the period
     const stockOpnames = await prisma.stockOpname.findMany({
@@ -163,7 +163,7 @@ export async function getMonthlyProfitSummary(outletId: string, months: number =
             where: { outletId, date: { gte: startDate, lte: endDate } }
         })
 
-        const grossRevenue = revenues.reduce((sum, r) => sum + Number(r.amount), 0)
+        const grossRevenue = revenues.reduce((sum, r) => sum + Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount), 0)
         const cogsVal = stockOpnames.reduce((sum, op) => sum + Number(op.cogsAmount), 0)
         const opexAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
@@ -219,7 +219,8 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
     const revenueMap: Record<string, number> = {}
     revenues.forEach(r => {
         const key = r.date.toISOString().split('T')[0]
-        revenueMap[key] = (revenueMap[key] || 0) + Number(r.amount)
+        const amt = Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount)
+        revenueMap[key] = (revenueMap[key] || 0) + amt
     })
 
     // Build daily map with revenue and expenses first
@@ -227,8 +228,9 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
 
     revenues.forEach(r => {
         const key = r.date.toISOString().split('T')[0]
+        const amt = Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount)
         if (!dailyMap[key]) dailyMap[key] = { revenue: 0, cogs: 0, expenses: 0 }
-        dailyMap[key].revenue += Number(r.amount)
+        dailyMap[key].revenue += amt
     })
 
     expenses.forEach(e => {
@@ -337,7 +339,7 @@ export async function getAssetsROI(outletId: string) {
     const now = new Date()
     
     const roiData = assets.map(asset => {
-        const revSince = revenues.filter(r => r.date >= asset.purchaseDate).reduce((s, r) => s + Number(r.amount), 0)
+        const revSince = revenues.filter(r => r.date >= asset.purchaseDate).reduce((s, r) => s + Number(r.grossRevenue > 0 ? r.grossRevenue : r.cashAmount), 0)
         const cogsSince = stockOpnames.filter(op => op.date >= asset.purchaseDate).reduce((s, op) => s + Number(op.cogsAmount), 0)
         const expSince = expenses.filter(e => e.date >= asset.purchaseDate).reduce((s, e) => s + Number(e.amount), 0)
         

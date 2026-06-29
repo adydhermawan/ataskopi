@@ -448,14 +448,30 @@ model ServerErrorLog {
 }
 
 model DailyRealRevenue {
-  id        String   @id @default(uuid())
-  date      DateTime @db.Date
-  outletId  String   @map("outlet_id")
-  amount    Decimal  @db.Decimal(12, 2)
-  notes     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  outlet    Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  date            DateTime @db.Date
+  outletId        String   @map("outlet_id")
+
+  // Breakdown per metode pembayaran
+  cashAmount      Decimal  @default(0) @map("amount") @db.Decimal(12, 2)    // Uang kas fisik di laci (netto setelah belanja cash)
+  qrisAmount      Decimal  @default(0) @map("qris_amount") @db.Decimal(12, 2)    // Total penjualan QRIS
+  otherAmount     Decimal  @default(0) @map("other_amount") @db.Decimal(12, 2)   // Transfer/metode lain
+  otherMethodName String?  @map("other_method_name")                              // Nama metode lain jika ada
+
+  // Computed/derived (disimpan untuk kemudahan query)
+  totalAmount     Decimal  @default(0) @map("total_amount") @db.Decimal(12, 2)   // cashAmount + qrisAmount + otherAmount
+  grossRevenue    Decimal  @default(0) @map("gross_revenue") @db.Decimal(12, 2)  // totalAmount + cashPurchases (omset kotor)
+
+  // Referensi otomatis (snapshot saat pencatatan)
+  cashPurchases   Decimal  @default(0) @map("cash_purchases") @db.Decimal(12, 2) // Belanja cash hari itu (dari InventoryPurchase)
+  webRevenue      Decimal  @default(0) @map("web_revenue") @db.Decimal(12, 2)    // Omset dari order web (untuk perbandingan)
+
+  notes           String?
+  isClosed        Boolean  @default(false) @map("is_closed")                      // Flag closing harian
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  outlet          Outlet   @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
   @@unique([date, outletId])
   @@map("daily_real_revenue")
@@ -559,6 +575,7 @@ model InventoryPurchase {
   supplier        String?
   notes           String?
   paymentMethod   String      @default("CASH") @map("payment_method")       // CASH | PAYLATER
+  paymentSource   String?     @map("payment_source")                        // Nama layanan: Jago Atas Kopi, Mandiri, Shoppe Paylatter, dll.
   paymentStatus   String      @default("PAID") @map("payment_status")       // PAID | UNPAID | OVERDUE
   dueDate         DateTime?   @map("due_date") @db.Date                     // Tanggal jatuh tempo paylater
   paidAt          DateTime?   @map("paid_at")                               // Tanggal pelunasan
