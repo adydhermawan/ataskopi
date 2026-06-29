@@ -59,6 +59,7 @@ interface Purchase {
     paymentSource: string | null;
     paymentStatus: string;
     dueDate: Date | null;
+    omzetDate: Date | null;
     paidAt: Date | null;
     deliveryStatus: string;
     receivedAt: Date | null;
@@ -281,6 +282,7 @@ export function InventoryPurchasesClient() {
                 unitPrice: Number(p.unitPrice),
                 totalAmount: Number(p.totalAmount),
                 date: new Date(p.date),
+                omzetDate: p.omzetDate ? new Date(p.omzetDate) : null,
                 dueDate: p.dueDate ? new Date(p.dueDate) : null,
                 paidAt: p.paidAt ? new Date(p.paidAt) : null,
                 receivedAt: p.receivedAt ? new Date(p.receivedAt) : null,

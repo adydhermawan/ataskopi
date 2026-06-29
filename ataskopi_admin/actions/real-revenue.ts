@@ -17,10 +17,19 @@ async function getCashPurchasesForDate(outletId: string, date: Date): Promise<nu
             outletId,
             paymentMethod: 'CASH',
             paymentStatus: 'PAID',
-            paymentSource: { in: ['Cash', 'CASH', null, ''] },
-            OR: [
-                { omzetDate: dateKey },
-                { omzetDate: null, date: dateKey }
+            AND: [
+                {
+                    OR: [
+                        { paymentSource: { in: ['Cash', 'CASH', ''] } },
+                        { paymentSource: null }
+                    ]
+                },
+                {
+                    OR: [
+                        { omzetDate: dateKey },
+                        { omzetDate: null, date: dateKey }
+                    ]
+                }
             ]
         }
     })
