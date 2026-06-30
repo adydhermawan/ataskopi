@@ -50,6 +50,7 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
         userOutletId || (outlets.length > 0 ? outlets[0].id : "")
     )
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [viewDetailRecord, setViewDetailRecord] = useState<any | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     
     const [targetDate, setTargetDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -194,7 +195,9 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                         <TableHead>Dibuat Oleh</TableHead>
                                         <TableHead>Total Cash</TableHead>
                                         <TableHead>Total QRIS</TableHead>
+                                        <TableHead>Total Keseluruhan</TableHead>
                                         <TableHead>Status</TableHead>
+                                        <TableHead>Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -234,7 +237,20 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span>Rp {(Number(cashBal?.actualAmount || 0) + Number(qrisBal?.actualAmount || 0)).toLocaleString('id-ID')}</span>
+                                                            {(Number(cashBal?.varianceAmount || 0) + Number(qrisBal?.varianceAmount || 0)) !== 0 && (
+                                                                <span className={(Number(cashBal?.varianceAmount || 0) + Number(qrisBal?.varianceAmount || 0)) < 0 ? "text-red-500 text-xs" : "text-green-500 text-xs"}>
+                                                                    Selisih: Rp {(Number(cashBal?.varianceAmount || 0) + Number(qrisBal?.varianceAmount || 0)).toLocaleString('id-ID')}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <Badge variant="outline" className="bg-green-50 text-green-700">{r.status}</Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button variant="outline" size="sm" onClick={() => setViewDetailRecord(r)}>Detail</Button>
                                                     </TableCell>
                                                 </TableRow>
                                             )
@@ -355,6 +371,51 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                     {isSubmitting ? "Menyimpan..." : "Posting & Kunci Data"}
                                 </Button>
                             </DialogFooter>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewDetailRecord} onOpenChange={(open) => !open && setViewDetailRecord(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Detail Tutup Buku</DialogTitle>
+                        <DialogDescription>
+                            Data rekonsiliasi yang disimpan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {viewDetailRecord && (
+                        <div className="space-y-6">
+                            <div className="bg-blue-50 text-blue-900 p-3 rounded-md text-sm border border-blue-100">
+                                <div className="font-semibold">Periode Closing:</div>
+                                <div>
+                                    {format(new Date(viewDetailRecord.startDate), 'dd MMM yyyy HH:mm', { locale: id })} s/d {format(new Date(viewDetailRecord.endDate), 'dd MMM yyyy HH:mm', { locale: id })}
+                                </div>
+                                <div className="mt-2 text-xs text-blue-700">Ditutup pada: {format(new Date(viewDetailRecord.createdAt), 'dd MMM yyyy HH:mm', { locale: id })} oleh {viewDetailRecord.closedBy}</div>
+                            </div>
+
+                            {viewDetailRecord.balances.map((bal: any) => (
+                                <div key={bal.id} className="space-y-2">
+                                    <h4 className="font-semibold">{bal.paymentMethod === 'CASH' ? '1. Kas Fisik (CASH)' : '2. Rekening / E-Wallet (QRIS)'}</h4>
+                                    <div className="text-sm grid grid-cols-2 gap-2 border-b pb-2">
+                                        <div className="text-gray-500">Ekspektasi Sistem:</div>
+                                        <div className="text-right font-medium">Rp {Number(bal.systemAmount).toLocaleString('id-ID')}</div>
+                                        
+                                        <div className="text-gray-500">Aktual (Dimasukkan):</div>
+                                        <div className="text-right font-medium text-blue-600">Rp {Number(bal.actualAmount).toLocaleString('id-ID')}</div>
+                                        
+                                        <div className="text-gray-500 font-medium">Selisih (Variance):</div>
+                                        <div className={`text-right font-bold ${Number(bal.varianceAmount) === 0 ? 'text-gray-500' : Number(bal.varianceAmount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {Number(bal.varianceAmount) > 0 ? '+' : ''}Rp {Number(bal.varianceAmount).toLocaleString('id-ID')}
+                                        </div>
+                                    </div>
+                                    {bal.notes && (
+                                        <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded border">
+                                            Catatan: {bal.notes}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
                 </DialogContent>
