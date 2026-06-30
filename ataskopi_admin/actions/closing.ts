@@ -11,7 +11,8 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         throw new Error("Unauthorized")
     }
 
-    const endDate = endOfDay(new Date(targetDateStr))
+    // Use +07:00 to force Indonesia time (WIB), avoiding Node server UTC offsets
+    const endDate = new Date(targetDateStr + "T23:59:59+07:00")
 
     // 1. Find previous closing
     const lastClosing = await db.closing.findFirst({
@@ -28,8 +29,8 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
     let openingQris = 0
 
     if (lastClosing) {
-        // Start from the exact moment after the last closing, but we'll use start of the next day for simplicity if closings are daily
-        startDate = addDays(startOfDay(lastClosing.endDate), 1)
+        // Start from exactly 1 ms after the last closing ended
+        startDate = new Date(lastClosing.endDate.getTime() + 1)
         
         const cashBal = lastClosing.balances.find(b => b.paymentMethod === 'CASH')
         if (cashBal) openingCash = Number(cashBal.actualAmount)
@@ -42,7 +43,14 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
             where: { outletId },
             orderBy: { date: 'asc' }
         })
-        startDate = firstRev ? startOfDay(firstRev.date) : addDays(startOfDay(endDate), -30)
+        if (firstRev) {
+            const firstDateStr = firstRev.date.toISOString().split('T')[0]
+            startDate = new Date(firstDateStr + "T00:00:00+07:00")
+        } else {
+            const thirtyDaysAgo = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)
+            const thirtyDateStr = thirtyDaysAgo.toISOString().split('T')[0]
+            startDate = new Date(thirtyDateStr + "T00:00:00+07:00")
+        }
         openingCash = Number(outlet.modalAwal)
         openingQris = 0
     }
