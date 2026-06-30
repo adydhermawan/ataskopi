@@ -74,8 +74,7 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         where: {
             outletId,
             date: { gte: startDate, lte: endDate },
-            paymentMethod: 'CASH', // Only deduct cash purchases
-            paymentStatus: 'PAID', // Only deduct PAID purchases
+            paymentStatus: 'PAID', // Only deduct PAID purchases (includes CASH and PAYLATER)
         },
         select: { totalAmount: true }
     })
