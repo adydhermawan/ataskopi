@@ -282,7 +282,7 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>Saldo Awal Cash:</div><div className="text-right">Rp {draftData.openingCash.toLocaleString('id-ID')}</div>
                                     <div>+ Pemasukan Cash (Omset):</div><div className="text-right text-green-600">Rp {draftData.cashSales.toLocaleString('id-ID')}</div>
-                                    <div>- Pengeluaran Cash (Beli Bahan):</div><div className="text-right text-red-600">Rp {draftData.cashPurchases.toLocaleString('id-ID')}</div>
+                                    <div>- Pengeluaran Cash (Bahan & Ops):</div><div className="text-right text-red-600">Rp {draftData.cashPurchases.toLocaleString('id-ID')}</div>
                                     <div className="font-bold border-t pt-2">Ekspektasi Sistem:</div><div className="font-bold border-t pt-2 text-right">Rp {draftData.expectedCash.toLocaleString('id-ID')}</div>
                                 </div>
                                 <div className="pt-2">

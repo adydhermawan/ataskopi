@@ -69,7 +69,7 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         qrisSales += Number(rev.qrisAmount)
     }
 
-    // 3. Aggregate Purchases (Cash Out) from actual InventoryPurchases
+    // 3. Aggregate Purchases (Cash Out) from actual InventoryPurchases & Expenses
     const purchases = await db.inventoryPurchase.findMany({
         where: {
             outletId,
@@ -79,9 +79,20 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         select: { totalAmount: true }
     })
 
+    const expenses = await db.expense.findMany({
+        where: {
+            outletId,
+            date: { gte: startDate, lte: endDate }
+        },
+        select: { amount: true }
+    })
+
     let cashPurchases = 0
     for (const p of purchases) {
         cashPurchases += Number(p.totalAmount)
+    }
+    for (const e of expenses) {
+        cashPurchases += Number(e.amount)
     }
 
     // 4. Calculate Expected
