@@ -76,7 +76,10 @@ interface DashboardData {
         id: string;
         date: string;
         outletId: string;
-        amount: number;
+        amount?: number;
+        totalAmount?: number;
+        grossRevenue?: number;
+        cashAmount?: number;
         notes: string | null;
     }>;
     period: {
@@ -276,7 +279,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                     items: 0,
                 };
             }
-            aggregatedHistory[dateStr].realRevenue += Number(r.amount);
+            aggregatedHistory[dateStr].realRevenue += Number(r.grossRevenue || r.totalAmount || r.amount || r.cashAmount || 0);
         });
     }
 
@@ -758,7 +761,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                                     {outlets.find(o => o.id === log.outletId)?.name || log.outletId}
                                                 </td>
                                                 <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                                                    {formatIDR(log.grossRevenue || log.amount || log.totalAmount)}
+                                                    {formatIDR(log.grossRevenue || log.totalAmount || log.amount || log.cashAmount || 0)}
                                                 </td>
                                                 <td className="p-3 text-muted-foreground max-w-xs truncate" title={log.notes || ""}>
                                                     {log.notes || "-"}
@@ -793,7 +796,7 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                                         <div className="grid gap-3 text-sm">
                                             <div className="flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded-md border border-slate-100 dark:border-slate-800/30">
                                                 <span className="text-muted-foreground font-medium">Omset Kotor:</span>
-                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatIDR(log.grossRevenue || log.amount || log.totalAmount)}</span>
+                                                <span className="font-bold text-emerald-600 dark:text-emerald-400 text-base">{formatIDR(log.grossRevenue || log.totalAmount || log.amount || log.cashAmount || 0)}</span>
                                             </div>
                                             
                                             {log.notes && (

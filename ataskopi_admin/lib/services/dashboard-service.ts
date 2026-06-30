@@ -284,8 +284,8 @@ export class DashboardService {
             qrisAmount: r.qrisAmount.toNumber(),
             otherAmount: r.otherAmount.toNumber(),
             otherMethodName: r.otherMethodName,
-            totalAmount: r.totalAmount.toNumber(),
-            grossRevenue: r.grossRevenue.toNumber(),
+            totalAmount: r.totalAmount.toNumber() > 0 ? r.totalAmount.toNumber() : r.cashAmount.toNumber(),
+            grossRevenue: r.grossRevenue.toNumber() > 0 ? r.grossRevenue.toNumber() : r.cashAmount.toNumber(),
             cashPurchases: r.cashPurchases.toNumber(),
             webRevenue: r.webRevenue.toNumber(),
             isClosed: r.isClosed,
@@ -412,8 +412,8 @@ export class DashboardService {
             qrisAmount: r.qrisAmount.toNumber(),
             otherAmount: r.otherAmount.toNumber(),
             otherMethodName: r.otherMethodName,
-            totalAmount: r.totalAmount.toNumber(),
-            grossRevenue: r.grossRevenue.toNumber(),
+            totalAmount: r.totalAmount.toNumber() > 0 ? r.totalAmount.toNumber() : r.cashAmount.toNumber(),
+            grossRevenue: r.grossRevenue.toNumber() > 0 ? r.grossRevenue.toNumber() : r.cashAmount.toNumber(),
             cashPurchases: r.cashPurchases.toNumber(),
             webRevenue: r.webRevenue.toNumber(),
             isClosed: r.isClosed,
@@ -433,7 +433,7 @@ export class DashboardService {
         const totalRevenue = summaries.reduce((acc, curr) => acc + Number(curr.totalRevenue), 0);
         const totalOrders = summaries.reduce((acc, curr) => acc + curr.totalOrders, 0);
         const totalItems = summaries.reduce((acc, curr) => acc + curr.totalItems, 0);
-        const totalRealRevenue = realRevenues.reduce((acc, curr) => acc + curr.totalAmount, 0);
+        const totalRealRevenue = realRevenues.reduce((acc, curr) => acc + curr.grossRevenue, 0);
         const totalCashRevenue = realRevenues.reduce((acc, curr) => acc + curr.cashAmount, 0);
         const totalQrisRevenue = realRevenues.reduce((acc, curr) => acc + curr.qrisAmount, 0);
         const totalOtherRevenue = realRevenues.reduce((acc, curr) => acc + curr.otherAmount, 0);
