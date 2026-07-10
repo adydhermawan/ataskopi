@@ -19,6 +19,8 @@ import { id as idLocale } from "date-fns/locale";
 interface BalanceSheetData {
     asOfDate: Date;
     cash: number;
+    qrisBalance: number;
+    otherBalance: number;
     inventory: {
         details: Array<{
             id: string;
@@ -227,13 +229,25 @@ export function BalanceSheetClient() {
                                     <Coins className="h-4 w-4 text-blue-500" />
                                     Aset Lancar
                                 </span>
-                                <span>{formatIDR((data?.cash || 0) + (data?.inventory.totalValue || 0))}</span>
+                                <span>{formatIDR((data?.cash || 0) + (data?.qrisBalance || 0) + (data?.otherBalance || 0) + (data?.inventory.totalValue || 0))}</span>
                             </h4>
                             <div className="space-y-2 pl-2">
                                 <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">Kas / Bank (AKUN BARU)</span>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Kas Fisik</span>
                                     <span className="font-semibold text-emerald-600">{formatIDR(data?.cash || 0)}</span>
                                 </div>
+                                {(data?.qrisBalance || 0) > 0 && (
+                                    <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">Saldo QRIS</span>
+                                        <span className="font-semibold text-blue-600">{formatIDR(data?.qrisBalance || 0)}</span>
+                                    </div>
+                                )}
+                                {(data?.otherBalance || 0) > 0 && (
+                                    <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">Saldo Lainnya (Transfer, dll)</span>
+                                        <span className="font-semibold text-blue-600">{formatIDR(data?.otherBalance || 0)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center text-xs py-1 border-b border-dashed">
                                     <span className="font-medium text-slate-700 dark:text-slate-300">Persediaan Bahan Baku (Data Stok Opname)</span>
                                     <span className="font-semibold">{formatIDR(data?.inventory.totalValue || 0)}</span>

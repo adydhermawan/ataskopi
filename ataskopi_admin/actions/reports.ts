@@ -189,8 +189,18 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
             date: { lte: asOfDate }
         }
     })
-    const cumulativeRevenue = allRevenues.reduce((sum, r) => sum + Number(r.totalAmount), 0)
-    const cumulativeCashRevenue = allRevenues.reduce((sum, r) => sum + Number(r.cashAmount), 0)
+    // PENTING: Gunakan grossRevenue (omset kotor) untuk Laba Ditahan
+    // karena cashAmount sudah NETTO (dikurangi belanja cash hari itu)
+    // grossRevenue = cashAmount + cashPurchases + qrisAmount + otherAmount = omset kotor sebenarnya
+    const cumulativeGrossRevenue = allRevenues.reduce((sum, r) => {
+        const gross = Number(r.grossRevenue)
+        // Fallback: jika grossRevenue belum terisi, hitung dari komponen
+        if (gross > 0) return sum + gross
+        return sum + Number(r.cashAmount) + Number(r.cashPurchases) + Number(r.qrisAmount) + Number(r.otherAmount)
+    }, 0)
+    // Omset kas kotor = cashAmount + cashPurchases (uang yang benar-benar masuk via kas)
+    const cumulativeGrossCashRevenue = allRevenues.reduce((sum, r) => 
+        sum + Number(r.cashAmount) + Number(r.cashPurchases), 0)
     const cumulativeQrisRevenue = allRevenues.reduce((sum, r) => sum + Number(r.qrisAmount), 0)
     const cumulativeOtherRevenue = allRevenues.reduce((sum, r) => sum + Number(r.otherAmount), 0)
 
@@ -211,8 +221,8 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     })
     const cumulativeExpenses = allExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
-    // Retained earnings now include depreciation as expense (not CapEx as lump sum)
-    const retainedEarnings = cumulativeRevenue - cumulativeCogs - cumulativeExpenses - totalAccumulatedDepreciation
+    // Retained earnings: Omset Kotor - COGS - OpEx - Depresiasi
+    const retainedEarnings = cumulativeGrossRevenue - cumulativeCogs - cumulativeExpenses - totalAccumulatedDepreciation
 
     // 4. Total Purchases (all purchases, both paid and unpaid)
     const allPurchases = await prisma.inventoryPurchase.findMany({
@@ -232,11 +242,12 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     const accountsPayable = unpaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
     const accountsPayableCount = unpaidPurchases.length
 
-    // 5. Saldo Kas = Modal Awal + Total Pendapatan Kotor (KAS) - Total Pengeluaran Riil (KAS saja)
-    // Asumsi: Semua pengeluaran (OpEx, CapEx, Pembelian Cash) dibayar dari KAS Fisik
-    const cash = modalAwal + cumulativeCashRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
+    // 5. Saldo Kas = Modal Awal + Omset Kas Kotor - Pembelian PAID - OpEx - CapEx
+    // cumulativeGrossCashRevenue = cashAmount + cashPurchases = omset kas kotor
+    // Jadi: Kas = Modal + OmsetKasKotor - Pembelian - Expenses - CapEx
+    const cash = modalAwal + cumulativeGrossCashRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
     
-    // Saldo QRIS dan Lain-lain
+    // Saldo QRIS dan Lain-lain (tidak ada pengeluaran dari QRIS/other)
     const qrisBalance = cumulativeQrisRevenue
     const otherBalance = cumulativeOtherRevenue
     
