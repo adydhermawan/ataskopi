@@ -78,11 +78,39 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
     }
 
     // 3. Aggregate Purchases (Cash Out) from actual InventoryPurchases & Expenses
-    const purchases = await db.inventoryPurchase.findMany({
+
+    // 3a. Cash purchases: paid by physical cash, filtered by purchase date
+    const cashPurchaseRecords = await db.inventoryPurchase.findMany({
         where: {
             outletId,
             date: { gte: startDate, lte: endDate },
-            paymentStatus: 'PAID', // Only deduct PAID purchases (includes CASH and PAYLATER)
+            paymentStatus: 'PAID',
+            paymentMethod: 'CASH',
+            OR: [
+                { paymentSource: { in: ['Cash', 'CASH', ''] } },
+                { paymentSource: null }
+            ]
+        },
+        select: { totalAmount: true }
+    })
+
+    // 3b. Non-cash purchases: paid via bank/e-wallet/paylater settlement
+    //     Use paidAt date so PAYLATER settled in this period (even if purchased in prior period) are included
+    const nonCashPurchaseRecords = await db.inventoryPurchase.findMany({
+        where: {
+            outletId,
+            paymentStatus: 'PAID',
+            paidAt: { gte: startDate, lte: endDate },
+            OR: [
+                // PAYLATER purchases (settled via bank/e-wallet)
+                { paymentMethod: { not: 'CASH' } },
+                // CASH purchases with specific payment source (bank transfer, not physical cash)
+                {
+                    paymentMethod: 'CASH',
+                    paymentSource: { notIn: ['Cash', 'CASH', ''] },
+                    NOT: { paymentSource: null }
+                }
+            ]
         },
         select: { totalAmount: true }
     })
@@ -96,16 +124,22 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
     })
 
     let cashPurchases = 0
-    for (const p of purchases) {
+    for (const p of cashPurchaseRecords) {
         cashPurchases += Number(p.totalAmount)
     }
+    // Expenses are currently all cash-based (no payment method field)
     for (const e of expenses) {
         cashPurchases += Number(e.amount)
     }
 
+    let qrisPurchases = 0
+    for (const p of nonCashPurchaseRecords) {
+        qrisPurchases += Number(p.totalAmount)
+    }
+
     // 4. Calculate Expected
     const expectedCash = openingCash + cashSales - cashPurchases
-    const expectedQris = openingQris + qrisSales
+    const expectedQris = openingQris + qrisSales - qrisPurchases
 
     return {
         startDate,
@@ -115,6 +149,7 @@ export async function getDraftClosing(outletId: string, targetDateStr: string) {
         cashSales,
         qrisSales,
         cashPurchases,
+        qrisPurchases,
         expectedCash,
         expectedQris
     }

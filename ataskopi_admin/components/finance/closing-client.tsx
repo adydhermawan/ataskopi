@@ -330,6 +330,9 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>Saldo Awal QRIS:</div><div className="text-right">Rp {draftData.openingQris.toLocaleString('id-ID')}</div>
                                     <div>+ Pemasukan QRIS:</div><div className="text-right text-green-600">Rp {draftData.qrisSales.toLocaleString('id-ID')}</div>
+                                    {(draftData.qrisPurchases || 0) > 0 && (
+                                        <><div>- Pengeluaran Rekening (Bahan & Ops):</div><div className="text-right text-red-600">Rp {(draftData.qrisPurchases || 0).toLocaleString('id-ID')}</div></>
+                                    )}
                                     <div className="font-bold border-t pt-2">Ekspektasi Sistem:</div><div className="font-bold border-t pt-2 text-right">Rp {draftData.expectedQris.toLocaleString('id-ID')}</div>
                                 </div>
                                 <div className="pt-2">
