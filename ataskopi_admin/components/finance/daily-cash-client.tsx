@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { Plus, Search, Calendar as CalendarIcon, FileEdit, Trash2, Lock, Unlock } from "lucide-react"
+import { Plus, Search, Calendar as CalendarIcon, FileEdit, Trash2, Lock, Unlock, ShoppingCart, Package, Loader2, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,6 +46,8 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 
 import { getDailyRealRevenues, saveDailyRealRevenue, deleteDailyRealRevenue, getDailyCashReference, toggleDailyCashClose } from "@/actions/real-revenue"
+import { getRawMaterials } from "@/actions/raw-materials"
+import { createInventoryPurchase, deleteInventoryPurchase } from "@/actions/inventory-purchases"
 import { saveRealRevenueSchema } from "@/lib/validation/real-revenue-schemas"
 import { z } from "zod"
 
@@ -53,6 +55,25 @@ interface DailyCashClientProps {
     outlets: { id: string; name: string }[]
     userRole: string
     userOutletId?: string | null
+}
+
+interface RawMaterialOption {
+    id: string;
+    name: string;
+    unit: string;
+    averageCost: number;
+}
+
+interface DailyPurchaseItem {
+    id: string;
+    rawMaterialId: string;
+    rawMaterialName: string;
+    unit: string;
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+    supplier: string | null;
+    notes: string | null;
 }
 
 export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashClientProps) {
@@ -68,6 +89,22 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
     const [refLoading, setRefLoading] = useState(false)
     const [cashPurchases, setCashPurchases] = useState(0)
     const [webRevenue, setWebRevenue] = useState(0)
+    const [dailyPurchases, setDailyPurchases] = useState<DailyPurchaseItem[]>([])
+
+    // Raw materials for dropdown
+    const [rawMaterials, setRawMaterials] = useState<RawMaterialOption[]>([])
+    const [materialsLoading, setMaterialsLoading] = useState(false)
+
+    // Sub-form state for adding purchase directly
+    const [isAddingPurchase, setIsAddingPurchase] = useState(false)
+    const [purchaseMaterialId, setPurchaseMaterialId] = useState("")
+    const [purchaseQuantity, setPurchaseQuantity] = useState("")
+    const [purchaseUnitPrice, setPurchaseUnitPrice] = useState("")
+    const [purchaseTotalAmount, setPurchaseTotalAmount] = useState("")
+    const [purchaseSupplier, setPurchaseSupplier] = useState("")
+    const [purchaseNotes, setPurchaseNotes] = useState("")
+    const [isSavingPurchase, setIsSavingPurchase] = useState(false)
+    const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null)
 
     const form = useForm<z.infer<typeof saveRealRevenueSchema>>({
         resolver: zodResolver(saveRealRevenueSchema) as any,
@@ -103,8 +140,26 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
     useEffect(() => {
         if (watchDate && watchOutlet && isDialogOpen) {
             fetchReference(watchOutlet, watchDate)
+            fetchMaterials(watchOutlet)
         }
     }, [watchDate, watchOutlet, isDialogOpen])
+
+    async function fetchMaterials(outletId: string) {
+        setMaterialsLoading(true)
+        try {
+            const data = await getRawMaterials(outletId)
+            setRawMaterials(data.map(m => ({
+                id: m.id,
+                name: m.name,
+                unit: m.unit,
+                averageCost: Number(m.averageCost)
+            })))
+        } catch (err) {
+            console.error("Gagal memuat bahan baku:", err)
+        } finally {
+            setMaterialsLoading(false)
+        }
+    }
 
     async function fetchRecords() {
         setLoading(true)
@@ -124,10 +179,125 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
             const ref = await getDailyCashReference(outletId, date)
             setCashPurchases(ref.cashPurchases)
             setWebRevenue(ref.webRevenue)
+            setDailyPurchases(ref.purchasesList || [])
         } catch (error) {
             console.error(error)
         } finally {
             setRefLoading(false)
+        }
+    }
+
+    function handleMaterialSelect(materialId: string) {
+        setPurchaseMaterialId(materialId)
+        const mat = rawMaterials.find(m => m.id === materialId)
+        if (mat && mat.averageCost > 0) {
+            setPurchaseUnitPrice(mat.averageCost.toString())
+            if (purchaseQuantity) {
+                const qty = parseFloat(purchaseQuantity)
+                if (!isNaN(qty)) {
+                    setPurchaseTotalAmount(Math.round(qty * mat.averageCost).toString())
+                }
+            }
+        }
+    }
+
+    function handleQuantityChange(val: string) {
+        setPurchaseQuantity(val)
+        const qty = parseFloat(val)
+        const unitP = parseFloat(purchaseUnitPrice)
+        if (!isNaN(qty) && !isNaN(unitP) && unitP > 0) {
+            setPurchaseTotalAmount(Math.round(qty * unitP).toString())
+        }
+    }
+
+    function handleUnitPriceChange(val: string) {
+        setPurchaseUnitPrice(val)
+        const unitP = parseFloat(val)
+        const qty = parseFloat(purchaseQuantity)
+        if (!isNaN(qty) && !isNaN(unitP)) {
+            setPurchaseTotalAmount(Math.round(qty * unitP).toString())
+        }
+    }
+
+    function handleTotalAmountChange(val: string) {
+        setPurchaseTotalAmount(val)
+        const total = parseFloat(val)
+        const qty = parseFloat(purchaseQuantity)
+        if (!isNaN(total) && !isNaN(qty) && qty > 0) {
+            setPurchaseUnitPrice((total / qty).toFixed(2))
+        }
+    }
+
+    async function handleAddPurchase() {
+        if (!purchaseMaterialId) {
+            toast.error("Pilih bahan baku terlebih dahulu")
+            return
+        }
+        const qty = parseFloat(purchaseQuantity)
+        if (isNaN(qty) || qty <= 0) {
+            toast.error("Jumlah (Qty) harus lebih dari 0")
+            return
+        }
+        const total = parseFloat(purchaseTotalAmount)
+        if (isNaN(total) || total <= 0) {
+            toast.error("Total harga belanja harus lebih dari 0")
+            return
+        }
+        const unitPrice = parseFloat(purchaseUnitPrice) || (total / qty)
+
+        setIsSavingPurchase(true)
+        try {
+            const res = await createInventoryPurchase({
+                outletId: watchOutlet,
+                rawMaterialId: purchaseMaterialId,
+                date: new Date(watchDate),
+                quantity: qty,
+                unitPrice: unitPrice,
+                totalAmount: total,
+                supplier: purchaseSupplier || undefined,
+                notes: purchaseNotes || undefined,
+                paymentMethod: "CASH",
+                paymentSource: "Cash",
+                deliveryStatus: "RECEIVED"
+            })
+
+            if (res.success) {
+                toast.success(res.message || "Pembelian berhasil dicatat dan masuk ke menu Pembelian!")
+                // Reset form
+                setPurchaseMaterialId("")
+                setPurchaseQuantity("")
+                setPurchaseUnitPrice("")
+                setPurchaseTotalAmount("")
+                setPurchaseSupplier("")
+                setPurchaseNotes("")
+                setIsAddingPurchase(false)
+                // Reload reference data (which updates cashPurchases & dailyPurchases & total)
+                fetchReference(watchOutlet, watchDate)
+            } else {
+                toast.error(res.error || "Gagal menyimpan pembelian")
+            }
+        } catch (error) {
+            toast.error("Terjadi kesalahan saat menyimpan pembelian")
+        } finally {
+            setIsSavingPurchase(false)
+        }
+    }
+
+    async function handleDeleteDailyPurchase(purchaseId: string) {
+        if (!confirm("Hapus catatan pembelian ini? Stok bahan baku yang bertambah akan dikurangi kembali.")) return
+        setDeletingPurchaseId(purchaseId)
+        try {
+            const res = await deleteInventoryPurchase(purchaseId)
+            if (res.success) {
+                toast.success("Pembelian berhasil dihapus")
+                fetchReference(watchOutlet, watchDate)
+            } else {
+                toast.error(('error' in res && res.error) ? res.error : "Gagal menghapus pembelian")
+            }
+        } catch (error) {
+            toast.error("Terjadi kesalahan saat menghapus pembelian")
+        } finally {
+            setDeletingPurchaseId(null)
         }
     }
 
@@ -340,6 +510,215 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                         <p className="text-2xl font-bold text-red-500">{refLoading ? "..." : formatCurrency(cashPurchases)}</p>
                                     </CardContent>
                                 </Card>
+                            </div>
+
+                            {/* Section Rincian Belanja Harian (Cash / Nota Kasir) */}
+                            <div className="space-y-3 pt-2 bg-slate-50/50 dark:bg-slate-900/40 p-3.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-medium text-sm flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                                            <ShoppingCart className="h-4 w-4 text-red-500" />
+                                            Belanja Harian / Nota Kasir (Cash)
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            Item belanja otomatis masuk ke menu Pembelian & memperbarui stok.
+                                        </p>
+                                    </div>
+                                    {!isAddingPurchase && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                            onClick={() => setIsAddingPurchase(true)}
+                                        >
+                                            <Plus className="h-3.5 w-3.5 mr-1" /> Tambah Belanja
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Form Tambah Belanja (Sub-form) */}
+                                {isAddingPurchase && (
+                                    <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20 p-3 space-y-3">
+                                        <div className="flex items-center justify-between pb-2 border-b border-red-200 dark:border-red-900/40">
+                                            <span className="font-medium text-xs text-red-700 dark:text-red-400 flex items-center gap-1">
+                                                <Package className="h-3.5 w-3.5" /> Tambah Pembelian Bahan Baku
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-muted-foreground hover:text-red-700"
+                                                onClick={() => setIsAddingPurchase(false)}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div>
+                                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Bahan Baku *</label>
+                                                <Select value={purchaseMaterialId} onValueChange={handleMaterialSelect}>
+                                                    <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900">
+                                                        <SelectValue placeholder="-- Pilih Bahan Baku --" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {materialsLoading ? (
+                                                            <div className="p-2 text-xs text-muted-foreground text-center">Memuat bahan baku...</div>
+                                                        ) : rawMaterials.length === 0 ? (
+                                                            <div className="p-2 text-xs text-muted-foreground text-center">Tidak ada bahan baku</div>
+                                                        ) : (
+                                                            rawMaterials.map(m => (
+                                                                <SelectItem key={m.id} value={m.id} className="text-xs">
+                                                                    {m.name} ({m.unit})
+                                                                </SelectItem>
+                                                            ))
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Jumlah (Qty) *</label>
+                                                    <Input
+                                                        type="number"
+                                                        step="any"
+                                                        min="0"
+                                                        placeholder="Qty"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                                                        value={purchaseQuantity}
+                                                        onChange={(e) => handleQuantityChange(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Harga Satuan (Rp)</label>
+                                                    <Input
+                                                        type="number"
+                                                        step="any"
+                                                        min="0"
+                                                        placeholder="Rp Satuan"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                                                        value={purchaseUnitPrice}
+                                                        onChange={(e) => handleUnitPriceChange(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Total Harga (Rp) *</label>
+                                                    <Input
+                                                        type="number"
+                                                        step="any"
+                                                        min="0"
+                                                        placeholder="Rp Total"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold text-red-600"
+                                                        value={purchaseTotalAmount}
+                                                        onChange={(e) => handleTotalAmountChange(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Toko / Supplier (Opsional)</label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Nama Toko / Supplier"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                                                        value={purchaseSupplier}
+                                                        onChange={(e) => setPurchaseSupplier(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Catatan (Opsional)</label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Keterangan..."
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                                                        value={purchaseNotes}
+                                                        onChange={(e) => setPurchaseNotes(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-2 pt-1">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    onClick={() => setIsAddingPurchase(false)}
+                                                >
+                                                    Batal
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 text-xs bg-red-600 hover:bg-red-700 text-white"
+                                                    disabled={isSavingPurchase}
+                                                    onClick={handleAddPurchase}
+                                                >
+                                                    {isSavingPurchase ? (
+                                                        <>
+                                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Menyimpan...
+                                                        </>
+                                                    ) : (
+                                                        "Simpan Pembelian"
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                )}
+
+                                {/* Daftar Belanja Harian (Cash) yang sudah diinput */}
+                                {refLoading ? (
+                                    <div className="text-xs text-muted-foreground text-center py-2">Memuat rincian belanja...</div>
+                                ) : dailyPurchases.length === 0 ? (
+                                    <div className="text-xs text-slate-500 italic bg-white dark:bg-slate-900/50 p-2.5 rounded text-center border border-dashed">
+                                        Belum ada barang belanja tunai dicatat untuk tanggal ini. Klik "+ Tambah Belanja" untuk memasukkan nota kasir.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                        {dailyPurchases.map((item) => (
+                                            <div
+                                                key={item.id}
+                                                className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800 text-xs shadow-sm"
+                                            >
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                                        {item.rawMaterialName}
+                                                    </div>
+                                                    <div className="text-slate-500 text-[11px] flex gap-2">
+                                                        <span>
+                                                            {item.quantity} {item.unit} @ {formatCurrency(item.unitPrice)}
+                                                        </span>
+                                                        {item.supplier && <span className="truncate">({item.supplier})</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-red-600">
+                                                        {formatCurrency(item.totalAmount)}
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                        disabled={deletingPurchaseId === item.id}
+                                                        onClick={() => handleDeleteDailyPurchase(item.id)}
+                                                        title="Hapus Pembelian Ini"
+                                                    >
+                                                        {deletingPurchaseId === item.id ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4 pt-4 border-t">

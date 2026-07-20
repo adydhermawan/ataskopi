@@ -37,6 +37,57 @@ async function getCashPurchasesForDate(outletId: string, date: Date): Promise<nu
 }
 
 /**
+ * Fetch cash purchase items list (CASH + PAID) from InventoryPurchase for a specific date and outlet.
+ */
+async function getCashPurchasesListForDate(outletId: string, date: Date) {
+    const dateKey = new Date(format(date, "yyyy-MM-dd") + "T00:00:00Z")
+    const purchases = await prisma.inventoryPurchase.findMany({
+        where: {
+            outletId,
+            paymentMethod: 'CASH',
+            paymentStatus: 'PAID',
+            AND: [
+                {
+                    OR: [
+                        { paymentSource: { in: ['Cash', 'CASH', ''] } },
+                        { paymentSource: null }
+                    ]
+                },
+                {
+                    OR: [
+                        { omzetDate: dateKey },
+                        { omzetDate: null, date: dateKey }
+                    ]
+                }
+            ]
+        },
+        include: {
+            rawMaterial: {
+                select: {
+                    id: true,
+                    name: true,
+                    unit: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    })
+
+    return purchases.map(p => ({
+        id: p.id,
+        rawMaterialId: p.rawMaterialId,
+        rawMaterialName: p.rawMaterial.name,
+        unit: p.rawMaterial.unit,
+        quantity: Number(p.quantity),
+        unitPrice: Number(p.unitPrice),
+        totalAmount: Number(p.totalAmount),
+        supplier: p.supplier,
+        notes: p.notes,
+        createdAt: p.createdAt.toISOString()
+    }))
+}
+
+/**
  * Fetch web revenue (completed orders) for a specific date and outlet.
  */
 async function getWebRevenueForDate(outletId: string, date: Date): Promise<number> {
@@ -250,10 +301,11 @@ export async function getDailyCashReference(outletId: string, date: string) {
     await requirePermission('real_revenue', 'view')
 
     const dateObj = new Date(date)
-    const [cashPurchases, webRevenue] = await Promise.all([
+    const [cashPurchases, webRevenue, purchasesList] = await Promise.all([
         getCashPurchasesForDate(outletId, dateObj),
         getWebRevenueForDate(outletId, dateObj),
+        getCashPurchasesListForDate(outletId, dateObj),
     ])
 
-    return { cashPurchases, webRevenue }
+    return { cashPurchases, webRevenue, purchasesList }
 }
