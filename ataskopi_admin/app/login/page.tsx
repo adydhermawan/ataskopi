@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,22 @@ export default function LoginPage() {
     const [pin, setPin] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
+    const [checkingSession, setCheckingSession] = useState(true)
+
+    // Check if user already has a valid session
+    useEffect(() => {
+        fetch('/api/me')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    // User already logged in, redirect to dashboard
+                    router.replace('/dashboard')
+                } else {
+                    setCheckingSession(false)
+                }
+            })
+            .catch(() => setCheckingSession(false))
+    }, [router])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -43,6 +59,20 @@ export default function LoginPage() {
         }
     }
 
+    // Show loading while checking existing session
+    if (checkingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-800 p-4">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+                        <Coffee className="h-10 w-10" />
+                    </div>
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Memeriksa sesi...</p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-zinc-900 dark:to-zinc-800 p-4">
@@ -102,3 +132,4 @@ export default function LoginPage() {
         </div>
     )
 }
+

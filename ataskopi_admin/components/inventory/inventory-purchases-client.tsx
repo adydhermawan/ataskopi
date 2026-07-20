@@ -33,6 +33,9 @@ import {
     Clock,
     CircleDollarSign,
     Pencil,
+    Search,
+    X,
+    RotateCcw,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, addDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -105,6 +108,45 @@ const PAYMENT_SOURCE_OPTIONS = [
     { value: "Jago Ady", label: "Jago Ady" },
     { value: "Mandiri", label: "Mandiri" },
     { value: "Denik", label: "Denik" },
+];
+
+/**
+ * Auto-calculates default PayLater Due Date based on transaction date.
+ * Rule:
+ * - Average shipping & processing to completion = transaction date + 4 days.
+ * - PayLater billing cycle runs from 25th of previous month to 24th of current month.
+ * - Completed on 25th or later -> belongs to next month's bill (due 24th of next month).
+ * - Completed on or before 24th -> belongs to current month's bill (due 24th of current month).
+ */
+export function calculatePaylaterDueDate(dateStr: string): string {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return "";
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+    const day = parseInt(parts[2], 10);
+
+    const txDate = new Date(Date.UTC(year, month, day));
+    const estCompletion = addDays(txDate, 4);
+
+    const compDay = estCompletion.getUTCDate();
+    let billYear = estCompletion.getUTCFullYear();
+    let billMonth = estCompletion.getUTCMonth();
+
+    if (compDay >= 25) {
+        billMonth += 1;
+        if (billMonth > 11) {
+            billMonth = 0;
+            billYear += 1;
+        }
+    }
+
+    // Due date is the LAST DAY of the billing month (28/29/30/31)
+    const dueDate = new Date(Date.UTC(billYear, billMonth + 1, 0));
+    return dueDate.toISOString().split("T")[0];
+}
+
+const PAYMENT_METHOD_OPTIONS = [
     { value: "Shoppe Paylatter", label: "Shoppe Paylatter" },
     { value: "Gopaylatter", label: "Gopaylatter" },
 ];
@@ -164,6 +206,9 @@ export function InventoryPurchasesClient() {
     // Filters
     const [filterPayment, setFilterPayment] = useState("ALL");
     const [filterDelivery, setFilterDelivery] = useState("ALL");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterMaterial, setFilterMaterial] = useState("ALL");
+    const [filterPaymentType, setFilterPaymentType] = useState("ALL");
 
     // Summary data
     const [summary, setSummary] = useState<PurchaseSummaryData | null>(null);
@@ -317,8 +362,49 @@ export function InventoryPurchasesClient() {
     const totalPurchases = purchases.reduce((sum, p) => sum + p.totalAmount, 0);
     const totalInventoryValue = rawMaterials.reduce((sum, m) => sum + (m.currentStock * m.averageCost), 0);
 
+    const filteredPurchases = purchases.filter((p) => {
+        if (searchQuery.trim() !== "") {
+            const q = searchQuery.toLowerCase();
+            const matName = p.rawMaterial?.name?.toLowerCase() || "";
+            const supplier = p.supplier?.toLowerCase() || "";
+            const notes = p.notes?.toLowerCase() || "";
+            const matches = matName.includes(q) || supplier.includes(q) || notes.includes(q);
+            if (!matches) return false;
+        }
+
+        if (filterMaterial !== "ALL" && p.rawMaterialId !== filterMaterial) {
+            return false;
+        }
+
+        if (filterPaymentType !== "ALL") {
+            if (filterPaymentType === "CASH" || filterPaymentType === "PAYLATER") {
+                if (p.paymentMethod !== filterPaymentType) return false;
+            } else {
+                if (p.paymentSource !== filterPaymentType) return false;
+            }
+        }
+
+        return true;
+    });
+
+    const hasActiveFilters =
+        searchQuery !== "" ||
+        filterMaterial !== "ALL" ||
+        filterPaymentType !== "ALL" ||
+        filterPayment !== "ALL" ||
+        filterDelivery !== "ALL";
+
+    const resetFilters = () => {
+        setSearchQuery("");
+        setFilterMaterial("ALL");
+        setFilterPaymentType("ALL");
+        setFilterPayment("ALL");
+        setFilterDelivery("ALL");
+    };
+
     const openCreateModal = () => {
-        setFormDate(new Date().toLocaleDateString("en-CA"));
+        const todayStr = new Date().toLocaleDateString("en-CA");
+        setFormDate(todayStr);
         setFormRawMaterialId("");
         setFormQuantity("");
         setFormUnitPrice("");
@@ -327,8 +413,8 @@ export function InventoryPurchasesClient() {
         setFormNotes("");
         setFormPaymentMethod("CASH");
         setFormPaymentSource("");
-        setFormDueDate(addDays(new Date(), 30).toLocaleDateString("en-CA"));
-        setFormOmzetDate(new Date().toLocaleDateString("en-CA"));
+        setFormDueDate(calculatePaylaterDueDate(todayStr));
+        setFormOmzetDate(todayStr);
         setFormDeliveryStatus("RECEIVED");
         setIsModalOpen(true);
     };
@@ -613,33 +699,121 @@ export function InventoryPurchasesClient() {
             </div>
 
             {/* Filter bar */}
-            <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-zinc-950 p-3 rounded-lg border shadow-sm">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filter:</span>
-                <select
-                    value={filterPayment}
-                    onChange={(e) => setFilterPayment(e.target.value)}
-                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                    {FILTER_STATUS_OPTIONS.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                    ))}
-                </select>
-                <select
-                    value={filterDelivery}
-                    onChange={(e) => setFilterDelivery(e.target.value)}
-                    className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                    {FILTER_DELIVERY_OPTIONS.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                    ))}
-                </select>
+            <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-zinc-950 p-3 rounded-lg border shadow-sm">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                        type="text"
+                        placeholder="Cari bahan baku, supplier, keterangan..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-8 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Filter Bahan Baku */}
+                    <select
+                        value={filterMaterial}
+                        onChange={(e) => setFilterMaterial(e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-w-[170px] truncate"
+                    >
+                        <option value="ALL">Semua Bahan Baku</option>
+                        {rawMaterials.map((m) => (
+                            <option key={m.id} value={m.id}>
+                                {m.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Filter Jenis Pembayaran */}
+                    <select
+                        value={filterPaymentType}
+                        onChange={(e) => setFilterPaymentType(e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-w-[170px] truncate"
+                    >
+                        <option value="ALL">Semua Jenis Pembayaran</option>
+                        <optgroup label="Metode Bayar">
+                            <option value="CASH">Bayar Langsung</option>
+                            <option value="PAYLATER">Paylater / Hutang</option>
+                        </optgroup>
+                        <optgroup label="Layanan / Sumber">
+                            {PAYMENT_SOURCE_OPTIONS.filter((opt) => opt.value !== "").map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </optgroup>
+                    </select>
+
+                    {/* Filter Status Pembayaran */}
+                    <select
+                        value={filterPayment}
+                        onChange={(e) => setFilterPayment(e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                        {FILTER_STATUS_OPTIONS.map((f) => (
+                            <option key={f.value} value={f.value}>
+                                {f.label}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Filter Status Delivery */}
+                    <select
+                        value={filterDelivery}
+                        onChange={(e) => setFilterDelivery(e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-2.5 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                        {FILTER_DELIVERY_OPTIONS.map((f) => (
+                            <option key={f.value} value={f.value}>
+                                {f.label}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Reset Filters */}
+                    {hasActiveFilters && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={resetFilters}
+                            className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                            title="Reset Filter"
+                        >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Reset</span>
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Table */}
             <Card className="shadow-sm border">
                 <CardHeader className="pb-2">
-                    <CardTitle>Daftar Pembelian Bahan Baku</CardTitle>
-                    <CardDescription>Catat masuknya persediaan bahan baku. Transaksi ini menambah stok dan memperbarui harga modal rata-rata.</CardDescription>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>Daftar Pembelian Bahan Baku</CardTitle>
+                            <CardDescription>Catat masuknya persediaan bahan baku. Transaksi ini menambah stok dan memperbarui harga modal rata-rata.</CardDescription>
+                        </div>
+                        {hasActiveFilters && (
+                            <div className="text-xs text-muted-foreground font-medium">
+                                Menampilkan {filteredPurchases.length} dari {purchases.length} data
+                            </div>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -658,14 +832,16 @@ export function InventoryPurchasesClient() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {purchases.length === 0 ? (
+                                    {filteredPurchases.length === 0 ? (
                                         <tr>
                                             <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                                                Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
+                                                {hasActiveFilters
+                                                    ? "Tidak ada data pembelian yang sesuai dengan pencarian / filter."
+                                                    : "Belum ada riwayat pembelian. Klik \"Catat Pembelian\" untuk mulai."}
                                             </td>
                                         </tr>
                                     ) : (
-                                        purchases.map((p) => (
+                                        filteredPurchases.map((p) => (
                                             <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-900/50 transition-colors">
                                                 <td className="p-3 font-medium whitespace-nowrap">
                                                     <div>
@@ -754,12 +930,14 @@ export function InventoryPurchasesClient() {
 
                         {/* Mobile View */}
                         <div className="md:hidden space-y-4">
-                            {purchases.length === 0 ? (
+                            {filteredPurchases.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground border rounded-md bg-slate-50 dark:bg-zinc-900/50">
-                                    Belum ada riwayat pembelian. Klik &quot;Catat Pembelian&quot; untuk mulai.
+                                    {hasActiveFilters
+                                        ? "Tidak ada data pembelian yang sesuai dengan pencarian / filter."
+                                        : "Belum ada riwayat pembelian. Klik \"Catat Pembelian\" untuk mulai."}
                                 </div>
                             ) : (
-                                purchases.map((p) => (
+                                filteredPurchases.map((p) => (
                                     <div key={p.id} className="bg-white dark:bg-zinc-950 border rounded-lg p-4 space-y-4 shadow-sm">
                                         <div className="flex justify-between items-start border-b pb-3">
                                             <div className="space-y-1">
@@ -874,7 +1052,13 @@ export function InventoryPurchasesClient() {
                                 type="date"
                                 required
                                 value={formDate}
-                                onChange={(e) => setFormDate(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFormDate(val);
+                                    if (formPaymentMethod === "PAYLATER" && val) {
+                                        setFormDueDate(calculatePaylaterDueDate(val));
+                                    }
+                                }}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             />
                         </div>
@@ -989,7 +1173,12 @@ export function InventoryPurchasesClient() {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setFormPaymentMethod("PAYLATER")}
+                                    onClick={() => {
+                                        setFormPaymentMethod("PAYLATER");
+                                        if (formDate) {
+                                            setFormDueDate(calculatePaylaterDueDate(formDate));
+                                        }
+                                    }}
                                     className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
                                         formPaymentMethod === "PAYLATER"
                                             ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
@@ -1034,6 +1223,9 @@ export function InventoryPurchasesClient() {
                                         onChange={(e) => setFormDueDate(e.target.value)}
                                         className="flex h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
                                     />
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-tight">
+                                        💡 Otomatis dipilih berdasarkan siklus PayLater (est. barang selesai: tgl beli + 4 hari, tagihan 25–24, jatuh tempo akhir bulan). Anda tetap dapat mengubahnya.
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -1122,7 +1314,13 @@ export function InventoryPurchasesClient() {
                             type="date"
                             required
                             value={editDate}
-                            onChange={(e) => setEditDate(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setEditDate(val);
+                                if (editPaymentMethod === "PAYLATER" && val) {
+                                    setEditDueDate(calculatePaylaterDueDate(val));
+                                }
+                            }}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                     </div>
@@ -1151,6 +1349,9 @@ export function InventoryPurchasesClient() {
                                 onClick={() => {
                                     setEditPaymentMethod("PAYLATER");
                                     if (editPaymentStatus === "PAID") setEditPaymentStatus("UNPAID");
+                                    if (editDate) {
+                                        setEditDueDate(calculatePaylaterDueDate(editDate));
+                                    }
                                 }}
                                 className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
                                     editPaymentMethod === "PAYLATER"
@@ -1231,6 +1432,9 @@ export function InventoryPurchasesClient() {
                                     onChange={(e) => setEditDueDate(e.target.value)}
                                     className="flex h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
                                 />
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-tight">
+                                    💡 Otomatis dipilih berdasarkan siklus PayLater (est. barang selesai: tgl beli + 4 hari, tagihan 25–24, jatuh tempo akhir bulan). Anda tetap dapat mengubahnya.
+                                </p>
                             </div>
                         </>
                     )}
