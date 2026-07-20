@@ -303,13 +303,18 @@ export async function getDailyProfitTrend(outletId: string, startDate: Date, end
 
     return Object.entries(dailyMap)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, data]) => ({
-            date,
-            revenue: data.revenue,
-            cogs: Math.round(data.cogs),
-            expenses: data.expenses,
-            netProfit: data.revenue - Math.round(data.cogs) - data.expenses,
-        }))
+        .map(([date, data]) => {
+            const netProfit = data.revenue - Math.round(data.cogs) - data.expenses
+            const margin = data.revenue > 0 ? (netProfit / data.revenue) * 100 : 0
+            return {
+                date,
+                revenue: data.revenue,
+                cogs: Math.round(data.cogs),
+                expenses: data.expenses,
+                netProfit,
+                margin: Math.round(margin * 10) / 10,
+            }
+        })
 }
 
 export async function getAssetsROI(outletId: string) {

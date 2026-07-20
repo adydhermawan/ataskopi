@@ -53,6 +53,89 @@ const PERIOD_OPTIONS = [
     { value: "12", label: "1 Tahun" },
 ];
 
+const formatIDR = (val: number) =>
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
+
+const formatIDRShort = (val: number) => {
+    if (Math.abs(val) >= 1_000_000) return `Rp ${(val / 1_000_000).toFixed(1)}jt`;
+    if (Math.abs(val) >= 1_000) return `Rp ${(val / 1_000).toFixed(0)}rb`;
+    return `Rp ${val}`;
+};
+
+function DailyTooltip({ active, payload, label }: any) {
+    if (!active || !payload || !payload.length) return null;
+    const data = payload[0].payload;
+    const revenue = data.revenue || 0;
+    const netProfit = data.netProfit || 0;
+    const margin = data.margin ?? (revenue > 0 ? (netProfit / revenue) * 100 : 0);
+
+    return (
+        <div className="rounded-lg border bg-background p-3 shadow-md text-xs space-y-1.5 min-w-[210px]">
+            <p className="font-semibold text-foreground border-b pb-1">
+                {format(new Date(label), "dd MMMM yyyy", { locale: idLocale })}
+            </p>
+            <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                <span>Pendapatan:</span>
+                <span className="font-medium">{formatIDR(revenue)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-orange-600 dark:text-orange-400">
+                <span>COGS (HPP):</span>
+                <span className="font-medium">{formatIDR(data.cogs || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-red-600 dark:text-red-400">
+                <span>Opex:</span>
+                <span className="font-medium">{formatIDR(data.expenses || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-blue-600 dark:text-blue-400 font-semibold pt-1 border-t">
+                <span>Laba Bersih:</span>
+                <span>{formatIDR(netProfit)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 font-semibold pt-1 border-t text-slate-700 dark:text-slate-300">
+                <span>Margin Laba:</span>
+                <span className={margin >= 30 ? "text-emerald-600 dark:text-emerald-400 font-bold" : margin >= 0 ? "text-amber-600 dark:text-amber-400 font-bold" : "text-red-600 dark:text-red-400 font-bold"}>
+                    {margin.toFixed(1)}%
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function MonthlyTooltip({ active, payload, label }: any) {
+    if (!active || !payload || !payload.length) return null;
+    const data = payload[0].payload;
+    const margin = data.margin ?? 0;
+
+    return (
+        <div className="rounded-lg border bg-background p-3 shadow-md text-xs space-y-1.5 min-w-[210px]">
+            <p className="font-semibold text-foreground border-b pb-1">
+                {format(new Date(label), "MMMM yyyy", { locale: idLocale })}
+            </p>
+            <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                <span>Pendapatan:</span>
+                <span className="font-medium">{formatIDR(data.grossRevenue || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-orange-600 dark:text-orange-400">
+                <span>COGS (HPP):</span>
+                <span className="font-medium">{formatIDR(data.cogs || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-red-600 dark:text-red-400">
+                <span>Opex + Penyusutan:</span>
+                <span className="font-medium">{formatIDR(data.totalExpenses || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-blue-600 dark:text-blue-400 font-semibold pt-1 border-t">
+                <span>Laba Bersih:</span>
+                <span>{formatIDR(data.netProfit || 0)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 font-semibold pt-1 border-t text-slate-700 dark:text-slate-300">
+                <span>Margin Laba:</span>
+                <span className={margin >= 30 ? "text-emerald-600 dark:text-emerald-400 font-bold" : margin >= 0 ? "text-amber-600 dark:text-amber-400 font-bold" : "text-red-600 dark:text-red-400 font-bold"}>
+                    {margin.toFixed(1)}%
+                </span>
+            </div>
+        </div>
+    );
+}
+
 export function ProfitDashboardClient() {
     const { user } = useCurrentUser();
     const [loading, setLoading] = useState(true);
@@ -92,6 +175,7 @@ export function ProfitDashboardClient() {
         cogs: number;
         expenses: number;
         netProfit: number;
+        margin: number;
     }>>([]);
 
     useEffect(() => {
@@ -161,14 +245,7 @@ export function ProfitDashboardClient() {
         }
     }, [user, outletId, periodMonths, dateFilter, customStartDate, customEndDate]);
 
-    const formatIDR = (val: number) =>
-        new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(val);
 
-    const formatIDRShort = (val: number) => {
-        if (Math.abs(val) >= 1_000_000) return `Rp ${(val / 1_000_000).toFixed(1)}jt`;
-        if (Math.abs(val) >= 1_000) return `Rp ${(val / 1_000).toFixed(0)}rb`;
-        return `Rp ${val}`;
-    };
 
     if (loading) {
         return (
@@ -381,11 +458,7 @@ export function ProfitDashboardClient() {
                                     tickLine={false}
                                     tickFormatter={(val) => formatIDRShort(val)}
                                 />
-                                <Tooltip
-                                    formatter={(value: any, name: any) => [formatIDR(value), name]}
-                                    labelFormatter={(val) => format(new Date(val), "MMMM yyyy", { locale: idLocale })}
-                                    contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                                />
+                                <Tooltip content={<MonthlyTooltip />} />
                                 <Bar dataKey="grossRevenue" name="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} />
                                 <Bar dataKey="cogs" name="COGS (HPP)" fill="#f97316" radius={[4, 4, 0, 0]} />
                                 <Bar dataKey="totalExpenses" name="Opex + Penyusutan" fill="#ef4444" radius={[4, 4, 0, 0]} />
@@ -452,11 +525,7 @@ export function ProfitDashboardClient() {
                                     tickLine={false}
                                     tickFormatter={(val) => formatIDRShort(val)}
                                 />
-                                <Tooltip
-                                    formatter={(value: any, name: any) => [formatIDR(value), name]}
-                                    labelFormatter={(val) => format(new Date(val), "dd MMMM yyyy", { locale: idLocale })}
-                                    contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                                />
+                                <Tooltip content={<DailyTooltip />} />
                                 <Line type="monotone" dataKey="revenue" name="Pendapatan" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
                                 <Line type="monotone" dataKey="cogs" name="COGS (HPP)" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
                                 <Line type="monotone" dataKey="expenses" name="Opex" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
