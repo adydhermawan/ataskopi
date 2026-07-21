@@ -26,6 +26,14 @@ export async function createExpense(data: {
     category: string;
     amount: number;
     description?: string;
+    paymentMethod?: string;
+    paymentSource?: string;
+    paymentStatus?: string;
+    dueDate?: Date;
+    omzetDate?: Date;
+    paidAt?: Date;
+    deliveryStatus?: string;
+    receivedAt?: Date;
 }) {
     await requirePermission('finance', 'create')
     try {
@@ -36,6 +44,14 @@ export async function createExpense(data: {
                 category: data.category,
                 amount: data.amount,
                 description: data.description,
+                paymentMethod: data.paymentMethod || "CASH",
+                paymentSource: data.paymentSource,
+                paymentStatus: data.paymentStatus || "PAID",
+                dueDate: data.dueDate,
+                omzetDate: data.omzetDate,
+                paidAt: data.paidAt,
+                deliveryStatus: data.deliveryStatus || "RECEIVED",
+                receivedAt: data.receivedAt,
             }
         })
 
@@ -52,6 +68,14 @@ export async function updateExpense(id: string, data: {
     category: string;
     amount: number;
     description?: string;
+    paymentMethod?: string;
+    paymentSource?: string;
+    paymentStatus?: string;
+    dueDate?: Date;
+    omzetDate?: Date;
+    paidAt?: Date;
+    deliveryStatus?: string;
+    receivedAt?: Date;
 }) {
     await requirePermission('finance', 'update')
     try {
@@ -62,6 +86,14 @@ export async function updateExpense(id: string, data: {
                 category: data.category,
                 amount: data.amount,
                 description: data.description,
+                paymentMethod: data.paymentMethod,
+                paymentSource: data.paymentSource,
+                paymentStatus: data.paymentStatus,
+                dueDate: data.dueDate,
+                omzetDate: data.omzetDate,
+                paidAt: data.paidAt,
+                deliveryStatus: data.deliveryStatus,
+                receivedAt: data.receivedAt,
             }
         })
 

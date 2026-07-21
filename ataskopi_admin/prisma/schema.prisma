@@ -499,14 +499,22 @@ model RawMaterial {
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  outletId    String   @map("outlet_id")
-  date        DateTime @db.Date
-  category    String // e.g., OPERATIONAL, SALARY, UTILITY, RENT, OTHER
-  amount      Decimal  @db.Decimal(12, 2)
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  outletId       String    @map("outlet_id")
+  date           DateTime  @db.Date
+  category       String // e.g., OPERATIONAL, SALARY, UTILITY, RENT, OTHER
+  amount         Decimal   @db.Decimal(12, 2)
+  description    String?
+  paymentMethod  String    @default("CASH") @map("payment_method")
+  paymentSource  String?   @map("payment_source")
+  paymentStatus  String    @default("PAID") @map("payment_status")
+  dueDate        DateTime? @map("due_date") @db.Date
+  omzetDate      DateTime? @map("omzet_date") @db.Date
+  paidAt         DateTime? @map("paid_at")
+  deliveryStatus String    @default("RECEIVED") @map("delivery_status")
+  receivedAt     DateTime? @map("received_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   outlet Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
 
