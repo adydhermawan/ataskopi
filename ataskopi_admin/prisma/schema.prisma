@@ -466,6 +466,7 @@ model DailyRealRevenue {
 
   // Referensi otomatis (snapshot saat pencatatan)
   cashPurchases Decimal @default(0) @map("cash_purchases") @db.Decimal(12, 2) // Belanja cash hari itu (dari InventoryPurchase)
+  cashExpenses  Decimal @default(0) @map("cash_expenses") @db.Decimal(12, 2) // Pengeluaran cash hari itu (dari Expense)
   webRevenue    Decimal @default(0) @map("web_revenue") @db.Decimal(12, 2) // Omset dari order web (untuk perbandingan)
 
   notes     String?

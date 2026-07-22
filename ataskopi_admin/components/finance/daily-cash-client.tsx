@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { Plus, Search, Calendar as CalendarIcon, FileEdit, Trash2, Lock, Unlock, ShoppingCart, Package, Loader2, X } from "lucide-react"
+import { Plus, Search, Calendar as CalendarIcon, FileEdit, Trash2, Lock, Unlock, ShoppingCart, Package, Loader2, X, Receipt, CreditCard } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +48,7 @@ import { Badge } from "@/components/ui/badge"
 import { getDailyRealRevenues, saveDailyRealRevenue, deleteDailyRealRevenue, getDailyCashReference, toggleDailyCashClose } from "@/actions/real-revenue"
 import { getRawMaterials } from "@/actions/raw-materials"
 import { createInventoryPurchase, deleteInventoryPurchase } from "@/actions/inventory-purchases"
+import { createExpense, deleteExpense } from "@/actions/expenses"
 import { saveRealRevenueSchema } from "@/lib/validation/real-revenue-schemas"
 import { z } from "zod"
 
@@ -75,6 +76,21 @@ interface DailyPurchaseItem {
     supplier: string | null;
     notes: string | null;
 }
+
+interface DailyExpenseItem {
+    id: string;
+    category: string;
+    amount: number;
+    description: string | null;
+}
+
+const EXPENSE_CATEGORIES = [
+    { value: "OPERATIONAL", label: "Operasional" },
+    { value: "SALARY", label: "Gaji Karyawan" },
+    { value: "UTILITY", label: "Utilitas (Listrik/Air/Gas)" },
+    { value: "RENT", label: "Sewa Tempat" },
+    { value: "OTHER", label: "Lain-lain" },
+];
 
 export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashClientProps) {
     const [records, setRecords] = useState<any[]>([])
@@ -106,6 +122,16 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
     const [isSavingPurchase, setIsSavingPurchase] = useState(false)
     const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null)
 
+    // Expense sub-form state
+    const [cashExpenses, setCashExpenses] = useState(0)
+    const [dailyExpenses, setDailyExpenses] = useState<DailyExpenseItem[]>([])
+    const [isAddingExpense, setIsAddingExpense] = useState(false)
+    const [expenseCategory, setExpenseCategory] = useState("OPERATIONAL")
+    const [expenseAmount, setExpenseAmount] = useState("")
+    const [expenseDescription, setExpenseDescription] = useState("")
+    const [isSavingExpense, setIsSavingExpense] = useState(false)
+    const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null)
+
     const form = useForm<z.infer<typeof saveRealRevenueSchema>>({
         resolver: zodResolver(saveRealRevenueSchema) as any,
         defaultValues: {
@@ -127,7 +153,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
     const watchOther = form.watch("otherAmount")
 
     const computedTotal = (Number(watchCash) || 0) + (Number(watchQris) || 0) + (Number(watchOther) || 0)
-    const computedGross = computedTotal + cashPurchases
+    const computedGross = computedTotal + cashPurchases + cashExpenses
     const webDiff = computedGross - webRevenue
 
     useEffect(() => {
@@ -180,6 +206,8 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
             setCashPurchases(ref.cashPurchases)
             setWebRevenue(ref.webRevenue)
             setDailyPurchases(ref.purchasesList || [])
+            setCashExpenses(ref.cashExpenses || 0)
+            setDailyExpenses(ref.expensesList || [])
         } catch (error) {
             console.error(error)
         } finally {
@@ -298,6 +326,62 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
             toast.error("Terjadi kesalahan saat menghapus pembelian")
         } finally {
             setDeletingPurchaseId(null)
+        }
+    }
+
+    async function handleAddExpense() {
+        const amount = parseFloat(expenseAmount)
+        if (isNaN(amount) || amount <= 0) {
+            toast.error("Jumlah pengeluaran harus lebih dari 0")
+            return
+        }
+
+        setIsSavingExpense(true)
+        try {
+            const res = await createExpense({
+                outletId: watchOutlet,
+                date: new Date(watchDate + "T00:00:00Z"),
+                category: expenseCategory,
+                amount,
+                description: expenseDescription || undefined,
+                paymentMethod: "CASH",
+                paymentSource: "Cash",
+                paymentStatus: "PAID",
+                deliveryStatus: "RECEIVED",
+            })
+
+            if (res.success) {
+                toast.success("Pengeluaran berhasil dicatat dan masuk ke menu Pengeluaran!")
+                setExpenseCategory("OPERATIONAL")
+                setExpenseAmount("")
+                setExpenseDescription("")
+                setIsAddingExpense(false)
+                fetchReference(watchOutlet, watchDate)
+            } else {
+                toast.error(res.error || "Gagal menyimpan pengeluaran")
+            }
+        } catch (error) {
+            toast.error("Terjadi kesalahan saat menyimpan pengeluaran")
+        } finally {
+            setIsSavingExpense(false)
+        }
+    }
+
+    async function handleDeleteDailyExpense(expenseId: string) {
+        if (!confirm("Hapus catatan pengeluaran ini?")) return
+        setDeletingExpenseId(expenseId)
+        try {
+            const res = await deleteExpense(expenseId)
+            if (res.success) {
+                toast.success("Pengeluaran berhasil dihapus")
+                fetchReference(watchOutlet, watchDate)
+            } else {
+                toast.error(res.error || "Gagal menghapus pengeluaran")
+            }
+        } catch (error) {
+            toast.error("Terjadi kesalahan saat menghapus pengeluaran")
+        } finally {
+            setDeletingExpenseId(null)
         }
     }
 
@@ -497,7 +581,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                             </div>
 
                             {/* Reference Cards */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <Card className="bg-slate-50 dark:bg-slate-900 border-dashed">
                                     <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                                         <p className="text-sm text-muted-foreground">Omset Web (Sistem)</p>
@@ -508,6 +592,12 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                     <CardContent className="p-4 flex flex-col items-center justify-center text-center">
                                         <p className="text-sm text-muted-foreground">Belanja Harian (Cash)</p>
                                         <p className="text-2xl font-bold text-red-500">{refLoading ? "..." : formatCurrency(cashPurchases)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card className="bg-slate-50 dark:bg-slate-900 border-dashed">
+                                    <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+                                        <p className="text-sm text-muted-foreground">Pengeluaran (Cash)</p>
+                                        <p className="text-2xl font-bold text-orange-500">{refLoading ? "..." : formatCurrency(cashExpenses)}</p>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -721,6 +811,170 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                 )}
                             </div>
 
+                            {/* Section Pengeluaran Harian (Cash) */}
+                            <div className="space-y-3 pt-2 bg-orange-50/50 dark:bg-orange-950/20 p-3.5 rounded-lg border border-orange-200/80 dark:border-orange-800">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-medium text-sm flex items-center gap-2 text-orange-800 dark:text-orange-200">
+                                            <Receipt className="h-4 w-4 text-orange-500" />
+                                            Pengeluaran Harian (Cash)
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground">
+                                            Item pengeluaran otomatis masuk ke menu Pengeluaran.
+                                        </p>
+                                    </div>
+                                    {!isAddingExpense && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs border-orange-200 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
+                                            onClick={() => setIsAddingExpense(true)}
+                                        >
+                                            <Plus className="h-3.5 w-3.5 mr-1" /> Tambah Pengeluaran
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {/* Form Tambah Pengeluaran (Sub-form) */}
+                                {isAddingExpense && (
+                                    <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 p-3 space-y-3">
+                                        <div className="flex items-center justify-between pb-2 border-b border-orange-200 dark:border-orange-900/40">
+                                            <span className="font-medium text-xs text-orange-700 dark:text-orange-400 flex items-center gap-1">
+                                                <CreditCard className="h-3.5 w-3.5" /> Tambah Pengeluaran Operasional
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-muted-foreground hover:text-orange-700"
+                                                onClick={() => setIsAddingExpense(false)}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div>
+                                                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Kategori *</label>
+                                                <Select value={expenseCategory} onValueChange={setExpenseCategory}>
+                                                    <SelectTrigger className="h-8 text-xs bg-white dark:bg-slate-900">
+                                                        <SelectValue placeholder="-- Pilih Kategori --" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {EXPENSE_CATEGORIES.map(c => (
+                                                            <SelectItem key={c.value} value={c.value} className="text-xs">
+                                                                {c.label}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Jumlah (Rp) *</label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="Contoh: 50000"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold text-orange-600"
+                                                        value={expenseAmount}
+                                                        onChange={(e) => setExpenseAmount(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Keterangan (Opsional)</label>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Misal: Bayar listrik"
+                                                        className="h-8 text-xs bg-white dark:bg-slate-900"
+                                                        value={expenseDescription}
+                                                        onChange={(e) => setExpenseDescription(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-2 pt-1">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    onClick={() => setIsAddingExpense(false)}
+                                                >
+                                                    Batal
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                                                    disabled={isSavingExpense}
+                                                    onClick={handleAddExpense}
+                                                >
+                                                    {isSavingExpense ? (
+                                                        <>
+                                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Menyimpan...
+                                                        </>
+                                                    ) : (
+                                                        "Simpan Pengeluaran"
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                )}
+
+                                {/* Daftar Pengeluaran Harian (Cash) yang sudah diinput */}
+                                {refLoading ? (
+                                    <div className="text-xs text-muted-foreground text-center py-2">Memuat rincian pengeluaran...</div>
+                                ) : dailyExpenses.length === 0 ? (
+                                    <div className="text-xs text-slate-500 italic bg-white dark:bg-slate-900/50 p-2.5 rounded text-center border border-dashed">
+                                        Belum ada pengeluaran tunai dicatat untuk tanggal ini. Klik &quot;+ Tambah Pengeluaran&quot; untuk mencatat.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                        {dailyExpenses.map((item) => (
+                                            <div
+                                                key={item.id}
+                                                className="flex items-center justify-between bg-white dark:bg-slate-900 p-2 rounded border border-slate-200 dark:border-slate-800 text-xs shadow-sm"
+                                            >
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                                                        {EXPENSE_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                                                    </div>
+                                                    {item.description && (
+                                                        <div className="text-slate-500 text-[11px] truncate">
+                                                            {item.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-orange-600">
+                                                        {formatCurrency(item.amount)}
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 p-0 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                        disabled={deletingExpenseId === item.id}
+                                                        onClick={() => handleDeleteDailyExpense(item.id)}
+                                                        title="Hapus Pengeluaran Ini"
+                                                    >
+                                                        {deletingExpenseId === item.id ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="font-medium text-lg">Input Kasir</h3>
                                 
@@ -791,6 +1045,10 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                 <div className="flex justify-between">
                                     <span className="text-sm">Belanja Cash (Otomatis)</span>
                                     <span className="font-medium text-red-500">+{formatCurrency(cashPurchases)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm">Pengeluaran Cash (Otomatis)</span>
+                                    <span className="font-medium text-orange-500">+{formatCurrency(cashExpenses)}</span>
                                 </div>
                                 <div className="flex justify-between border-t pt-2 mt-2 font-bold text-lg">
                                     <span>Omset Kotor (Hari Ini)</span>

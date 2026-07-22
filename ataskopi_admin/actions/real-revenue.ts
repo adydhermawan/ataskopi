@@ -88,6 +88,73 @@ async function getCashPurchasesListForDate(outletId: string, date: Date) {
 }
 
 /**
+ * Fetch cash expenses (CASH + PAID) from Expense for a specific date and outlet.
+ * This represents the amount of cash used for operational expenses on that day.
+ */
+async function getCashExpensesForDate(outletId: string, date: Date): Promise<number> {
+    const dateKey = new Date(format(date, "yyyy-MM-dd") + "T00:00:00Z")
+    const expenses = await prisma.expense.findMany({
+        where: {
+            outletId,
+            paymentMethod: 'CASH',
+            paymentStatus: 'PAID',
+            AND: [
+                {
+                    OR: [
+                        { paymentSource: { in: ['Cash', 'CASH', ''] } },
+                        { paymentSource: null }
+                    ]
+                },
+                {
+                    OR: [
+                        { omzetDate: dateKey },
+                        { omzetDate: null, date: dateKey }
+                    ]
+                }
+            ]
+        }
+    })
+    return expenses.reduce((sum, e) => sum + Number(e.amount), 0)
+}
+
+/**
+ * Fetch cash expense items list (CASH + PAID) from Expense for a specific date and outlet.
+ */
+async function getCashExpensesListForDate(outletId: string, date: Date) {
+    const dateKey = new Date(format(date, "yyyy-MM-dd") + "T00:00:00Z")
+    const expenses = await prisma.expense.findMany({
+        where: {
+            outletId,
+            paymentMethod: 'CASH',
+            paymentStatus: 'PAID',
+            AND: [
+                {
+                    OR: [
+                        { paymentSource: { in: ['Cash', 'CASH', ''] } },
+                        { paymentSource: null }
+                    ]
+                },
+                {
+                    OR: [
+                        { omzetDate: dateKey },
+                        { omzetDate: null, date: dateKey }
+                    ]
+                }
+            ]
+        },
+        orderBy: { createdAt: 'desc' }
+    })
+
+    return expenses.map(e => ({
+        id: e.id,
+        category: e.category,
+        amount: Number(e.amount),
+        description: e.description,
+        createdAt: e.createdAt.toISOString()
+    }))
+}
+
+/**
  * Fetch web revenue (completed orders) for a specific date and outlet.
  */
 async function getWebRevenueForDate(outletId: string, date: Date): Promise<number> {
@@ -171,11 +238,12 @@ export async function saveDailyRealRevenue(rawData: any) {
 
     // Auto-fetch reference data
     const cashPurchases = await getCashPurchasesForDate(outletId, dateObj)
+    const cashExpenses = await getCashExpensesForDate(outletId, dateObj)
     const webRevenue = await getWebRevenueForDate(outletId, dateObj)
 
     // Compute totals
     const totalAmount = cashAmount + qrisAmount + (otherAmount || 0)
-    const grossRevenue = totalAmount + cashPurchases
+    const grossRevenue = totalAmount + cashPurchases + cashExpenses
 
     try {
         if (id) {
@@ -198,6 +266,7 @@ export async function saveDailyRealRevenue(rawData: any) {
                     totalAmount,
                     grossRevenue,
                     cashPurchases,
+                    cashExpenses,
                     webRevenue,
                     notes: notes || null
                 }
@@ -221,6 +290,7 @@ export async function saveDailyRealRevenue(rawData: any) {
                     totalAmount,
                     grossRevenue,
                     cashPurchases,
+                    cashExpenses,
                     webRevenue,
                     notes: notes || null
                 },
@@ -232,6 +302,7 @@ export async function saveDailyRealRevenue(rawData: any) {
                     totalAmount,
                     grossRevenue,
                     cashPurchases,
+                    cashExpenses,
                     webRevenue,
                     notes: notes || null
                 }
@@ -301,11 +372,13 @@ export async function getDailyCashReference(outletId: string, date: string) {
     await requirePermission('real_revenue', 'view')
 
     const dateObj = new Date(date)
-    const [cashPurchases, webRevenue, purchasesList] = await Promise.all([
+    const [cashPurchases, webRevenue, purchasesList, cashExpenses, expensesList] = await Promise.all([
         getCashPurchasesForDate(outletId, dateObj),
         getWebRevenueForDate(outletId, dateObj),
         getCashPurchasesListForDate(outletId, dateObj),
+        getCashExpensesForDate(outletId, dateObj),
+        getCashExpensesListForDate(outletId, dateObj),
     ])
 
-    return { cashPurchases, webRevenue, purchasesList }
+    return { cashPurchases, webRevenue, purchasesList, cashExpenses, expensesList }
 }
