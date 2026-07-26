@@ -50,6 +50,7 @@ import { getRawMaterials } from "@/actions/raw-materials"
 import { createInventoryPurchase, deleteInventoryPurchase } from "@/actions/inventory-purchases"
 import { createExpense, deleteExpense } from "@/actions/expenses"
 import { saveRealRevenueSchema } from "@/lib/validation/real-revenue-schemas"
+import { evaluateMathExpression, formatCurrency } from "@/lib/utils"
 import { z } from "zod"
 
 interface DailyCashClientProps {
@@ -138,9 +139,9 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
             id: null,
             date: format(new Date(), 'yyyy-MM-dd'),
             outletId: selectedOutlet,
-            cashAmount: 0,
-            qrisAmount: 0,
-            otherAmount: 0,
+            cashAmount: "" as any,
+            qrisAmount: "" as any,
+            otherAmount: "" as any,
             otherMethodName: "",
             notes: ""
         }
@@ -215,14 +216,25 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
         }
     }
 
+    const getFormulaPreview = (val: string, isCurrency = false) => {
+        if (!val || typeof val !== "string") return null;
+        const hasOperator = /[xX×\*\/\+\-]/.test(val);
+        if (!hasOperator) return null;
+        const evaluated = evaluateMathExpression(val);
+        if (evaluated === null) return null;
+        return isCurrency 
+            ? `= ${formatCurrency(evaluated)}`
+            : `= ${evaluated.toLocaleString("id-ID")}`;
+    };
+
     function handleMaterialSelect(materialId: string) {
         setPurchaseMaterialId(materialId)
         const mat = rawMaterials.find(m => m.id === materialId)
         if (mat && mat.averageCost > 0) {
             setPurchaseUnitPrice(mat.averageCost.toString())
             if (purchaseQuantity) {
-                const qty = parseFloat(purchaseQuantity)
-                if (!isNaN(qty)) {
+                const qty = evaluateMathExpression(purchaseQuantity)
+                if (qty !== null && qty > 0) {
                     setPurchaseTotalAmount(Math.round(qty * mat.averageCost).toString())
                 }
             }
@@ -231,27 +243,30 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
 
     function handleQuantityChange(val: string) {
         setPurchaseQuantity(val)
-        const qty = parseFloat(val)
-        const unitP = parseFloat(purchaseUnitPrice)
-        if (!isNaN(qty) && !isNaN(unitP) && unitP > 0) {
+        const qty = evaluateMathExpression(val)
+        const unitP = evaluateMathExpression(purchaseUnitPrice)
+        const totalP = evaluateMathExpression(purchaseTotalAmount)
+        if (totalP !== null && qty !== null && qty > 0) {
+            setPurchaseUnitPrice((totalP / qty).toFixed(2))
+        } else if (qty !== null && unitP !== null && unitP > 0) {
             setPurchaseTotalAmount(Math.round(qty * unitP).toString())
         }
     }
 
     function handleUnitPriceChange(val: string) {
         setPurchaseUnitPrice(val)
-        const unitP = parseFloat(val)
-        const qty = parseFloat(purchaseQuantity)
-        if (!isNaN(qty) && !isNaN(unitP)) {
+        const unitP = evaluateMathExpression(val)
+        const qty = evaluateMathExpression(purchaseQuantity)
+        if (qty !== null && unitP !== null && qty > 0) {
             setPurchaseTotalAmount(Math.round(qty * unitP).toString())
         }
     }
 
     function handleTotalAmountChange(val: string) {
         setPurchaseTotalAmount(val)
-        const total = parseFloat(val)
-        const qty = parseFloat(purchaseQuantity)
-        if (!isNaN(total) && !isNaN(qty) && qty > 0) {
+        const total = evaluateMathExpression(val)
+        const qty = evaluateMathExpression(purchaseQuantity)
+        if (total !== null && qty !== null && qty > 0) {
             setPurchaseUnitPrice((total / qty).toFixed(2))
         }
     }
@@ -261,17 +276,17 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
             toast.error("Pilih bahan baku terlebih dahulu")
             return
         }
-        const qty = parseFloat(purchaseQuantity)
-        if (isNaN(qty) || qty <= 0) {
-            toast.error("Jumlah (Qty) harus lebih dari 0")
+        const qty = evaluateMathExpression(purchaseQuantity)
+        if (qty === null || qty <= 0) {
+            toast.error("Jumlah (Qty) tidak valid atau harus lebih dari 0")
             return
         }
-        const total = parseFloat(purchaseTotalAmount)
-        if (isNaN(total) || total <= 0) {
-            toast.error("Total harga belanja harus lebih dari 0")
+        const total = evaluateMathExpression(purchaseTotalAmount)
+        if (total === null || total <= 0) {
+            toast.error("Total harga belanja tidak valid atau harus lebih dari 0")
             return
         }
-        const unitPrice = parseFloat(purchaseUnitPrice) || (total / qty)
+        const unitPrice = evaluateMathExpression(purchaseUnitPrice) || (total / qty)
 
         setIsSavingPurchase(true)
         try {
@@ -461,9 +476,9 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                         id: null,
                         date: format(new Date(), 'yyyy-MM-dd'),
                         outletId: selectedOutlet,
-                        cashAmount: 0,
-                        qrisAmount: 0,
-                        otherAmount: 0,
+                        cashAmount: "" as any,
+                        qrisAmount: "" as any,
+                        otherAmount: "" as any,
                         otherMethodName: "",
                         notes: ""
                     })
@@ -672,38 +687,50 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                                 <div>
                                                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Jumlah (Qty) *</label>
                                                     <Input
-                                                        type="number"
-                                                        step="any"
-                                                        min="0"
-                                                        placeholder="Qty"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="misal: 3*2500"
                                                         className="h-8 text-xs bg-white dark:bg-slate-900"
                                                         value={purchaseQuantity}
                                                         onChange={(e) => handleQuantityChange(e.target.value)}
                                                     />
+                                                    {getFormulaPreview(purchaseQuantity) && (
+                                                        <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                                            {getFormulaPreview(purchaseQuantity)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Harga Satuan (Rp)</label>
                                                     <Input
-                                                        type="number"
-                                                        step="any"
-                                                        min="0"
-                                                        placeholder="Rp Satuan"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="misal: 5000/2"
                                                         className="h-8 text-xs bg-white dark:bg-slate-900"
                                                         value={purchaseUnitPrice}
                                                         onChange={(e) => handleUnitPriceChange(e.target.value)}
                                                     />
+                                                    {getFormulaPreview(purchaseUnitPrice, true) && (
+                                                        <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                                            {getFormulaPreview(purchaseUnitPrice, true)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Total Harga (Rp) *</label>
                                                     <Input
-                                                        type="number"
-                                                        step="any"
-                                                        min="0"
-                                                        placeholder="Rp Total"
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="misal: 10000+5000"
                                                         className="h-8 text-xs bg-white dark:bg-slate-900 font-semibold text-red-600"
                                                         value={purchaseTotalAmount}
                                                         onChange={(e) => handleTotalAmountChange(e.target.value)}
                                                     />
+                                                    {getFormulaPreview(purchaseTotalAmount, true) && (
+                                                        <div className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                                            {getFormulaPreview(purchaseTotalAmount, true)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -978,7 +1005,7 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="font-medium text-lg">Input Kasir</h3>
                                 
-                                <FormField
+                                 <FormField
                                     control={form.control as any}
                                     name="cashAmount"
                                     render={({ field }) => (
@@ -986,7 +1013,14 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                             <FormLabel>Kas Fisik (Uang di Laci)</FormLabel>
                                             <FormDescription>Jumlah uang tunai aktual di akhir shift</FormDescription>
                                             <FormControl>
-                                                <Input type="number" min="0" {...field} />
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="0"
+                                                    {...field}
+                                                    value={field.value === 0 || field.value === "" || field.value === null || field.value === undefined ? "" : field.value}
+                                                    onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -1000,7 +1034,14 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                         <FormItem>
                                             <FormLabel>Penjualan QRIS</FormLabel>
                                             <FormControl>
-                                                <Input type="number" min="0" {...field} />
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    placeholder="0"
+                                                    {...field}
+                                                    value={field.value === 0 || field.value === "" || field.value === null || field.value === undefined ? "" : field.value}
+                                                    onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -1015,7 +1056,14 @@ export function DailyCashClient({ outlets, userRole, userOutletId }: DailyCashCl
                                             <FormItem>
                                                 <FormLabel>Nominal Lain-lain (Opsional)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" min="0" {...field} />
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        placeholder="0"
+                                                        {...field}
+                                                        value={field.value === 0 || field.value === "" || field.value === null || field.value === undefined ? "" : field.value}
+                                                        onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

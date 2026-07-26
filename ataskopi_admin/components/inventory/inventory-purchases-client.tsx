@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, addDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { evaluateMathExpression, formatCurrency } from "@/lib/utils";
 
 interface RawMaterialOption {
     id: string;
@@ -421,39 +422,71 @@ export function InventoryPurchasesClient() {
 
     const selectedMaterial = rawMaterials.find((m) => m.id === formRawMaterialId);
 
+    // Helper to render formula result preview
+    const getFormulaPreview = (val: string, isCurrency = false) => {
+        if (!val || typeof val !== "string") return null;
+        const hasOperator = /[xX×\*\/\+\-]/.test(val);
+        if (!hasOperator) return null;
+        const evaluated = evaluateMathExpression(val);
+        if (evaluated === null) return null;
+        return isCurrency 
+            ? `= ${formatCurrency(evaluated)}`
+            : `= ${evaluated.toLocaleString("id-ID")}`;
+    };
+
     // Auto-calculate unitPrice if totalAmount & quantity are filled
     const handleQuantityChange = (val: string) => {
         setFormQuantity(val);
-        if (formTotalAmount && val && Number(val) > 0) {
-            setFormUnitPrice((Number(formTotalAmount) / Number(val)).toFixed(2));
-        } else if (formUnitPrice && val && Number(val) > 0) {
-            setFormTotalAmount((Number(formUnitPrice) * Number(val)).toFixed(0));
+        const qtyNum = evaluateMathExpression(val);
+        const totalNum = evaluateMathExpression(formTotalAmount);
+        const unitPriceNum = evaluateMathExpression(formUnitPrice);
+
+        if (totalNum !== null && qtyNum !== null && qtyNum > 0) {
+            setFormUnitPrice((totalNum / qtyNum).toFixed(2));
+        } else if (unitPriceNum !== null && qtyNum !== null && qtyNum > 0) {
+            setFormTotalAmount((unitPriceNum * qtyNum).toFixed(0));
         }
     };
 
     const handleUnitPriceChange = (val: string) => {
         setFormUnitPrice(val);
-        if (formQuantity && val && Number(formQuantity) > 0) {
-            setFormTotalAmount((Number(formQuantity) * Number(val)).toFixed(0));
+        const unitPriceNum = evaluateMathExpression(val);
+        const qtyNum = evaluateMathExpression(formQuantity);
+
+        if (qtyNum !== null && unitPriceNum !== null && qtyNum > 0) {
+            setFormTotalAmount((qtyNum * unitPriceNum).toFixed(0));
         }
     };
 
     const handleTotalAmountChange = (val: string) => {
         setFormTotalAmount(val);
-        if (formQuantity && val && Number(formQuantity) > 0) {
-            setFormUnitPrice((Number(val) / Number(formQuantity)).toFixed(2));
+        const totalNum = evaluateMathExpression(val);
+        const qtyNum = evaluateMathExpression(formQuantity);
+
+        if (qtyNum !== null && totalNum !== null && qtyNum > 0) {
+            setFormUnitPrice((totalNum / qtyNum).toFixed(2));
         }
     };
 
     const handleFormSubmit = async (ev: React.FormEvent) => {
         ev.preventDefault();
         if (!outletId || !formRawMaterialId || !formQuantity || !formTotalAmount) return;
+
+        const qty = evaluateMathExpression(formQuantity);
+        const total = evaluateMathExpression(formTotalAmount);
+        const unitPriceVal = evaluateMathExpression(formUnitPrice) || (qty && total ? total / qty : 0);
+
+        if (qty === null || qty <= 0) {
+            toast.error("Jumlah Beli tidak valid atau harus lebih dari 0");
+            return;
+        }
+        if (total === null || total <= 0) {
+            toast.error("Total Harga tidak valid atau harus lebih dari 0");
+            return;
+        }
+
         setFormSubmitting(true);
         try {
-            const qty = Number(formQuantity);
-            const total = Number(formTotalAmount);
-            const unitPriceVal = Number(formUnitPrice) || (total / qty);
-
             const res = await createInventoryPurchase({
                 outletId,
                 rawMaterialId: formRawMaterialId,
@@ -1088,40 +1121,53 @@ export function InventoryPurchasesClient() {
                                         Jumlah Beli ({selectedMaterial.unit}) *
                                     </label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         required
-                                        min="0.01"
-                                        step="0.01"
-                                        placeholder="0"
+                                        placeholder="misal: 3*2500"
                                         value={formQuantity}
                                         onChange={(e) => handleQuantityChange(e.target.value)}
                                         className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     />
+                                    {getFormulaPreview(formQuantity) && (
+                                        <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                            {getFormulaPreview(formQuantity)} {selectedMaterial.unit}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-muted-foreground">Harga per unit *</label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         required
-                                        min="0"
-                                        step="0.01"
-                                        placeholder="0"
+                                        placeholder="misal: 5000/2"
                                         value={formUnitPrice}
                                         onChange={(e) => handleUnitPriceChange(e.target.value)}
                                         className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     />
+                                    {getFormulaPreview(formUnitPrice, true) && (
+                                        <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                            {getFormulaPreview(formUnitPrice, true)}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-muted-foreground">Total Harga (Rp) *</label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="decimal"
                                         required
-                                        min="0"
-                                        placeholder="0"
+                                        placeholder="misal: 10000+5000"
                                         value={formTotalAmount}
                                         onChange={(e) => handleTotalAmountChange(e.target.value)}
                                         className="flex h-9 w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     />
+                                    {getFormulaPreview(formTotalAmount, true) && (
+                                        <div className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                                            {getFormulaPreview(formTotalAmount, true)}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -1133,16 +1179,16 @@ export function InventoryPurchasesClient() {
                                         Harga modal rata-rata saat ini: <strong>{formatIDR(selectedMaterial.averageCost)}/{selectedMaterial.unit}</strong>
                                     </span>
                                 </div>
-                                {Number(formUnitPrice) > 0 && (
+                                {((evaluateMathExpression(formUnitPrice) || 0) > 0) && (
                                     <div className="flex items-center gap-1.5 text-xs">
                                         <span className="text-muted-foreground">Perubahan harga:</span>
-                                        {Number(formUnitPrice) > selectedMaterial.averageCost ? (
+                                        {(evaluateMathExpression(formUnitPrice) || 0) > selectedMaterial.averageCost ? (
                                             <span className="text-red-500 font-semibold">
-                                                Lebih mahal {((Number(formUnitPrice) - selectedMaterial.averageCost) / (selectedMaterial.averageCost || 1) * 100).toFixed(1)}% dari rata-rata
+                                                Lebih mahal {((((evaluateMathExpression(formUnitPrice) || 0) - selectedMaterial.averageCost) / (selectedMaterial.averageCost || 1)) * 100).toFixed(1)}% dari rata-rata
                                             </span>
-                                        ) : Number(formUnitPrice) < selectedMaterial.averageCost ? (
+                                        ) : (evaluateMathExpression(formUnitPrice) || 0) < selectedMaterial.averageCost ? (
                                             <span className="text-green-500 font-semibold">
-                                                Lebih murah {((selectedMaterial.averageCost - Number(formUnitPrice)) / (selectedMaterial.averageCost || 1) * 100).toFixed(1)}% dari rata-rata
+                                                Lebih murah {((selectedMaterial.averageCost - (evaluateMathExpression(formUnitPrice) || 0)) / (selectedMaterial.averageCost || 1) * 100).toFixed(1)}% dari rata-rata
                                             </span>
                                         ) : (
                                             <span className="text-slate-500">Sama dengan rata-rata</span>

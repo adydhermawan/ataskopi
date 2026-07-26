@@ -50,3 +50,42 @@ export function parsePrismaDecimal(val: any): number {
   return 0;
 }
 
+/**
+ * Safely evaluates a math expression string containing numbers and +, -, *, /, x, X, (), commas.
+ * Returns null if invalid or cannot be evaluated to a finite number.
+ */
+export function evaluateMathExpression(expr: string | number | null | undefined): number | null {
+  if (expr === null || expr === undefined || expr === "") return null;
+  if (typeof expr === "number") return isNaN(expr) || !isFinite(expr) ? null : expr;
+
+  const str = String(expr).trim();
+  if (!str) return null;
+
+  // Direct numeric parse check
+  const directNum = Number(str);
+  if (!isNaN(directNum) && isFinite(directNum)) {
+    return directNum;
+  }
+
+  // Normalize math symbols: replace 'x', 'X', '×' with '*', replace ',' with '.'
+  const cleanExpr = str.replace(/[xX×]/g, "*").replace(/,/g, ".").trim();
+
+  // Check if it only contains allowed arithmetic chars: digits 0-9, spaces, +, -, *, /, (, ), .
+  if (!/^[0-9\s\+\-\*\/\(\)\.]+$/.test(cleanExpr)) {
+    return null;
+  }
+
+  try {
+    const fn = new Function(`"use strict"; return (${cleanExpr});`);
+    const result = fn();
+    if (typeof result === "number" && !isNaN(result) && isFinite(result)) {
+      return result;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+
