@@ -519,19 +519,24 @@ export function DashboardClient({ outletId: initialOutletId }: { outletId?: stri
                             {criticalMaterials.map((item) => {
                                 const status = item.projection.status;
                                 const days = item.projection.projectedDays;
+                                const estStock = item.projection.estimatedStock;
+                                const unitStr = item.unit ? ` ${item.unit}` : "";
+                                const stockInfo = estStock !== null ? `${estStock}${unitStr}` : null;
+                                const daysInfo = days !== null ? `~${days} hr` : null;
+                                const detailText = stockInfo && daysInfo ? `${stockInfo} (${daysInfo})` : stockInfo || daysInfo || "";
                                 
                                 let badgeColor = "";
                                 let badgeText = "";
                                 
                                 if (status === 'HABIS') {
                                     badgeColor = "bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-900/30";
-                                    badgeText = "HABIS";
+                                    badgeText = `HABIS (0${unitStr})`;
                                 } else if (status === 'KRITIS') {
                                     badgeColor = "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-900/30";
-                                    badgeText = `KRITIS (~${days} hari)`;
+                                    badgeText = `KRITIS ${detailText}`;
                                 } else if (status === 'SEGERA_BELI') {
                                     badgeColor = "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30";
-                                    badgeText = `SEGERA BELI (~${days} hari)`;
+                                    badgeText = `SEGERA BELI ${detailText}`;
                                 }
 
                                 return (

@@ -359,6 +359,52 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                 </div>
                             </div>
 
+                            <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                                <h3 className="text-base font-semibold border-b pb-2">3. Ringkasan Total Keseluruhan</h3>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="text-muted-foreground">Total Ekspektasi Sistem (Cash + QRIS):</div>
+                                    <div className="text-right font-medium">Rp {((draftData.expectedCash || 0) + (draftData.expectedQris || 0)).toLocaleString('id-ID')}</div>
+
+                                    <div className="text-muted-foreground">Total Aktual (Cash + QRIS):</div>
+                                    <div className="text-right font-medium text-blue-600">
+                                        {actualCash === "" && actualQris === "" ? (
+                                            <span className="text-muted-foreground italic font-normal">Belum diisi</span>
+                                        ) : (
+                                            `Rp ${((actualCash === "" ? 0 : Number(actualCash)) + (actualQris === "" ? 0 : Number(actualQris))).toLocaleString('id-ID')}`
+                                        )}
+                                    </div>
+
+                                    <div className="font-bold border-t pt-2">Total Selisih Keseluruhan:</div>
+                                    <div className="border-t pt-2 text-right">
+                                        {actualCash === "" && actualQris === "" ? (
+                                            <span className="text-muted-foreground font-medium">Rp 0</span>
+                                        ) : (
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <span className={`font-bold ${
+                                                    ((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) === 0
+                                                        ? 'text-green-600'
+                                                        : ((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) < 0
+                                                            ? 'text-red-500'
+                                                            : 'text-green-600'
+                                                }`}>
+                                                    {((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) > 0 ? '+' : ''}
+                                                    Rp {((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)).toLocaleString('id-ID')}
+                                                </span>
+                                                {((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) === 0 && (
+                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1.5 py-0">Sesuai</Badge>
+                                                )}
+                                                {((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) < 0 && (
+                                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-[10px] px-1.5 py-0">Defisit</Badge>
+                                                )}
+                                                {((actualCash !== "" ? Number(actualCash) - draftData.expectedCash : 0) + (actualQris !== "" ? Number(actualQris) - draftData.expectedQris : 0)) > 0 && (
+                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] px-1.5 py-0">Surplus</Badge>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="space-y-2 border-t pt-4">
                                 <label className="text-sm font-medium">Catatan Tambahan (Opsional)</label>
                                 <Textarea 

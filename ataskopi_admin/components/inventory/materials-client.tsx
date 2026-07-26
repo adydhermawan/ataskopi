@@ -63,7 +63,7 @@ const STATUS_PRIORITY: Record<StockProjection['status'], number> = {
     'NO_DATA': 5,
 };
 
-function ProjectionBadge({ projection }: { projection: StockProjection | undefined }) {
+function ProjectionBadge({ projection, unit }: { projection: StockProjection | undefined; unit?: string }) {
     if (!projection) {
         return (
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-zinc-800 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -71,6 +71,19 @@ function ProjectionBadge({ projection }: { projection: StockProjection | undefin
                 Memuat...
             </span>
         );
+    }
+
+    const unitStr = unit ? ` ${unit}` : '';
+    const estStock = projection.estimatedStock;
+    const days = projection.projectedDays;
+
+    let displayLabel = 'Data belum cukup';
+    if (estStock !== null && days !== null) {
+        displayLabel = `${estStock}${unitStr} (~${days} hr)`;
+    } else if (days !== null) {
+        displayLabel = `~${days} hari`;
+    } else if (estStock !== null) {
+        displayLabel = `${estStock}${unitStr}`;
     }
 
     const configs: Record<StockProjection['status'], {
@@ -81,34 +94,34 @@ function ProjectionBadge({ projection }: { projection: StockProjection | undefin
         icon?: React.ReactNode;
     }> = {
         'HABIS': {
-            label: 'HABIS',
+            label: `HABIS (0${unitStr})`,
             bgClass: 'bg-red-100 dark:bg-red-950/50',
             textClass: 'text-red-700 dark:text-red-400',
             dotClass: 'bg-red-500',
             icon: <AlertTriangle className="h-3 w-3" />,
         },
         'KRITIS': {
-            label: `~${projection.projectedDays} hari`,
+            label: displayLabel,
             bgClass: 'bg-red-100 dark:bg-red-950/50',
             textClass: 'text-red-700 dark:text-red-400',
             dotClass: 'bg-red-500 animate-pulse',
             icon: <AlertTriangle className="h-3 w-3" />,
         },
         'SEGERA_BELI': {
-            label: `~${projection.projectedDays} hari`,
+            label: displayLabel,
             bgClass: 'bg-amber-100 dark:bg-amber-950/50',
             textClass: 'text-amber-700 dark:text-amber-400',
             dotClass: 'bg-amber-500',
             icon: <TrendingDown className="h-3 w-3" />,
         },
         'PERHATIKAN': {
-            label: `~${projection.projectedDays} hari`,
+            label: displayLabel,
             bgClass: 'bg-orange-100 dark:bg-orange-950/50',
             textClass: 'text-orange-700 dark:text-orange-400',
             dotClass: 'bg-orange-500',
         },
         'AMAN': {
-            label: `~${projection.projectedDays} hari`,
+            label: displayLabel,
             bgClass: 'bg-emerald-100 dark:bg-emerald-950/50',
             textClass: 'text-emerald-700 dark:text-emerald-400',
             dotClass: 'bg-emerald-500',
@@ -133,7 +146,7 @@ function ProjectionBadge({ projection }: { projection: StockProjection | undefin
             </span>
             {projection.avgDailyUsage > 0 && (
                 <span className="text-[10px] text-muted-foreground">
-                    ~{projection.avgDailyUsage}/{projection.opnameCount > 0 ? 'hari aktif' : 'hari'}
+                    ~{projection.avgDailyUsage}{unitStr}/hari
                 </span>
             )}
         </div>
@@ -537,7 +550,7 @@ export function MaterialsClient() {
                                                     <td className="p-3 text-right font-medium whitespace-nowrap">{formatIDR(m.currentStock * m.averageCost)}</td>
                                                     <td className="p-3 text-muted-foreground text-right whitespace-nowrap">{m.packagingWeight > 0 ? `${m.packagingWeight} ${m.unit}` : "-"}</td>
                                                     <td className="p-3 whitespace-nowrap">
-                                                        <ProjectionBadge projection={proj} />
+                                                        <ProjectionBadge projection={proj} unit={m.unit} />
                                                     </td>
                                                     <td className="p-3 text-right whitespace-nowrap">
                                                         <div className="flex justify-end gap-1">
@@ -586,7 +599,7 @@ export function MaterialsClient() {
                                                         <span>Satuan: {m.unit}</span>
                                                     </div>
                                                 </div>
-                                                <ProjectionBadge projection={proj} />
+                                                <ProjectionBadge projection={proj} unit={m.unit} />
                                             </div>
                                             
                                             <div className="grid grid-cols-2 gap-3 text-sm">
