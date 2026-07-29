@@ -468,6 +468,33 @@ export function ClosingClient({ outlets, userRole, userOutletId }: ClosingClient
                                     )}
                                 </div>
                             ))}
+
+                            {/* Total Keseluruhan */}
+                            {(() => {
+                                const totalSystem = viewDetailRecord.balances.reduce((sum: number, b: any) => sum + Number(b.systemAmount), 0)
+                                const totalActual = viewDetailRecord.balances.reduce((sum: number, b: any) => sum + Number(b.actualAmount), 0)
+                                const totalVariance = viewDetailRecord.balances.reduce((sum: number, b: any) => sum + Number(b.varianceAmount), 0)
+                                return (
+                                    <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+                                        <h4 className="font-semibold border-b pb-2">3. Total Keseluruhan</h4>
+                                        <div className="text-sm grid grid-cols-2 gap-2">
+                                            <div className="text-gray-500">Total Ekspektasi Sistem:</div>
+                                            <div className="text-right font-medium">Rp {totalSystem.toLocaleString('id-ID')}</div>
+                                            
+                                            <div className="text-gray-500">Total Aktual:</div>
+                                            <div className="text-right font-medium text-blue-600">Rp {totalActual.toLocaleString('id-ID')}</div>
+                                            
+                                            <div className="font-bold border-t pt-2">Total Selisih:</div>
+                                            <div className={`text-right font-bold border-t pt-2 ${totalVariance === 0 ? 'text-gray-500' : totalVariance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {totalVariance > 0 ? '+' : ''}Rp {totalVariance.toLocaleString('id-ID')}
+                                                {totalVariance === 0 && <Badge variant="outline" className="ml-1.5 bg-green-50 text-green-700 border-green-200 text-[10px] px-1.5 py-0">Sesuai</Badge>}
+                                                {totalVariance > 0 && <Badge variant="outline" className="ml-1.5 bg-green-50 text-green-700 border-green-200 text-[10px] px-1.5 py-0">Surplus</Badge>}
+                                                {totalVariance < 0 && <Badge variant="outline" className="ml-1.5 bg-red-50 text-red-700 border-red-200 text-[10px] px-1.5 py-0">Defisit</Badge>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })()}
                         </div>
                     )}
                 </DialogContent>
