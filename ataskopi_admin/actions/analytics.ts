@@ -2,6 +2,7 @@
 
 import { db as prisma } from "@/lib/db"
 import { requirePermission } from "@/lib/auth-utils"
+import { endOfMonth } from "date-fns"
 
 /**
  * Calculate depreciation for a single asset within a date range.
@@ -151,7 +152,7 @@ export async function getMonthlyProfitSummary(outletId: string, months: number =
     for (let i = months - 1; i >= 0; i--) {
         const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
         const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
-        const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0)
+        const endDate = endOfMonth(startDate)
 
         const revenues = await prisma.dailyRealRevenue.findMany({
             where: { outletId, date: { gte: startDate, lte: endDate } }
