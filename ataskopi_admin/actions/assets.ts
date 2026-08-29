@@ -20,11 +20,19 @@ export async function createAsset(data: {
     usefulLifeMonths?: number;
     status?: string;
     notes?: string;
+    paymentMethod?: string;
+    paymentSource?: string;
+    paymentStatus?: string;
+    dueDate?: Date;
+    paidAt?: Date;
+    omzetDate?: Date;
 }) {
     await requirePermission('finance', 'create')
     try {
         const usefulLifeMonths = data.usefulLifeMonths || 12
         const monthlyDepreciation = data.purchasePrice / usefulLifeMonths
+        const paymentMethod = data.paymentMethod || 'CASH'
+        const paymentStatus = data.paymentStatus || (paymentMethod === 'PAYLATER' ? 'UNPAID' : 'PAID')
 
         await prisma.asset.create({
             data: {
@@ -35,11 +43,18 @@ export async function createAsset(data: {
                 usefulLifeMonths,
                 monthlyDepreciation,
                 status: data.status || 'ACTIVE',
-                notes: data.notes
+                notes: data.notes,
+                paymentMethod,
+                paymentSource: data.paymentSource || null,
+                paymentStatus,
+                dueDate: paymentMethod === 'PAYLATER' && data.dueDate ? data.dueDate : null,
+                paidAt: paymentStatus === 'PAID' ? (data.paidAt || new Date()) : null,
+                omzetDate: data.omzetDate || null,
             }
         })
         revalidatePath('/finance/assets')
         revalidatePath('/finance/expenses')
+        revalidatePath('/finance/debt-payment')
         revalidatePath('/finance/profit')
         revalidatePath('/finance/balance-sheet')
         revalidatePath('/finance/cash-flow')
@@ -57,6 +72,12 @@ export async function updateAsset(id: string, data: {
     usefulLifeMonths: number;
     status: string;
     notes?: string;
+    paymentMethod?: string;
+    paymentSource?: string;
+    paymentStatus?: string;
+    dueDate?: Date;
+    paidAt?: Date;
+    omzetDate?: Date;
 }) {
     await requirePermission('finance', 'update')
     try {
@@ -71,11 +92,18 @@ export async function updateAsset(id: string, data: {
                 usefulLifeMonths: data.usefulLifeMonths,
                 monthlyDepreciation,
                 status: data.status,
-                notes: data.notes
+                notes: data.notes,
+                ...(data.paymentMethod !== undefined ? { paymentMethod: data.paymentMethod } : {}),
+                ...(data.paymentSource !== undefined ? { paymentSource: data.paymentSource } : {}),
+                ...(data.paymentStatus !== undefined ? { paymentStatus: data.paymentStatus } : {}),
+                ...(data.dueDate !== undefined ? { dueDate: data.dueDate } : {}),
+                ...(data.paidAt !== undefined ? { paidAt: data.paidAt } : {}),
+                ...(data.omzetDate !== undefined ? { omzetDate: data.omzetDate } : {}),
             }
         })
         revalidatePath('/finance/assets')
         revalidatePath('/finance/expenses')
+        revalidatePath('/finance/debt-payment')
         revalidatePath('/finance/profit')
         revalidatePath('/finance/balance-sheet')
         revalidatePath('/finance/cash-flow')
@@ -83,6 +111,30 @@ export async function updateAsset(id: string, data: {
     } catch (error) {
         console.error("Failed to update asset:", error)
         return { success: false, error: "Failed to update asset" }
+    }
+}
+
+export async function markAssetAsPaid(id: string, paymentSource?: string) {
+    await requirePermission('finance', 'update')
+    try {
+        await prisma.asset.update({
+            where: { id },
+            data: {
+                paymentStatus: 'PAID',
+                paidAt: new Date(),
+                ...(paymentSource ? { paymentSource } : {}),
+            }
+        })
+        revalidatePath('/finance/assets')
+        revalidatePath('/finance/expenses')
+        revalidatePath('/finance/debt-payment')
+        revalidatePath('/finance/profit')
+        revalidatePath('/finance/balance-sheet')
+        revalidatePath('/finance/cash-flow')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to mark asset as paid:", error)
+        return { success: false, error: "Failed to mark asset as paid" }
     }
 }
 

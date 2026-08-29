@@ -558,17 +558,23 @@ model StockOpnameItem {
 }
 
 model Asset {
-  id                  String   @id @default(uuid())
-  outletId            String   @map("outlet_id")
+  id                  String    @id @default(uuid())
+  outletId            String    @map("outlet_id")
   name                String
-  purchaseDate        DateTime @map("purchase_date") @db.Date
-  purchasePrice       Decimal  @map("purchase_price") @db.Decimal(12, 2)
-  usefulLifeMonths    Int      @default(12) @map("useful_life_months")
-  monthlyDepreciation Decimal  @default(0) @map("monthly_depreciation") @db.Decimal(12, 2)
-  status              String   @default("ACTIVE") // ACTIVE, RETIRED
+  purchaseDate        DateTime  @map("purchase_date") @db.Date
+  purchasePrice       Decimal   @map("purchase_price") @db.Decimal(12, 2)
+  usefulLifeMonths    Int       @default(12) @map("useful_life_months")
+  monthlyDepreciation Decimal   @default(0) @map("monthly_depreciation") @db.Decimal(12, 2)
+  status              String    @default("ACTIVE") // ACTIVE, RETIRED
   notes               String?
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  paymentMethod       String    @default("CASH") @map("payment_method") // CASH | PAYLATER
+  paymentSource       String?   @map("payment_source")
+  paymentStatus       String    @default("PAID") @map("payment_status") // PAID | UNPAID | OVERDUE
+  dueDate             DateTime? @map("due_date") @db.Date
+  paidAt              DateTime? @map("paid_at")
+  omzetDate           DateTime? @map("omzet_date") @db.Date
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   outlet Outlet @relation(fields: [outletId], references: [id], onDelete: Cascade)
 

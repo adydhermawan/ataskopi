@@ -57,11 +57,15 @@ export async function getCashFlowReport(outletId: string, startDate: Date, endDa
     })
     const totalOpex = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
 
-    // Cash Out — CapEx: Asset Purchases in the period
+    // Cash Out — CapEx: Asset Purchases in the period (Cash basis)
     const assets = await prisma.asset.findMany({
         where: {
             outletId,
-            purchaseDate: { gte: startDate, lte: endDate }
+            paymentStatus: 'PAID',
+            OR: [
+                { paymentMethod: { not: 'PAYLATER' }, purchaseDate: { gte: startDate, lte: endDate } },
+                { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+            ]
         }
     })
     const totalCapex = assets.reduce((sum, a) => sum + Number(a.purchasePrice), 0)
@@ -148,7 +152,14 @@ export async function getMonthlyCashFlowTrend(outletId: string, months: number =
             }
         })
         const assets = await prisma.asset.findMany({
-            where: { outletId, purchaseDate: { gte: startDate, lte: endDate } }
+            where: {
+                outletId,
+                paymentStatus: 'PAID',
+                OR: [
+                    { paymentMethod: { not: 'PAYLATER' }, purchaseDate: { gte: startDate, lte: endDate } },
+                    { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+                ]
+            }
         })
 
         const cashIn = revenues.reduce((sum, r) => sum + Number(Number(r.grossRevenue) > 0 ? r.grossRevenue : r.cashAmount), 0)

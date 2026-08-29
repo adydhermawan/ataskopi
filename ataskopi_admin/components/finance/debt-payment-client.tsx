@@ -26,6 +26,7 @@ import {
     Search,
     Filter,
     X,
+    Gem,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -48,6 +49,7 @@ const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
     STOCK_LOSS: "Waste / Stock Loss",
     OTHER: "Lain-lain",
     PEMBELIAN: "Pembelian Bahan Baku",
+    CAPEX: "Pembelian Aset (CapEx)",
 };
 
 interface DebtSummaryData {
@@ -57,6 +59,8 @@ interface DebtSummaryData {
     purchaseCount: number;
     expenseTotal: number;
     expenseCount: number;
+    assetTotal: number;
+    assetCount: number;
     overdueTotal: number;
     overdueCount: number;
 }
@@ -77,7 +81,7 @@ export function DebtPaymentClient() {
 
     // Filters
     const [searchQuery, setSearchQuery] = useState("");
-    const [filterType, setFilterType] = useState<"ALL" | "purchase" | "expense">("ALL");
+    const [filterType, setFilterType] = useState<"ALL" | "purchase" | "expense" | "asset">("ALL");
     const [filterStatus, setFilterStatus] = useState<"ALL" | "UNPAID" | "OVERDUE">("ALL");
     const [filterSource, setFilterSource] = useState<string>("ALL");
 
@@ -182,10 +186,12 @@ export function DebtPaymentClient() {
         try {
             const purchaseIds = selectedDebts.filter((d) => d.type === "purchase").map((d) => d.id);
             const expenseIds = selectedDebts.filter((d) => d.type === "expense").map((d) => d.id);
+            const assetIds = selectedDebts.filter((d) => d.type === "asset").map((d) => d.id);
 
             const res = await batchPayDebts(
                 purchaseIds,
                 expenseIds,
+                assetIds,
                 paymentSource || undefined,
             );
 
@@ -249,7 +255,7 @@ export function DebtPaymentClient() {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
                 <Card className="border-l-4 border-l-red-500 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xs font-medium">Total Hutang</CardTitle>
@@ -305,7 +311,22 @@ export function DebtPaymentClient() {
                             {formatCurrency(summary?.expenseTotal || 0)}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">
-                            {summary?.expenseCount || 0} pengeluaran
+                            {summary?.expenseCount || 0} operasional
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-indigo-500 shadow-sm col-span-2 md:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs font-medium">Hutang Aset</CardTitle>
+                        <Gem className="h-4 w-4 text-indigo-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl md:text-2xl font-bold text-indigo-600">
+                            {formatCurrency(summary?.assetTotal || 0)}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                            {summary?.assetCount || 0} aset tetap
                         </p>
                     </CardContent>
                 </Card>
@@ -319,7 +340,7 @@ export function DebtPaymentClient() {
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <input
                                 type="text"
-                                placeholder="Cari deskripsi, supplier..."
+                                placeholder="Cari deskripsi, supplier, aset..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -333,8 +354,9 @@ export function DebtPaymentClient() {
                                 className="h-9 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="ALL">Semua Tipe</option>
-                                <option value="purchase">Pembelian</option>
-                                <option value="expense">Pengeluaran</option>
+                                <option value="purchase">Pembelian Bahan Baku</option>
+                                <option value="expense">Biaya Operasional (OpEx)</option>
+                                <option value="asset">Pembelian Aset (CapEx)</option>
                             </select>
                             <select
                                 value={filterStatus}
@@ -450,12 +472,16 @@ export function DebtPaymentClient() {
                                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium ${
                                                         debt.type === "purchase"
                                                             ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                                                            : debt.type === "asset"
+                                                            ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
                                                             : "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300"
                                                     }`}>
                                                         {debt.type === "purchase" ? (
                                                             <><ShoppingCart className="h-3 w-3" /> Pembelian</>
+                                                        ) : debt.type === "asset" ? (
+                                                            <><Gem className="h-3 w-3" /> Aset</>
                                                         ) : (
-                                                            <><Receipt className="h-3 w-3" /> Pengeluaran</>
+                                                            <><Receipt className="h-3 w-3" /> Operasional</>
                                                         )}
                                                     </span>
                                                 </td>
@@ -470,6 +496,8 @@ export function DebtPaymentClient() {
                                                 <td className="p-3 text-xs">
                                                     {debt.type === "purchase"
                                                         ? debt.supplier || "—"
+                                                        : debt.type === "asset"
+                                                        ? "Aset Tetap (CapEx)"
                                                         : EXPENSE_CATEGORY_LABELS[debt.category] || debt.category
                                                     }
                                                 </td>
@@ -582,9 +610,11 @@ export function DebtPaymentClient() {
                                                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium ${
                                                             debt.type === "purchase"
                                                                 ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                                                                : debt.type === "asset"
+                                                                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300"
                                                                 : "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300"
                                                         }`}>
-                                                            {debt.type === "purchase" ? "Pembelian" : "Pengeluaran"}
+                                                            {debt.type === "purchase" ? "Pembelian" : debt.type === "asset" ? "Aset" : "Operasional"}
                                                         </span>
                                                         {isOverdue ? (
                                                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-700">
@@ -684,6 +714,8 @@ export function DebtPaymentClient() {
                                     <div className="flex items-center gap-2 min-w-0 flex-1">
                                         {debt.type === "purchase" ? (
                                             <ShoppingCart className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                        ) : debt.type === "asset" ? (
+                                            <Gem className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
                                         ) : (
                                             <Receipt className="h-3.5 w-3.5 text-purple-500 shrink-0" />
                                         )}

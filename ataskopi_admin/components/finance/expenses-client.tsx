@@ -332,6 +332,15 @@ export function ExpensesClient() {
                     purchasePrice: Number(formAssetPrice),
                     usefulLifeMonths: formUsefulLife,
                     notes: formAssetNotes || undefined,
+                    paymentMethod: formPaymentMethod,
+                    paymentSource: formPaymentSource || undefined,
+                    paymentStatus: formPaymentMethod === "CASH" ? "PAID" : "UNPAID",
+                    dueDate: formPaymentMethod === "PAYLATER" && formDueDate
+                        ? new Date(formDueDate + "T00:00:00Z")
+                        : undefined,
+                    omzetDate: formPaymentMethod === "CASH" && formPaymentSource === "Cash" && formOmzetDate
+                        ? new Date(formOmzetDate + "T00:00:00Z")
+                        : undefined,
                 });
                 if (res.success) {
                     toast.success("Pembelian aset berhasil dicatat");
@@ -1052,10 +1061,70 @@ export function ExpensesClient() {
                                 />
                             </div>
 
+                            {/* CapEx Payment Method */}
+                            <div className="space-y-2 pt-1 border-t">
+                                <label className="text-sm font-medium flex items-center gap-1.5">
+                                    <CreditCard className="h-3.5 w-3.5 text-muted-foreground" /> Metode Bayar Aset
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormPaymentMethod("CASH")}
+                                        className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                            formPaymentMethod === "CASH"
+                                                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 shadow-sm"
+                                                : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                        }`}
+                                    >
+                                        💵 Bayar Langsung
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFormPaymentMethod("PAYLATER");
+                                            if (formAssetDate) {
+                                                setFormDueDate(calculatePaylaterDueDate(formAssetDate));
+                                            }
+                                        }}
+                                        className={`flex-1 h-9 rounded-md border text-xs font-medium transition-all ${
+                                            formPaymentMethod === "PAYLATER"
+                                                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 shadow-sm"
+                                                : "bg-transparent border-input text-muted-foreground hover:bg-accent"
+                                        }`}
+                                    >
+                                        🏷️ Paylater / Hutang
+                                    </button>
+                                </div>
+                                <div className="space-y-1 pt-1">
+                                    <label className="text-xs font-medium">Nama Layanan (Bank/Cash)</label>
+                                    <select
+                                        value={formPaymentSource}
+                                        onChange={(e) => setFormPaymentSource(e.target.value)}
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    >
+                                        {PAYMENT_SOURCE_OPTIONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {formPaymentMethod === "PAYLATER" && (
+                                    <div className="space-y-1 pt-1">
+                                        <label className="text-xs font-medium text-amber-700 dark:text-amber-400">Jatuh Tempo *</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={formDueDate}
+                                            onChange={(e) => setFormDueDate(e.target.value)}
+                                            className="flex h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
                             {/* CapEx info */}
                             <div className="rounded-lg border bg-amber-50/50 dark:bg-amber-950/10 p-3 text-xs text-amber-800 dark:text-amber-300">
                                 <span className="font-semibold">ℹ️ Pembelian aset (CapEx)</span> tidak akan memotong Laba Bersih bulan ini secara utuh. 
-                                Sistemakan otomatis menyusutkan nilainya selama masa manfaat ke Laporan Laba Rugi.
+                                Sistem akan otomatis menyusutkan nilainya selama masa manfaat ke Laporan Laba Rugi.
                             </div>
                         </>
                     )}

@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/auth-utils"
 
 export interface UnpaidDebtItem {
     id: string
-    type: 'purchase' | 'expense'
+    type: 'purchase' | 'expense' | 'asset'
     date: Date
     description: string
     category: string
@@ -19,12 +19,15 @@ export interface UnpaidDebtItem {
 }
 
 /**
- * Get all unpaid debts (UNPAID + OVERDUE) from InventoryPurchase and Expense
+ * Get all unpaid debts (UNPAID + OVERDUE) from InventoryPurchase, Expense, and Asset
  */
 export async function getUnpaidDebts(outletId: string): Promise<UnpaidDebtItem[]> {
     await requirePermission('finance', 'view')
 
-    const [purchases, expenses] = await Promise.all([
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const [purchases, expenses, assets] = await Promise.all([
         prisma.inventoryPurchase.findMany({
             where: {
                 outletId,
@@ -44,37 +47,75 @@ export async function getUnpaidDebts(outletId: string): Promise<UnpaidDebtItem[]
             },
             orderBy: { date: 'desc' },
         }),
+        prisma.asset.findMany({
+            where: {
+                outletId,
+                paymentStatus: { in: ['UNPAID', 'OVERDUE'] },
+            },
+            orderBy: { purchaseDate: 'desc' },
+        }),
     ])
 
-    const purchaseItems: UnpaidDebtItem[] = purchases.map((p) => ({
-        id: p.id,
-        type: 'purchase' as const,
-        date: p.date,
-        description: p.notes || `Pembelian ${p.rawMaterial.name}`,
-        category: 'PEMBELIAN',
-        supplier: p.supplier,
-        paymentSource: p.paymentSource,
-        paymentStatus: p.paymentStatus,
-        dueDate: p.dueDate,
-        amount: Number(p.totalAmount),
-        rawMaterialName: p.rawMaterial.name,
-    }))
+    const purchaseItems: UnpaidDebtItem[] = purchases.map((p) => {
+        let status = p.paymentStatus
+        if (status === 'UNPAID' && p.dueDate && new Date(p.dueDate) < today) {
+            status = 'OVERDUE'
+        }
+        return {
+            id: p.id,
+            type: 'purchase' as const,
+            date: p.date,
+            description: p.notes || `Pembelian ${p.rawMaterial.name}`,
+            category: 'PEMBELIAN',
+            supplier: p.supplier,
+            paymentSource: p.paymentSource,
+            paymentStatus: status,
+            dueDate: p.dueDate,
+            amount: Number(p.totalAmount),
+            rawMaterialName: p.rawMaterial.name,
+        }
+    })
 
-    const expenseItems: UnpaidDebtItem[] = expenses.map((e) => ({
-        id: e.id,
-        type: 'expense' as const,
-        date: e.date,
-        description: e.description || e.category,
-        category: e.category,
-        supplier: null,
-        paymentSource: e.paymentSource,
-        paymentStatus: e.paymentStatus,
-        dueDate: e.dueDate,
-        amount: Number(e.amount),
-    }))
+    const expenseItems: UnpaidDebtItem[] = expenses.map((e) => {
+        let status = e.paymentStatus
+        if (status === 'UNPAID' && e.dueDate && new Date(e.dueDate) < today) {
+            status = 'OVERDUE'
+        }
+        return {
+            id: e.id,
+            type: 'expense' as const,
+            date: e.date,
+            description: e.description || e.category,
+            category: e.category,
+            supplier: null,
+            paymentSource: e.paymentSource,
+            paymentStatus: status,
+            dueDate: e.dueDate,
+            amount: Number(e.amount),
+        }
+    })
+
+    const assetItems: UnpaidDebtItem[] = assets.map((a) => {
+        let status = a.paymentStatus
+        if (status === 'UNPAID' && a.dueDate && new Date(a.dueDate) < today) {
+            status = 'OVERDUE'
+        }
+        return {
+            id: a.id,
+            type: 'asset' as const,
+            date: a.purchaseDate,
+            description: a.notes || `Pembelian Aset: ${a.name}`,
+            category: 'CAPEX',
+            supplier: null,
+            paymentSource: a.paymentSource,
+            paymentStatus: status,
+            dueDate: a.dueDate,
+            amount: Number(a.purchasePrice),
+        }
+    })
 
     // Combine and sort by date desc
-    const allDebts = [...purchaseItems, ...expenseItems].sort(
+    const allDebts = [...purchaseItems, ...expenseItems, ...assetItems].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     )
 
@@ -87,7 +128,10 @@ export async function getUnpaidDebts(outletId: string): Promise<UnpaidDebtItem[]
 export async function getDebtSummary(outletId: string) {
     await requirePermission('finance', 'view')
 
-    const [purchases, expenses] = await Promise.all([
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const [purchases, expenses, assets] = await Promise.all([
         prisma.inventoryPurchase.findMany({
             where: {
                 outletId,
@@ -100,23 +144,33 @@ export async function getDebtSummary(outletId: string) {
                 paymentStatus: { in: ['UNPAID', 'OVERDUE'] },
             },
         }),
+        prisma.asset.findMany({
+            where: {
+                outletId,
+                paymentStatus: { in: ['UNPAID', 'OVERDUE'] },
+            },
+        }),
     ])
 
     const purchaseTotal = purchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
     const expenseTotal = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
-    const totalDebt = purchaseTotal + expenseTotal
-    const totalCount = purchases.length + expenses.length
+    const assetTotal = assets.reduce((sum, a) => sum + Number(a.purchasePrice), 0)
+    const totalDebt = purchaseTotal + expenseTotal + assetTotal
+    const totalCount = purchases.length + expenses.length + assets.length
 
-    const overdueCount = purchases.filter(p => p.paymentStatus === 'OVERDUE').length
-        + expenses.filter(e => e.paymentStatus === 'OVERDUE').length
+    const isOverdue = (item: { paymentStatus: string; dueDate: Date | null }) =>
+        item.paymentStatus === 'OVERDUE' || (item.paymentStatus === 'UNPAID' && item.dueDate && new Date(item.dueDate) < today)
 
-    const overduePurchaseTotal = purchases
-        .filter(p => p.paymentStatus === 'OVERDUE')
-        .reduce((sum, p) => sum + Number(p.totalAmount), 0)
-    const overdueExpenseTotal = expenses
-        .filter(e => e.paymentStatus === 'OVERDUE')
-        .reduce((sum, e) => sum + Number(e.amount), 0)
-    const overdueTotal = overduePurchaseTotal + overdueExpenseTotal
+    const overduePurchases = purchases.filter(isOverdue)
+    const overdueExpenses = expenses.filter(isOverdue)
+    const overdueAssets = assets.filter(isOverdue)
+
+    const overdueCount = overduePurchases.length + overdueExpenses.length + overdueAssets.length
+
+    const overduePurchaseTotal = overduePurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    const overdueExpenseTotal = overdueExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
+    const overdueAssetTotal = overdueAssets.reduce((sum, a) => sum + Number(a.purchasePrice), 0)
+    const overdueTotal = overduePurchaseTotal + overdueExpenseTotal + overdueAssetTotal
 
     return {
         totalDebt,
@@ -125,6 +179,8 @@ export async function getDebtSummary(outletId: string) {
         purchaseCount: purchases.length,
         expenseTotal,
         expenseCount: expenses.length,
+        assetTotal,
+        assetCount: assets.length,
         overdueTotal,
         overdueCount,
     }
@@ -132,16 +188,17 @@ export async function getDebtSummary(outletId: string) {
 
 /**
  * Batch pay selected debts — mark them all as PAID in a single transaction.
- * Accepts arrays of purchase IDs and expense IDs separately.
+ * Accepts arrays of purchase IDs, expense IDs, and asset IDs.
  */
 export async function batchPayDebts(
     purchaseIds: string[],
     expenseIds: string[],
+    assetIds: string[] = [],
     paymentSource?: string,
 ) {
     await requirePermission('finance', 'update')
 
-    if (purchaseIds.length === 0 && expenseIds.length === 0) {
+    if (purchaseIds.length === 0 && expenseIds.length === 0 && assetIds.length === 0) {
         return { success: false, error: "Tidak ada transaksi yang dipilih." }
     }
 
@@ -178,13 +235,29 @@ export async function batchPayDebts(
                     },
                 })
             }
+
+            // 3. Update all selected Assets → PAID
+            if (assetIds.length > 0) {
+                await tx.asset.updateMany({
+                    where: {
+                        id: { in: assetIds },
+                        paymentStatus: { in: ['UNPAID', 'OVERDUE'] },
+                    },
+                    data: {
+                        paymentStatus: 'PAID',
+                        paidAt: now,
+                        ...(paymentSource ? { paymentSource } : {}),
+                    },
+                })
+            }
         })
 
-        const totalCount = purchaseIds.length + expenseIds.length
+        const totalCount = purchaseIds.length + expenseIds.length + assetIds.length
 
         // Revalidate all affected pages
         revalidatePath('/finance/debt-payment')
         revalidatePath('/finance/expenses')
+        revalidatePath('/finance/assets')
         revalidatePath('/finance/cash-flow')
         revalidatePath('/finance/balance-sheet')
         revalidatePath('/finance/profit')
