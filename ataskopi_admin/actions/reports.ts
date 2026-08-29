@@ -233,18 +233,31 @@ export async function getBalanceSheet(outletId: string, asOfDate: Date) {
     })
     const totalPurchases = allPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
 
-    // 4.1. Only PAID purchases count as real cash outflow
-    const paidPurchases = allPurchases.filter(p => p.paymentStatus === 'PAID')
-    const totalPaidPurchases = paidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    // 4.1. Cash outflow dari pembelian — Cash Basis
+    // CASH purchases: kas keluar saat tanggal pembelian (date <= asOfDate sudah terpenuhi)
+    const cashPaidPurchases = allPurchases.filter(p => p.paymentMethod !== 'PAYLATER' && p.paymentStatus === 'PAID')
+    const totalCashPaidPurchases = cashPaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    // PAYLATER purchases: kas keluar saat tanggal pelunasan (paidAt <= asOfDate)
+    const paylaterPaidPurchases = allPurchases.filter(p =>
+        p.paymentMethod === 'PAYLATER' &&
+        p.paymentStatus === 'PAID' &&
+        p.paidAt && new Date(p.paidAt) <= asOfDate
+    )
+    const totalPaylaterPaidPurchases = paylaterPaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    const totalPaidPurchases = totalCashPaidPurchases + totalPaylaterPaidPurchases
 
-    // 4.2. Accounts Payable (Utang Dagang) — UNPAID + OVERDUE purchases
-    const unpaidPurchases = allPurchases.filter(p => p.paymentStatus === 'UNPAID' || p.paymentStatus === 'OVERDUE')
+    // 4.2. Accounts Payable (Utang Dagang) — hutang yang belum lunas per tanggal neraca
+    // Termasuk: UNPAID, OVERDUE, dan paylater yang sudah PAID tapi paidAt > asOfDate
+    const unpaidPurchases = allPurchases.filter(p =>
+        p.paymentStatus === 'UNPAID' ||
+        p.paymentStatus === 'OVERDUE' ||
+        (p.paymentMethod === 'PAYLATER' && p.paymentStatus === 'PAID' && p.paidAt && new Date(p.paidAt) > asOfDate)
+    )
     const accountsPayable = unpaidPurchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
     const accountsPayableCount = unpaidPurchases.length
 
-    // 5. Saldo Kas = Modal Awal + Omset Kas Kotor - Pembelian PAID - OpEx - CapEx
-    // cumulativeGrossCashRevenue = cashAmount + cashPurchases = omset kas kotor
-    // Jadi: Kas = Modal + OmsetKasKotor - Pembelian - Expenses - CapEx
+    // 5. Saldo Kas = Modal Awal + Omset Kas Kotor - Pembelian PAID (cash basis) - OpEx - CapEx
+    // Cash basis: CASH pembelian saat beli, PAYLATER saat bayar
     const cash = modalAwal + cumulativeGrossCashRevenue - (totalPaidPurchases + cumulativeExpenses + fixedAssetsCostValue)
     
     // Saldo QRIS dan Lain-lain (tidak ada pengeluaran dari QRIS/other)

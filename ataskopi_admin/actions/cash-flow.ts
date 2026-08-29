@@ -19,21 +19,40 @@ export async function getCashFlowReport(outletId: string, startDate: Date, endDa
     const totalRevenue = revenues.reduce((sum, r) => sum + Number(Number(r.totalAmount) > 0 ? r.totalAmount : r.cashAmount), 0)
     const totalGrossRevenue = revenues.reduce((sum, r) => sum + Number(Number(r.grossRevenue) > 0 ? r.grossRevenue : r.cashAmount), 0)
 
-    // Cash Out — COGS: Inventory Purchases (only PAID — paylater excluded until paid)
+    // Cash Out — COGS: Inventory Purchases
+    // Cash basis: CASH → kas keluar saat tanggal beli, PAYLATER → kas keluar saat tanggal bayar (paidAt)
     const purchases = await prisma.inventoryPurchase.findMany({
         where: {
             outletId,
-            date: { gte: startDate, lte: endDate },
             paymentStatus: 'PAID',
+            OR: [
+                // Pembelian tunai: kas keluar di tanggal pembelian
+                { paymentMethod: { not: 'PAYLATER' }, date: { gte: startDate, lte: endDate } },
+                // Pembelian paylater: kas keluar di tanggal pelunasan
+                { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+            ]
         }
     })
     const totalPurchases = purchases.reduce((sum, p) => sum + Number(p.totalAmount), 0)
+    // Track: berapa dari total purchases yang merupakan pembayaran hutang bulan lalu
+    const debtPayments = purchases.filter(p =>
+        p.paymentMethod === 'PAYLATER' && p.paidAt &&
+        new Date(p.date) < startDate // pembelian dari sebelum periode ini
+    )
+    const totalDebtPayments = debtPayments.reduce((sum, p) => sum + Number(p.totalAmount), 0)
 
     // Cash Out — OpEx: Operating Expenses
+    // Same cash basis logic for paylater expenses
     const expenses = await prisma.expense.findMany({
         where: {
             outletId,
-            date: { gte: startDate, lte: endDate }
+            paymentStatus: 'PAID',
+            OR: [
+                // Pengeluaran tunai: kas keluar di tanggal pengeluaran
+                { paymentMethod: { not: 'PAYLATER' }, date: { gte: startDate, lte: endDate } },
+                // Pengeluaran paylater: kas keluar di tanggal pelunasan
+                { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+            ]
         }
     })
     const totalOpex = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
@@ -74,6 +93,7 @@ export async function getCashFlowReport(outletId: string, startDate: Date, endDa
         },
         cashOut: {
             purchases: totalPurchases,
+            debtPayments: totalDebtPayments, // pembayaran hutang dari periode sebelumnya
             opex: totalOpex,
             capex: totalCapex,
             totalCashOut
@@ -108,10 +128,24 @@ export async function getMonthlyCashFlowTrend(outletId: string, months: number =
             where: { outletId, date: { gte: startDate, lte: endDate } }
         })
         const purchases = await prisma.inventoryPurchase.findMany({
-            where: { outletId, date: { gte: startDate, lte: endDate }, paymentStatus: 'PAID' }
+            where: {
+                outletId,
+                paymentStatus: 'PAID',
+                OR: [
+                    { paymentMethod: { not: 'PAYLATER' }, date: { gte: startDate, lte: endDate } },
+                    { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+                ]
+            }
         })
         const expenses = await prisma.expense.findMany({
-            where: { outletId, date: { gte: startDate, lte: endDate } }
+            where: {
+                outletId,
+                paymentStatus: 'PAID',
+                OR: [
+                    { paymentMethod: { not: 'PAYLATER' }, date: { gte: startDate, lte: endDate } },
+                    { paymentMethod: 'PAYLATER', paidAt: { gte: startDate, lte: endDate } },
+                ]
+            }
         })
         const assets = await prisma.asset.findMany({
             where: { outletId, purchaseDate: { gte: startDate, lte: endDate } }

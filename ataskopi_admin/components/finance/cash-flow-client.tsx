@@ -42,6 +42,7 @@ interface CashFlowReportData {
     };
     cashOut: {
         purchases: number;
+        debtPayments: number;
         opex: number;
         capex: number;
         totalCashOut: number;
@@ -180,6 +181,8 @@ export function CashFlowClient() {
               { name: "Pembelian Aset (CapEx)", value: reportData.cashOut.capex },
           ].filter((item) => item.value > 0)
         : [];
+
+    const debtPaymentAmount = reportData?.cashOut.debtPayments || 0;
 
     const cashInPieData = reportData
         ? [
@@ -558,10 +561,10 @@ export function CashFlowClient() {
                 <div className="space-y-1">
                     <span className="font-bold uppercase block text-blue-950 dark:text-blue-400">Catatan Arus Kas (Buku Kas):</span>
                     <p>
-                        Laporan ini menyajikan mutasi kas riil yang masuk dan keluar dari outlet. Berbeda dengan Laporan Laba Rugi, pembelian aset tetap (CapEx) dicatat secara utuh sebagai Kas Keluar pada saat tanggal transaksi pembelian, dan biaya non-kas seperti penyusutan aset (depresiasi) **tidak** dimasukkan karena tidak ada aliran kas keluar saat penyusutan terjadi.
+                        Laporan ini menyajikan mutasi kas riil yang masuk dan keluar dari outlet. Berbeda dengan Laporan Laba Rugi, pembelian aset tetap (CapEx) dicatat secara utuh sebagai Kas Keluar pada saat tanggal transaksi pembelian, dan biaya non-kas seperti penyusutan aset (depresiasi) <strong>tidak</strong> dimasukkan karena tidak ada aliran kas keluar saat penyusutan terjadi.
                     </p>
                     <p>
-                        Pembelian bahan baku dengan <strong>paylater/hutang</strong> yang belum dibayar <strong>tidak dihitung</strong> sebagai Kas Keluar sampai pembayaran dicatat lunas di halaman Pembelian.
+                        Pembelian bahan baku dan pengeluaran dengan <strong>paylater/hutang</strong> baru dihitung sebagai Kas Keluar di <strong>bulan pelunasan</strong> (saat dibayar), bukan bulan pembelian. Contoh: pembelian Juli yang dibayar Agustus akan muncul di Arus Kas Agustus.
                     </p>
                 </div>
             </div>

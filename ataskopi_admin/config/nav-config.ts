@@ -19,7 +19,8 @@ import {
     ShoppingCart,
     FileText,
     ArrowDownUp,
-    BookOpen
+    BookOpen,
+    CreditCard
 } from "lucide-react";
 
 export interface NavItem {
@@ -123,6 +124,12 @@ export const navItems: NavItem[] = [
                 title: "Pengeluaran",
                 href: "/finance/expenses",
                 icon: Receipt,
+                roles: ["admin", "owner"],
+            },
+            {
+                title: "Bayar Hutang",
+                href: "/finance/debt-payment",
+                icon: CreditCard,
                 roles: ["admin", "owner"],
             },
         ]
