@@ -3,7 +3,7 @@
 import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
-import { cacheGet, cacheSet, getProjectionCacheKey } from "@/lib/cache/projection-cache"
+import { cacheGet, cacheSet, getProjectionCacheKey, invalidateProjectionCache } from "@/lib/cache/projection-cache"
 import { parsePrismaDecimal } from "@/lib/utils"
 
 export async function getRawMaterials(outletId: string) {
@@ -68,6 +68,7 @@ export async function createRawMaterial(data: { outletId: string; name: string; 
         revalidatePath('/inventory/purchases')
         revalidatePath('/finance/cash-flow')
         revalidatePath('/finance/balance-sheet')
+        invalidateProjectionCache(data.outletId)
         return { success: true }
     } catch (error) {
         console.error("Failed to create raw material:", error)
@@ -78,7 +79,7 @@ export async function createRawMaterial(data: { outletId: string; name: string; 
 export async function updateRawMaterial(id: string, data: { name: string; sku?: string; unit: string; currentStock?: number; averageCost?: number; packagingWeight?: number }) {
     await requirePermission('inventory', 'update')
     try {
-        await prisma.rawMaterial.update({
+        const material = await prisma.rawMaterial.update({
             where: { id },
             data: {
                 name: data.name,
@@ -90,6 +91,7 @@ export async function updateRawMaterial(id: string, data: { name: string; sku?: 
             }
         })
         revalidatePath('/inventory/materials')
+        if (material?.outletId) invalidateProjectionCache(material.outletId)
         return { success: true }
     } catch (error) {
         console.error("Failed to update raw material:", error)
@@ -100,10 +102,15 @@ export async function updateRawMaterial(id: string, data: { name: string; sku?: 
 export async function deleteRawMaterial(id: string) {
     await requirePermission('inventory', 'delete')
     try {
+        const material = await prisma.rawMaterial.findUnique({
+            where: { id },
+            select: { outletId: true }
+        })
         await prisma.rawMaterial.delete({
             where: { id }
         })
         revalidatePath('/inventory/materials')
+        if (material?.outletId) invalidateProjectionCache(material.outletId)
         return { success: true }
     } catch (error) {
         console.error("Failed to delete raw material:", error)
@@ -153,7 +160,7 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    const [opnames, materials, orders] = await Promise.all([
+    const [opnames, materials, orders, purchases] = await Promise.all([
         prisma.stockOpname.findMany({
             where: {
                 outletId,
@@ -171,10 +178,10 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             },
             orderBy: { date: 'asc' }
         }),
-        // Ambil semua raw materials untuk currentStock
+        // Ambil semua raw materials untuk currentStock & createdAt
         prisma.rawMaterial.findMany({
             where: { outletId },
-            select: { id: true, currentStock: true }
+            select: { id: true, currentStock: true, createdAt: true }
         }),
         // Ambil tanggal-tanggal yang ada order (untuk exclude hari tanpa order)
         prisma.order.findMany({
@@ -184,6 +191,20 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
                 orderStatus: { notIn: ['cancelled'] }
             },
             select: { createdAt: true },
+        }),
+        // Ambil semua riwayat pembelian yang RECEIVED dalam 90 hari terakhir
+        prisma.inventoryPurchase.findMany({
+            where: {
+                outletId,
+                deliveryStatus: 'RECEIVED',
+                date: { gte: ninetyDaysAgo }
+            },
+            select: {
+                rawMaterialId: true,
+                date: true,
+                quantity: true,
+            },
+            orderBy: { date: 'asc' }
         })
     ])
 
@@ -192,6 +213,18 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
     for (const order of orders) {
         const dateKey = order.createdAt.toISOString().split('T')[0]
         orderDateSet.add(dateKey)
+    }
+
+    // Kelompokkan purchases per rawMaterialId
+    const materialPurchases = new Map<string, Array<{ date: Date; quantity: number }>>()
+    for (const p of purchases) {
+        if (!materialPurchases.has(p.rawMaterialId)) {
+            materialPurchases.set(p.rawMaterialId, [])
+        }
+        materialPurchases.get(p.rawMaterialId)!.push({
+            date: p.date,
+            quantity: Number(p.quantity)
+        })
     }
 
     const result: Record<string, StockProjection> = {}
@@ -208,30 +241,32 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         }
     }
 
-    if (opnames.length < 2) {
-        // Butuh minimal 2 opname berurutan untuk menghitung pemakaian
-        if (opnames.length === 1) {
-            for (const item of opnames[0].items) {
-                if (result[item.rawMaterialId]) {
-                    result[item.rawMaterialId].lastOpnameDate = opnames[0].date.toISOString()
-                    result[item.rawMaterialId].opnameCount = 1
-                }
-            }
-        }
+    if (opnames.length === 0) {
         return result
     }
 
-    // Helper: hitung jumlah hari yang ada order dalam rentang [startDate, endDate]
-    function countActiveDays(startDate: Date, endDate: Date): number {
+    function toDateString(d: Date | string): string {
+        return new Date(d).toISOString().split('T')[0]
+    }
+
+    // Helper: hitung jumlah hari aktif (ada order) dalam rentang [startDate, endDate]
+    function countActiveDays(startDate: Date | string, endDate: Date | string): number {
+        const startStr = toDateString(startDate)
+        const endStr = toDateString(endDate)
+        if (startStr > endStr) return 0
+
+        const current = new Date(startStr + 'T00:00:00.000Z')
+        const end = new Date(endStr + 'T00:00:00.000Z')
+
         let count = 0
-        const current = new Date(startDate)
-        current.setHours(0, 0, 0, 0)
-        const end = new Date(endDate)
-        end.setHours(0, 0, 0, 0)
         while (current <= end) {
             const key = current.toISOString().split('T')[0]
-            if (orderDateSet.has(key)) count++
-            current.setDate(current.getDate() + 1)
+            if (orderDateSet.size > 0) {
+                if (orderDateSet.has(key)) count++
+            } else {
+                count++
+            }
+            current.setUTCDate(current.getUTCDate() + 1)
         }
         return count
     }
@@ -257,29 +292,42 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
     }
 
     // Hitung weighted average daily usage per material
-    for (const [materialId, history] of materialOpnameHistory.entries()) {
-        const mat = materials.find(m => m.id === materialId)
-        if (!mat) continue
-
+    for (const mat of materials) {
+        const materialId = mat.id
         const currentStock = Number(mat.currentStock)
-        const lastOpname = history[history.length - 1]
+        const history = materialOpnameHistory.get(materialId) || []
+        const purchasesList = materialPurchases.get(materialId) || []
 
-        if (history.length < 2) {
-            result[materialId] = {
-                avgDailyUsage: 0,
-                projectedDays: null,
-                estimatedStock: currentStock,
-                status: currentStock <= 0 ? 'HABIS' : 'NO_DATA',
-                lastOpnameDate: lastOpname.date.toISOString(),
-                opnameCount: history.length,
-            }
+        if (history.length === 0) {
             continue
         }
 
-        // Hitung weighted average daily usage dari pasangan opname berurutan
+        const lastOpname = history[history.length - 1]
+
+        // Tanggal pertama produk ini memiliki stok (pembelian pertama atau tanggal dibuatnya material)
+        const firstPurchaseDate = purchasesList.length > 0 ? purchasesList[0].date : mat.createdAt
+
         let totalWeightedUsage = 0
         let totalActiveDays = 0
 
+        // 1. Periode Awal: Dari pertama kali barang dibeli / ada stok sampai Opname Pertama
+        const firstOpname = history[0]
+        const firstOpnameUsage = firstOpname.systemStock - firstOpname.actualStock
+
+        if (firstOpnameUsage > 0) {
+            // Periode dimulai dari firstPurchaseDate atau tanggal opname pertama jika firstPurchaseDate lebih baru
+            const startDate = new Date(firstPurchaseDate) <= new Date(firstOpname.date)
+                ? firstPurchaseDate
+                : firstOpname.date
+
+            const activeDays = countActiveDays(startDate, firstOpname.date)
+            const effectiveDays = Math.max(1, activeDays)
+
+            totalWeightedUsage += firstOpnameUsage
+            totalActiveDays += effectiveDays
+        }
+
+        // 2. Periode Lanjutan: Dari pasangan opname berurutan (i-1 ke i)
         for (let i = 1; i < history.length; i++) {
             const prev = history[i - 1]
             const curr = history[i]
@@ -288,8 +336,19 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             const usage = curr.systemStock - curr.actualStock
 
             if (usage > 0) {
-                // Hitung jumlah hari AKTIF (ada order) dalam periode ini
-                const activeDays = countActiveDays(prev.date, curr.date)
+                let startDate = prev.date
+
+                // Jika pada opname sebelumnya stok 0, pemakaian baru dimulai saat ada pembelian pertama di periode tersebut
+                if (prev.actualStock === 0) {
+                    const purchaseInPeriod = purchasesList.find(p => 
+                        new Date(p.date) > new Date(prev.date) && new Date(p.date) <= new Date(curr.date)
+                    )
+                    if (purchaseInPeriod) {
+                        startDate = purchaseInPeriod.date
+                    }
+                }
+
+                const activeDays = countActiveDays(startDate, curr.date)
                 const effectiveDays = Math.max(1, activeDays)
 
                 totalWeightedUsage += usage
@@ -305,13 +364,15 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         if (totalActiveDays > 0 && totalWeightedUsage > 0) {
             avgDailyUsage = totalWeightedUsage / totalActiveDays
 
-            // Hitung jumlah hari berlalu sejak opname terakhir sampai hari ini
+            // Hitung jumlah hari aktif sejak opname terakhir sampai hari ini
             const now = new Date()
-            const diffMs = Math.max(0, now.getTime() - new Date(lastOpname.date).getTime())
-            const daysSinceLastOpname = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+            const dayAfterLastOpname = new Date(lastOpname.date)
+            dayAfterLastOpname.setDate(dayAfterLastOpname.getDate() + 1)
+            
+            const activeDaysSinceLastOpname = countActiveDays(dayAfterLastOpname, now)
 
-            // Estimasi stok berjalan hari ini
-            estimatedStock = Math.max(0, Math.round((currentStock - (daysSinceLastOpname * avgDailyUsage)) * 100) / 100)
+            // Estimasi sisa stok berjalan hari ini
+            estimatedStock = Math.max(0, Math.round((currentStock - (activeDaysSinceLastOpname * avgDailyUsage)) * 100) / 100)
 
             projectedDays = estimatedStock > 0 ? Math.round(estimatedStock / avgDailyUsage) : 0
             status = getProjectionStatus(estimatedStock, projectedDays)
