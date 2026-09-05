@@ -347,8 +347,10 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             // Estimasi sisa stok berjalan hari ini: (Stok saat ini - (hari berjalan x pemakaian harian))
             estimatedStock = Math.max(0, Math.round((currentStock - (daysSinceLastOpname * avgDailyUsage)) * 100) / 100)
 
-            // Sisa proyeksi hari habis dari hari ini
-            projectedDays = estimatedStock > 0 && avgDailyUsage > 0 ? Math.round(estimatedStock / avgDailyUsage) : 0
+            // Proyeksi hari: (Stok saat opname / rata-rata pemakaian) dikurangi hari berjalan setelah opname sampai hari ini
+            const totalProjectedDaysFromLastOpname = avgDailyUsage > 0 ? (currentStock / avgDailyUsage) : 0
+            projectedDays = Math.max(0, Math.round(totalProjectedDaysFromLastOpname - daysSinceLastOpname))
+
             status = getProjectionStatus(estimatedStock, projectedDays)
         } else {
             status = getProjectionStatus(currentStock, projectedDays)
