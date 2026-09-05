@@ -160,7 +160,7 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    const [opnames, materials, orders, purchases] = await Promise.all([
+    const [opnames, materials, purchases] = await Promise.all([
         prisma.stockOpname.findMany({
             where: {
                 outletId,
@@ -183,15 +183,6 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             where: { outletId },
             select: { id: true, currentStock: true, createdAt: true }
         }),
-        // Ambil tanggal-tanggal yang ada order (untuk exclude hari tanpa order)
-        prisma.order.findMany({
-            where: {
-                outletId,
-                createdAt: { gte: ninetyDaysAgo },
-                orderStatus: { notIn: ['cancelled'] }
-            },
-            select: { createdAt: true },
-        }),
         // Ambil semua riwayat pembelian yang RECEIVED dalam 90 hari terakhir
         prisma.inventoryPurchase.findMany({
             where: {
@@ -207,13 +198,6 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             orderBy: { date: 'asc' }
         })
     ])
-
-    // Buat set tanggal yang ada order (format YYYY-MM-DD)
-    const orderDateSet = new Set<string>()
-    for (const order of orders) {
-        const dateKey = order.createdAt.toISOString().split('T')[0]
-        orderDateSet.add(dateKey)
-    }
 
     // Kelompokkan purchases per rawMaterialId
     const materialPurchases = new Map<string, Array<{ date: Date; quantity: number }>>()
@@ -245,30 +229,24 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         return result
     }
 
-    function toDateString(d: Date | string): string {
-        return new Date(d).toISOString().split('T')[0]
+    function parseDateOnly(d: Date | string): { year: number; month: number; day: number } {
+        if (typeof d === 'string') {
+            const parts = d.split('T')[0].split('-')
+            return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) - 1, day: parseInt(parts[2], 10) }
+        }
+        const iso = d.toISOString().split('T')[0]
+        const parts = iso.split('-')
+        return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10) - 1, day: parseInt(parts[2], 10) }
     }
 
-    // Helper: hitung jumlah hari aktif (ada order) dalam rentang [startDate, endDate]
-    function countActiveDays(startDate: Date | string, endDate: Date | string): number {
-        const startStr = toDateString(startDate)
-        const endStr = toDateString(endDate)
-        if (startStr > endStr) return 0
-
-        const current = new Date(startStr + 'T00:00:00.000Z')
-        const end = new Date(endStr + 'T00:00:00.000Z')
-
-        let count = 0
-        while (current <= end) {
-            const key = current.toISOString().split('T')[0]
-            if (orderDateSet.size > 0) {
-                if (orderDateSet.has(key)) count++
-            } else {
-                count++
-            }
-            current.setUTCDate(current.getUTCDate() + 1)
-        }
-        return count
+    // Helper: hitung selisih hari kalender antara [startDate, endDate]
+    function getDaysDifference(startDate: Date | string, endDate: Date | string): number {
+        const s = parseDateOnly(startDate)
+        const e = parseDateOnly(endDate)
+        const startUtc = Date.UTC(s.year, s.month, s.day)
+        const endUtc = Date.UTC(e.year, e.month, e.day)
+        const diff = Math.round((endUtc - startUtc) / (1000 * 60 * 60 * 24))
+        return Math.max(0, diff)
     }
 
     // Kelompokkan items per rawMaterialId per opname
@@ -308,7 +286,7 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         const firstPurchaseDate = purchasesList.length > 0 ? purchasesList[0].date : mat.createdAt
 
         let totalWeightedUsage = 0
-        let totalActiveDays = 0
+        let totalDays = 0
 
         // 1. Periode Awal: Dari pertama kali barang dibeli / ada stok sampai Opname Pertama
         const firstOpname = history[0]
@@ -320,11 +298,10 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
                 ? firstPurchaseDate
                 : firstOpname.date
 
-            const activeDays = countActiveDays(startDate, firstOpname.date)
-            const effectiveDays = Math.max(1, activeDays)
+            const days = Math.max(1, getDaysDifference(startDate, firstOpname.date))
 
             totalWeightedUsage += firstOpnameUsage
-            totalActiveDays += effectiveDays
+            totalDays += days
         }
 
         // 2. Periode Lanjutan: Dari pasangan opname berurutan (i-1 ke i)
@@ -348,11 +325,10 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
                     }
                 }
 
-                const activeDays = countActiveDays(startDate, curr.date)
-                const effectiveDays = Math.max(1, activeDays)
+                const days = Math.max(1, getDaysDifference(startDate, curr.date))
 
                 totalWeightedUsage += usage
-                totalActiveDays += effectiveDays
+                totalDays += days
             }
         }
 
@@ -361,20 +337,18 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
         let estimatedStock: number | null = currentStock
         let status: StockProjection['status'] = currentStock <= 0 ? 'HABIS' : 'NO_DATA'
 
-        if (totalActiveDays > 0 && totalWeightedUsage > 0) {
-            avgDailyUsage = totalWeightedUsage / totalActiveDays
+        if (totalDays > 0 && totalWeightedUsage > 0) {
+            avgDailyUsage = totalWeightedUsage / totalDays
 
-            // Hitung jumlah hari aktif sejak opname terakhir sampai hari ini
+            // Hitung jumlah hari berjalan sejak opname terakhir sampai HARI INI
             const now = new Date()
-            const dayAfterLastOpname = new Date(lastOpname.date)
-            dayAfterLastOpname.setDate(dayAfterLastOpname.getDate() + 1)
-            
-            const activeDaysSinceLastOpname = countActiveDays(dayAfterLastOpname, now)
+            const daysSinceLastOpname = getDaysDifference(lastOpname.date, now)
 
-            // Estimasi sisa stok berjalan hari ini
-            estimatedStock = Math.max(0, Math.round((currentStock - (activeDaysSinceLastOpname * avgDailyUsage)) * 100) / 100)
+            // Estimasi sisa stok berjalan hari ini: (Stok saat ini - (hari berjalan x pemakaian harian))
+            estimatedStock = Math.max(0, Math.round((currentStock - (daysSinceLastOpname * avgDailyUsage)) * 100) / 100)
 
-            projectedDays = estimatedStock > 0 ? Math.round(estimatedStock / avgDailyUsage) : 0
+            // Sisa proyeksi hari habis dari hari ini
+            projectedDays = estimatedStock > 0 && avgDailyUsage > 0 ? Math.round(estimatedStock / avgDailyUsage) : 0
             status = getProjectionStatus(estimatedStock, projectedDays)
         } else {
             status = getProjectionStatus(currentStock, projectedDays)
