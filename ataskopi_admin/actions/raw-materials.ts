@@ -270,33 +270,49 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
     }
 
     // Hitung weighted average daily usage per material
+    // Hanya gunakan MAKSIMAL 3 stock opname terakhir agar data lebih relevan
+    const MAX_OPNAME_FOR_AVG = 3
+
     for (const mat of materials) {
         const materialId = mat.id
         const currentStock = Number(mat.currentStock)
-        const history = materialOpnameHistory.get(materialId) || []
+        const fullHistory = materialOpnameHistory.get(materialId) || []
         const purchasesList = materialPurchases.get(materialId) || []
 
-        if (history.length === 0) {
+        if (fullHistory.length === 0) {
             continue
         }
 
-        const lastOpname = history[history.length - 1]
+        // Ambil hanya N opname terakhir untuk perhitungan rata-rata
+        const history = fullHistory.length > MAX_OPNAME_FOR_AVG
+            ? fullHistory.slice(-MAX_OPNAME_FOR_AVG)
+            : fullHistory
 
-        // Tanggal pertama produk ini memiliki stok (pembelian pertama atau tanggal dibuatnya material)
-        const firstPurchaseDate = purchasesList.length > 0 ? purchasesList[0].date : mat.createdAt
+        const lastOpname = history[history.length - 1]
 
         let totalWeightedUsage = 0
         let totalDays = 0
 
-        // 1. Periode Awal: Dari pertama kali barang dibeli / ada stok sampai Opname Pertama
+        // 1. Periode Pertama dari data yang dipakai:
+        //    Jika history sudah dipotong (bukan dari awal), gunakan opname pertama sebagai baseline.
+        //    Jika ini memang opname pertama dari material, gunakan tanggal pembelian pertama.
         const firstOpname = history[0]
         const firstOpnameUsage = firstOpname.systemStock - firstOpname.actualStock
 
         if (firstOpnameUsage > 0) {
-            // Periode dimulai dari firstPurchaseDate atau tanggal opname pertama jika firstPurchaseDate lebih baru
-            const startDate = new Date(firstPurchaseDate) <= new Date(firstOpname.date)
-                ? firstPurchaseDate
-                : firstOpname.date
+            let startDate: Date | string
+
+            if (fullHistory.length <= MAX_OPNAME_FOR_AVG) {
+                // Ini memang data dari awal, gunakan tanggal pembelian pertama
+                const firstPurchaseDate = purchasesList.length > 0 ? purchasesList[0].date : mat.createdAt
+                startDate = new Date(firstPurchaseDate) <= new Date(firstOpname.date)
+                    ? firstPurchaseDate
+                    : firstOpname.date
+            } else {
+                // Data sudah dipotong, periode pertama dimulai dari opname sebelumnya (yang tidak ikut di-slice)
+                const prevOpname = fullHistory[fullHistory.length - MAX_OPNAME_FOR_AVG - 1]
+                startDate = prevOpname ? prevOpname.date : firstOpname.date
+            }
 
             const days = Math.max(1, getDaysDifference(startDate, firstOpname.date))
 
@@ -362,7 +378,7 @@ export async function getStockProjections(outletId: string): Promise<Record<stri
             estimatedStock,
             status,
             lastOpnameDate: lastOpname.date.toISOString(),
-            opnameCount: history.length,
+            opnameCount: fullHistory.length,
         }
     }
 
