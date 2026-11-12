@@ -2,16 +2,9 @@
 
 import { db as prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-import {
-    notifyOrderPreparing,
-    notifyOrderReady,
-    notifyOrderOnDelivery,
-    notifyOrderCompleted,
-    notifyOrderCancelled,
-    notifyPointsEarned,
-} from "@/lib/services/notification-service"
-import { getCurrentUser } from "@/lib/auth-utils"
-// import { requirePermission } from "@/lib/auth-utils"
+import { getCurrentUser, requirePermission } from "@/lib/auth-utils"
+import { ACTIVE_ORDER_STATUSES } from "@/lib/order-status"
+import { transitionOrderStatus } from "@/lib/services/order-status-service"
 
 export async function getOrders(filter: 'live' | 'history' = 'live') {
     // await requirePermission('orders', 'view')
@@ -28,7 +21,7 @@ export async function getOrders(filter: 'live' | 'history' = 'live') {
 
     if (filter === 'live') {
         where.orderStatus = {
-            in: ['pending', 'preparing', 'ready', 'on_delivery', 'waiting_pickup']
+            in: ACTIVE_ORDER_STATUSES
         }
     } else {
         where.orderStatus = {
@@ -118,106 +111,9 @@ export async function getOrders(filter: 'live' | 'history' = 'live') {
 }
 
 export async function updateOrderStatus(id: string, status: string) {
-    // await requirePermission('orders', 'update')
-
     try {
-        let pointsEarned = 0;
-        let orderNumber = '';
-        let userId = '';
-
-        // Run in transaction to ensure consistency
-        await prisma.$transaction(async (tx) => {
-            const order = await tx.order.findUnique({
-                where: { id },
-                include: {
-                    items: true,
-                    user: true
-                }
-            })
-
-            if (!order) throw new Error("Order not found")
-
-            orderNumber = order.orderNumber;
-            userId = order.userId;
-
-            // Update status
-            await tx.order.update({
-                where: { id },
-                data: { orderStatus: status }
-            })
-
-            // LOYALTY LOGIC: Award points when order is completed
-            if (status === 'completed' && order.orderStatus !== 'completed') {
-
-                // Get Loyalty Settings (Single Tenant: Get the first enabled setting or default)
-                // Since we removed tenantId, we just get the first record or assume general settings
-                const loyaltySetting = await tx.loyaltySetting.findFirst({
-                    where: { isEnabled: true }
-                })
-
-                if (loyaltySetting) {
-                    // Calculate points (Default: pointsPerItem * totalItems)
-                    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0)
-                    pointsEarned = totalItems * loyaltySetting.pointsPerItem
-
-                    if (pointsEarned > 0) {
-                        // Update User Points
-                        await tx.user.update({
-                            where: { id: order.userId },
-                            data: {
-                                loyaltyPoints: { increment: pointsEarned },
-                                totalItemsPurchased: { increment: totalItems },
-                                totalSpent: { increment: order.total }
-                            }
-                        })
-
-                        // Create Transaction Record
-                        await tx.loyaltyTransaction.create({
-                            data: {
-                                userId: order.userId,
-                                orderId: order.id,
-                                transactionType: 'earned',
-                                pointsChange: pointsEarned,
-                                pointsBalanceAfter: order.user.loyaltyPoints + pointsEarned,
-                                earningMethod: 'per_item',
-                                calculationDetails: {
-                                    items: totalItems,
-                                    rate: loyaltySetting.pointsPerItem
-                                },
-                                notes: `Earned ${pointsEarned} points from Order #${order.orderNumber}`
-                            }
-                        })
-                    }
-                }
-            }
-        })
-
-        // NOTIFICATION TRIGGERS (outside transaction for safety)
-        if (userId && orderNumber) {
-            switch (status) {
-                case 'preparing':
-                    await notifyOrderPreparing(userId, orderNumber);
-                    break;
-                case 'ready':
-                case 'waiting_pickup':
-                    await notifyOrderReady(userId, orderNumber);
-                    break;
-                case 'on_delivery':
-                    await notifyOrderOnDelivery(userId, orderNumber);
-                    break;
-                case 'completed':
-                    await notifyOrderCompleted(userId, orderNumber);
-                    // Also notify about points earned
-                    if (pointsEarned > 0) {
-                        await notifyPointsEarned(userId, pointsEarned, orderNumber);
-                    }
-                    break;
-                case 'cancelled':
-                case 'rejected':
-                    await notifyOrderCancelled(userId, orderNumber);
-                    break;
-            }
-        }
+        await requirePermission('orders', 'update')
+        await transitionOrderStatus({ orderId: id, status })
 
         revalidatePath('/orders')
         revalidatePath('/orders/live')
@@ -231,8 +127,8 @@ export async function updateOrderStatus(id: string, status: string) {
 
 
 export async function updatePaymentStatus(id: string, status: string) {
-    // await requirePermission('orders', 'update')
     try {
+        await requirePermission('orders', 'update')
         await prisma.order.update({
             where: { id },
             data: { paymentStatus: status }

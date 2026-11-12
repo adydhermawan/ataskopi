@@ -1,0 +1,168 @@
+import { db as prisma } from '@/lib/db';
+import { ServiceError } from '@/lib/services/service-error';
+import type { PosContext } from '@/lib/services/pos-order-service';
+
+interface MoneyRow {
+    method?: string;
+    type?: string;
+    amount: unknown;
+}
+
+/**
+ * Cash that should be in the drawer. QRIS and delivery platform payments never
+ * touch it.
+ */
+export function calculateExpectedCash(
+    openingCash: number,
+    payments: MoneyRow[],
+    refunds: MoneyRow[],
+    movements: MoneyRow[]
+) {
+    const sum = (rows: MoneyRow[]) => rows.reduce((total, row) => total + Number(row.amount), 0);
+
+    return (
+        openingCash +
+        sum(payments.filter((p) => p.method === 'cash')) -
+        sum(refunds.filter((r) => r.method === 'cash')) +
+        sum(movements.filter((m) => m.type === 'in')) -
+        sum(movements.filter((m) => m.type === 'out'))
+    );
+}
+
+function salesByMethod(payments: MoneyRow[]) {
+    const totals: Record<string, number> = {};
+    for (const payment of payments) {
+        const method = payment.method ?? 'unknown';
+        totals[method] = (totals[method] ?? 0) + Number(payment.amount);
+    }
+    return totals;
+}
+
+async function findShift(ref: string, ctx: PosContext) {
+    const shift = await prisma.shift.findFirst({
+        where: { OR: [{ id: ref }, { clientShiftId: ref }] },
+        include: { payments: true, refunds: true, cashMovements: true },
+    });
+    if (!shift) throw new ServiceError('Shift tidak ditemukan', 404);
+    if (ctx.outletScope && ctx.outletScope !== shift.outletId) {
+        throw new ServiceError('Shift bukan milik outlet ini', 403);
+    }
+    return shift;
+}
+
+type LoadedShift = Awaited<ReturnType<typeof findShift>>;
+
+function formatShift(shift: LoadedShift) {
+    return {
+        id: shift.id,
+        clientShiftId: shift.clientShiftId,
+        outletId: shift.outletId,
+        cashierId: shift.cashierId,
+        status: shift.status,
+        openedAt: shift.openedAt.toISOString(),
+        closedAt: shift.closedAt?.toISOString() ?? null,
+        openingCash: Number(shift.openingCash),
+        expectedCash:
+            shift.expectedCash !== null
+                ? Number(shift.expectedCash)
+                : calculateExpectedCash(
+                      Number(shift.openingCash),
+                      shift.payments,
+                      shift.refunds,
+                      shift.cashMovements
+                  ),
+        actualCash: shift.actualCash !== null ? Number(shift.actualCash) : null,
+        cashDifference: shift.cashDifference !== null ? Number(shift.cashDifference) : null,
+        salesByMethod: salesByMethod(shift.payments),
+    };
+}
+
+interface OpenShiftInput {
+    outletId: string;
+    clientShiftId: string;
+    openingCash: number;
+    openedAt?: string;
+}
+
+export async function openShift(input: OpenShiftInput, ctx: PosContext) {
+    const repeated = await prisma.shift.findUnique({ where: { clientShiftId: input.clientShiftId } });
+    if (repeated) return formatShift(await findShift(repeated.id, ctx));
+
+    const alreadyOpen = await prisma.shift.findFirst({
+        where: { outletId: input.outletId, status: 'open' },
+        select: { id: true },
+    });
+    if (alreadyOpen) throw new ServiceError('Masih ada shift yang belum ditutup', 409);
+
+    const shift = await prisma.shift.create({
+        data: {
+            outletId: input.outletId,
+            clientShiftId: input.clientShiftId,
+            cashierId: ctx.actorId,
+            openingCash: input.openingCash,
+            openedAt: input.openedAt ? new Date(input.openedAt) : undefined,
+        },
+    });
+    return formatShift(await findShift(shift.id, ctx));
+}
+
+export async function getOpenShift(outletId: string, ctx: PosContext) {
+    const shift = await prisma.shift.findFirst({
+        where: { outletId, status: 'open' },
+        select: { id: true },
+    });
+    return shift ? formatShift(await findShift(shift.id, ctx)) : null;
+}
+
+interface CashMovementInput {
+    clientMovementId: string;
+    type: string;
+    amount: number;
+    reason: string;
+}
+
+export async function addCashMovement(ref: string, input: CashMovementInput, ctx: PosContext) {
+    const shift = await findShift(ref, ctx);
+
+    if (!shift.cashMovements.some((m) => m.clientMovementId === input.clientMovementId)) {
+        if (shift.status !== 'open') throw new ServiceError('Shift sudah ditutup', 409);
+
+        await prisma.shiftCashMovement.create({
+            data: { shiftId: shift.id, cashierId: ctx.actorId, ...input },
+        });
+    }
+
+    return formatShift(await findShift(shift.id, ctx));
+}
+
+interface CloseShiftInput {
+    actualCash: number;
+    closedAt?: string;
+    notes?: string | null;
+}
+
+export async function closeShift(ref: string, input: CloseShiftInput, ctx: PosContext) {
+    const shift = await findShift(ref, ctx);
+    if (shift.status === 'closed') return formatShift(shift);
+
+    const expectedCash = calculateExpectedCash(
+        Number(shift.openingCash),
+        shift.payments,
+        shift.refunds,
+        shift.cashMovements
+    );
+
+    await prisma.shift.update({
+        where: { id: shift.id },
+        data: {
+            status: 'closed',
+            closedAt: input.closedAt ? new Date(input.closedAt) : new Date(),
+            expectedCash,
+            actualCash: input.actualCash,
+            cashDifference: input.actualCash - expectedCash,
+            notes: input.notes,
+        },
+    });
+
+    return formatShift(await findShift(shift.id, ctx));
+}

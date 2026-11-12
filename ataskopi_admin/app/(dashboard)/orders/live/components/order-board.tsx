@@ -98,7 +98,7 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
 
     const handleStatusUpdate = async (order: any, newStatus: string) => {
         const isUnpaid = order.paymentStatus === 'pending'
-        const isManualPayment = order.paymentMethod === 'cash' || order.paymentMethod === 'manual'
+        const isManualPayment = order.paymentMethod === 'cash' || order.paymentMethod === 'manual' || order.source === 'pos'
 
         // 1. Block transition to preparing if unpaid (except for cash/manual)
         if (newStatus === 'preparing' && isUnpaid && !isManualPayment) {
@@ -195,7 +195,7 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
                 {orders.map((order) => {
                     const status = statusMap[order.orderStatus] || { label: order.orderStatus, color: 'bg-gray-100' }
                     const isUnpaid = order.paymentStatus === 'pending'
-                    const isManualPayment = order.paymentMethod === 'cash' || order.paymentMethod === 'manual'
+                    const isManualPayment = order.paymentMethod === 'cash' || order.paymentMethod === 'manual' || order.source === 'pos'
                     const isNew = newOrderIds.has(order.id)
 
                     return (
@@ -222,7 +222,7 @@ export function OrderBoard({ initialOrders }: OrderBoardProps) {
                                 </Badge>
                             </CardHeader>
                             <CardContent onClick={(e) => e.stopPropagation()}>
-                                <div className="text-2xl font-bold mb-1" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}>{order.user.name}</div>
+                                <div className="text-2xl font-bold mb-1" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }}>{order.guestName || order.user.name}</div>
                                 <div className="flex items-center gap-x-2 text-xs text-muted-foreground mb-4">
                                     <span className="font-semibold text-primary">{order.outlet.name}</span>
                                     <span>•</span>

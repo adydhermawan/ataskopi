@@ -38,7 +38,7 @@ export const PERMISSIONS: Record<string, Permissions> = {
     orders: {
         view: ['admin', 'owner', 'kasir'],
         create: ['admin', 'kasir'],
-        update: ['admin', 'kasir'],
+        update: ['admin', 'owner', 'kasir'],
         delete: ['admin', 'owner'],
     },
     customers: {

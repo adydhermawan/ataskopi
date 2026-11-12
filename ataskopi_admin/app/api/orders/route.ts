@@ -10,6 +10,11 @@ import {
 } from '@/lib/api/response-helpers';
 import { createOrderSchema, orderQuerySchema } from '@/lib/validation/order-schemas';
 import { notifyOrderCreated } from '@/lib/services/notification-service';
+import { ACTIVE_ORDER_STATUSES, expandStatusAliases } from '@/lib/order-status';
+import { generateOrderNumber } from '@/lib/services/order-number-service';
+import { calculateTax, priceOrderItem } from '@/lib/services/order-pricing';
+import { assertOutletAcceptsOnlineOrders } from '@/lib/services/pos-outlet';
+import { ServiceError } from '@/lib/services/service-error';
 export const dynamic = 'force-dynamic';
 
 
@@ -63,6 +68,8 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
             return errorResponse('Outlet not found or inactive', 404);
         }
 
+        assertOutletAcceptsOnlineOrders(outlet);
+
         const orderModeSetting = await prisma.orderModeSetting.findFirst();
         const taxEnabled = orderModeSetting?.taxEnabled ?? true;
 
@@ -108,51 +115,17 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
                         include: { values: true },
                     },
                     modifiers: true,
+                    outletProducts: {
+                        where: { outletId: outlet.id },
+                    },
                 },
             });
 
-            if (!product) {
+            if (!product || product.outletProducts[0]?.isAvailable === false) {
                 return errorResponse(`Product ${item.productId} not found or unavailable`, 404);
             }
 
-            let itemPrice = Number(product.basePrice);
-
-            // Add option price modifiers
-            if (item.selectedOptions) {
-                for (const selectedOption of item.selectedOptions) {
-                    const option = product.options.find((o) => o.id === selectedOption.optionId);
-                    if (!option) {
-                        return errorResponse(`Invalid option ${selectedOption.optionId}`, 400);
-                    }
-
-                    const value = option.values.find((v) => v.id === selectedOption.valueId);
-                    if (!value) {
-                        return errorResponse(`Invalid option value ${selectedOption.valueId}`, 400);
-                    }
-
-                    itemPrice += Number(value.priceModifier);
-                }
-            }
-
-            // Add modifier prices
-            const itemModifiers: any[] = [];
-            if (item.selectedModifiers) {
-                for (const selectedModifier of item.selectedModifiers) {
-                    const modifier = product.modifiers.find((m) => m.id === selectedModifier.modifierId);
-                    if (!modifier || !modifier.isAvailable) {
-                        return errorResponse(`Invalid or unavailable modifier ${selectedModifier.modifierId}`, 400);
-                    }
-
-                    const modifierPrice = Number(modifier.price) * selectedModifier.quantity;
-                    itemPrice += modifierPrice;
-
-                    itemModifiers.push({
-                        modifierId: modifier.id,
-                        quantity: selectedModifier.quantity,
-                        unitPrice: Number(modifier.price),
-                    });
-                }
-            }
+            const { unitPrice: itemPrice, modifiers: itemModifiers } = priceOrderItem(product, item);
 
             const itemSubtotal = itemPrice * item.quantity;
             subtotal += itemSubtotal;
@@ -234,39 +207,17 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
         }
 
         // Calculate tax and total
-        const taxRate = taxEnabled ? 0.11 : 0.0; // 11% PPN if enabled
-        const tax = subtotal * taxRate;
+        const tax = calculateTax(subtotal, taxEnabled);
         const total = subtotal + tax - discount - pointsDiscount;
 
         if (total < 0) {
             return errorResponse('Invalid order total', 400);
         }
 
-        // Generate order number
-        const today = new Date();
-        const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '').slice(0, 6); // DDMMYY
-        const outletPrefix = outlet.id.slice(0, 4);
-
-        const lastOrder = await prisma.order.findFirst({
-            where: {
-                outletId: outlet.id,
-                orderNumber: {
-                    startsWith: `${outletPrefix}${dateStr}`,
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-        });
-
-        let sequence = 1;
-        if (lastOrder) {
-            const lastSeq = parseInt(lastOrder.orderNumber.split('-')[1] || '0');
-            sequence = lastSeq + 1;
-        }
-
-        const orderNumber = `${outletPrefix}${dateStr}-${sequence.toString().padStart(3, '0')}`;
-
         // Create order in transaction
         const order = await prisma.$transaction(async (tx) => {
+            const orderNumber = await generateOrderNumber(tx, outlet.id);
+
             // Create order
             const newOrder = await tx.order.create({
                 data: {
@@ -398,6 +349,9 @@ export const POST = withAuth(async (req: AuthenticatedRequest) => {
             createdAt: order.createdAt.toISOString(),
         }, 201);
     } catch (error) {
+        if (error instanceof ServiceError) {
+            return errorResponse(error.message, error.status);
+        }
         console.error('POST /api/orders error:', error);
         return serverErrorResponse(`Failed to create order: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -448,12 +402,12 @@ export const GET = withAuth(async (req: AuthenticatedRequest) => {
 
             // Handle logical grouping if needed, otherwise use raw statuses
             if (statuses.includes('active')) {
-                where.orderStatus = { in: ['pending', 'preparing', 'ready', 'waiting_pickup', 'on_the_way'] };
+                where.orderStatus = { in: ACTIVE_ORDER_STATUSES };
             } else if (statuses.includes('completed')) {
                 where.orderStatus = { in: ['completed', 'cancelled'] };
             } else {
                 // Use raw statuses provided by frontend (e.g. "pending,preparing")
-                where.orderStatus = { in: statuses };
+                where.orderStatus = { in: expandStatusAliases(statuses) };
             }
         }
 
