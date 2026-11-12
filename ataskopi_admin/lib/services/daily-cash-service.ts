@@ -30,7 +30,7 @@ export function businessDayRange(date: string) {
 }
 
 /** Purchases and expenses paid in cash from the outlet's own takings. */
-function paidInCashOn(outletId: string, date: string) {
+export function paidInCashOn(outletId: string, date: string) {
     const dateKey = new Date(`${date}T00:00:00Z`);
     return {
         outletId,
@@ -59,6 +59,40 @@ export async function cashExpensesForDate(outletId: string, date: string, client
         select: { amount: true },
     });
     return expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+}
+
+/** The day's cash purchases, as the daily cash form lists them. */
+export async function cashPurchasesListForDate(outletId: string, date: string, client: Client = prisma) {
+    const purchases = await client.inventoryPurchase.findMany({
+        where: paidInCashOn(outletId, date),
+        include: { rawMaterial: { select: { name: true, unit: true } } },
+        orderBy: { createdAt: 'desc' },
+    });
+    return purchases.map((p) => ({
+        id: p.id,
+        rawMaterialId: p.rawMaterialId,
+        rawMaterialName: p.rawMaterial.name,
+        unit: p.rawMaterial.unit,
+        quantity: Number(p.quantity),
+        unitPrice: Number(p.unitPrice),
+        totalAmount: Number(p.totalAmount),
+        supplier: p.supplier,
+        notes: p.notes,
+    }));
+}
+
+/** The day's cash expenses, as the daily cash form lists them. */
+export async function cashExpensesListForDate(outletId: string, date: string, client: Client = prisma) {
+    const expenses = await client.expense.findMany({
+        where: paidInCashOn(outletId, date),
+        orderBy: { createdAt: 'desc' },
+    });
+    return expenses.map((e) => ({
+        id: e.id,
+        category: e.category,
+        amount: Number(e.amount),
+        description: e.description,
+    }));
 }
 
 /** Completed orders of the day, the "Omset Web (Sistem)" reference. */

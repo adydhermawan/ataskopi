@@ -9,6 +9,7 @@ import '../../../core/theme/brand.dart';
 import '../../../core/ui/atas_ui.dart';
 import '../../../core/utils/format.dart';
 import '../../printer/data/receipt.dart';
+import 'daily_spending.dart';
 
 int _int(Object? value) => (value as num?)?.round() ?? 0;
 
@@ -27,7 +28,17 @@ class ClosingSummary {
         cashPurchases = _int(json['cashPurchases']),
         cashExpenses = _int(json['cashExpenses']),
         suggested = json['suggested'] as Map<String, dynamic>,
-        existing = json['existing'] as Map<String, dynamic>?;
+        existing = json['existing'] as Map<String, dynamic>?,
+        purchases = [
+          for (final row in (json['purchases'] as List? ?? const [])) DayPurchase.fromJson(row as Map<String, dynamic>),
+        ],
+        expenses = [
+          for (final row in (json['expenses'] as List? ?? const [])) DayExpense.fromJson(row as Map<String, dynamic>),
+        ],
+        materials = [
+          for (final row in (json['rawMaterials'] as List? ?? const []))
+            RawMaterialRef.fromJson(row as Map<String, dynamic>),
+        ];
 
   final String date;
   final int openingCash;
@@ -39,6 +50,9 @@ class ClosingSummary {
   final int cashExpenses;
   final Map<String, dynamic> suggested;
   final Map<String, dynamic>? existing;
+  final List<DayPurchase> purchases;
+  final List<DayExpense> expenses;
+  final List<RawMaterialRef> materials;
 
   bool get recordClosed => existing?['isClosed'] == true;
 }
@@ -66,7 +80,7 @@ class CloseShiftScreen extends ConsumerStatefulWidget {
 }
 
 class _CloseShiftScreenState extends ConsumerState<CloseShiftScreen> {
-  late final ClosingSummary _s = widget.summary;
+  late ClosingSummary _s = widget.summary;
   late final _drawer = _money(_s.expectedCash);
   late final _cash = _money(_int(_s.suggested['cashAmount']));
   late final _qris = _money(_int(_s.suggested['qrisAmount']));
@@ -75,6 +89,9 @@ class _CloseShiftScreenState extends ConsumerState<CloseShiftScreen> {
   final _notes = TextEditingController();
   bool _busy = false;
   String? _error;
+
+  /// Once the cashier types the cash figure, new shopping no longer moves it.
+  bool _cashTyped = false;
 
   static TextEditingController _money(int value) => TextEditingController(text: value == 0 ? '' : '$value');
 
@@ -86,6 +103,60 @@ class _CloseShiftScreenState extends ConsumerState<CloseShiftScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  /// Shopping and expenses are saved at once, and the cash figure follows.
+  Future<void> _spend(Future<dynamic> Function() request, String done) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final summary = ClosingSummary.fromJson(await request() as Map<String, dynamic>);
+      if (!mounted) return;
+      setState(() {
+        _s = summary;
+        if (!_cashTyped) {
+          final cash = _int(summary.suggested['cashAmount']);
+          _cash.text = cash == 0 ? '' : '$cash';
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String get _base => '/api/pos/shifts/${widget.shiftId}';
+
+  Future<void> _addPurchase() async {
+    if (_s.materials.isEmpty) {
+      setState(() => _error = 'Belum ada bahan baku di outlet ini. Tambahkan dulu di admin.');
+      return;
+    }
+    final body = await showPurchaseSheet(context, _s.materials);
+    if (body == null || !mounted) return;
+    await _spend(() => ref.read(apiProvider).post('$_base/purchases', body), 'Belanja tersimpan, stok bertambah');
+  }
+
+  Future<void> _deletePurchase(DayPurchase purchase) async {
+    if (!await confirmDelete(context, 'Hapus belanja ${purchase.name}? Stok yang bertambah akan dikurangi lagi.')) {
+      return;
+    }
+    await _spend(() => ref.read(apiProvider).delete('$_base/purchases/${purchase.id}'), 'Belanja dihapus');
+  }
+
+  Future<void> _addExpense() async {
+    final body = await showExpenseSheet(context);
+    if (body == null || !mounted) return;
+    await _spend(() => ref.read(apiProvider).post('$_base/expenses', body), 'Pengeluaran tersimpan');
+  }
+
+  Future<void> _deleteExpense(DayExpense expense) async {
+    if (!await confirmDelete(context, 'Hapus pengeluaran ${rupiah(expense.amount)}?')) return;
+    await _spend(() => ref.read(apiProvider).delete('$_base/expenses/${expense.id}'), 'Pengeluaran dihapus');
   }
 
   Future<void> _close() async {
@@ -193,6 +264,46 @@ class _CloseShiftScreenState extends ConsumerState<CloseShiftScreen> {
                 '${rupiah(_int(existing['cashAmount']) + _int(existing['qrisAmount']) + _int(existing['otherAmount']))}). '
                 'Angka di bawah sudah mencakup semua shift hari ini dan akan menggantinya.',
               ),
+            if (!_s.recordClosed) ...[
+              SpendingSection(
+                title: 'Belanja Harian / Nota Kasir (Cash)',
+                caption: 'Otomatis masuk ke menu Pembelian dan menambah stok.',
+                icon: LucideIcons.shoppingCart,
+                color: AtasColors.danger,
+                addLabel: 'Tambah belanja',
+                busy: _busy,
+                onAdd: _addPurchase,
+                children: [
+                  for (final purchase in _s.purchases)
+                    SpendingTile(
+                      title: purchase.name,
+                      subtitle: purchaseSubtitle(purchase),
+                      amount: purchase.total,
+                      color: AtasColors.danger,
+                      onDelete: _busy ? null : () => _deletePurchase(purchase),
+                    ),
+                ],
+              ),
+              SpendingSection(
+                title: 'Pengeluaran Harian (Cash)',
+                caption: 'Otomatis masuk ke menu Pengeluaran.',
+                icon: LucideIcons.receipt,
+                color: AtasColors.warning,
+                addLabel: 'Tambah pengeluaran',
+                busy: _busy,
+                onAdd: _addExpense,
+                children: [
+                  for (final expense in _s.expenses)
+                    SpendingTile(
+                      title: expenseCategories[expense.category] ?? expense.category,
+                      subtitle: expense.description ?? '',
+                      amount: expense.amount,
+                      color: AtasColors.warning,
+                      onDelete: _busy ? null : () => _deleteExpense(expense),
+                    ),
+                ],
+              ),
+            ],
             if (!_s.recordClosed)
               SurfaceCard(
                 child: Column(
@@ -205,9 +316,9 @@ class _CloseShiftScreenState extends ConsumerState<CloseShiftScreen> {
                     _MoneyField(
                       controller: _cash,
                       label: 'Kas tunai bersih',
-                      helper: 'Sesuaikan kalau uang tunai nyatanya beda',
+                      helper: 'Penjualan tunai − belanja − pengeluaran. Sesuaikan kalau uang nyatanya beda',
                       icon: LucideIcons.banknote,
-                      onChanged: () => setState(() {}),
+                      onChanged: () => setState(() => _cashTyped = true),
                     ),
                     const SizedBox(height: 12),
                     _MoneyField(

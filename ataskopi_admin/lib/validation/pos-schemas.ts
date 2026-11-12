@@ -87,6 +87,23 @@ export const posDailyCashSchema = z.object({
     notes: z.string().max(500).nullish(),
 });
 
+export const posShiftPurchaseSchema = z.object({
+    rawMaterialId: z.string().min(1),
+    quantity: z.number().positive(),
+    unitPrice: money.optional(),
+    totalAmount: z.number().positive(),
+    supplier: z.string().trim().max(100).nullish(),
+    notes: z.string().trim().max(300).nullish(),
+});
+
+export const expenseCategories = ['OPERATIONAL', 'SALARY', 'UTILITY', 'RENT', 'OTHER'] as const;
+
+export const posShiftExpenseSchema = z.object({
+    category: z.enum(expenseCategories),
+    amount: z.number().positive(),
+    description: z.string().trim().max(300).nullish(),
+});
+
 export const posCloseShiftSchema = z.object({
     actualCash: money,
     closedAt: z.iso.datetime().optional(),

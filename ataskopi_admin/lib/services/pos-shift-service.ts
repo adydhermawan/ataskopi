@@ -1,11 +1,16 @@
 import { db as prisma } from '@/lib/db';
 import { ServiceError } from '@/lib/services/service-error';
+import { invalidateProjectionCache } from '@/lib/cache/projection-cache';
+import { addStockToMaterial, removeStockFromMaterial } from '@/lib/services/inventory-stock-service';
 import type { PosContext } from '@/lib/services/pos-order-service';
 import {
     businessDate,
     businessDayRange,
     cashExpensesForDate,
+    cashExpensesListForDate,
     cashPurchasesForDate,
+    cashPurchasesListForDate,
+    paidInCashOn,
     suggestDailyCash,
     upsertDailyCash,
     type DailyCashInput,
@@ -178,7 +183,8 @@ export async function getClosingSummary(ref: string, ctx: PosContext) {
     const date = businessDate(shift.openedAt);
     const { start, end } = businessDayRange(date);
 
-    const [dayShifts, appOrders, cashPurchases, cashExpenses, existing] = await Promise.all([
+    const [dayShifts, appOrders, cashPurchases, cashExpenses, existing, purchases, expenses, rawMaterials] =
+        await Promise.all([
         prisma.shift.findMany({
             where: { outletId: shift.outletId, openedAt: { gte: start, lt: end } },
             select: { payments: true, refunds: true },
@@ -199,6 +205,13 @@ export async function getClosingSummary(ref: string, ctx: PosContext) {
         prisma.dailyRealRevenue.findUnique({
             where: { date_outletId: { date: new Date(`${date}T00:00:00Z`), outletId: shift.outletId } },
         }),
+        cashPurchasesListForDate(shift.outletId, date),
+        cashExpensesListForDate(shift.outletId, date),
+        prisma.rawMaterial.findMany({
+            where: { outletId: shift.outletId },
+            select: { id: true, name: true, unit: true, averageCost: true },
+            orderBy: { name: 'asc' },
+        }),
     ]);
 
     const daySales = daySalesByMethod(dayShifts, appOrders);
@@ -213,6 +226,9 @@ export async function getClosingSummary(ref: string, ctx: PosContext) {
         daySales,
         cashPurchases,
         cashExpenses,
+        purchases,
+        expenses,
+        rawMaterials: rawMaterials.map((m) => ({ ...m, averageCost: Number(m.averageCost) })),
         suggested: suggestDailyCash(daySales, cashPurchases, cashExpenses),
         existing: existing && {
             cashAmount: Number(existing.cashAmount),
@@ -266,4 +282,121 @@ export async function closeShift(ref: string, input: CloseShiftInput, ctx: PosCo
     });
 
     return { ...formatShift(await findShift(shift.id, ctx)), dailyCash: dailyCash satisfies DailyCashResult | null };
+}
+
+/** Shopping and expenses are only changed while the shift is open. */
+async function openShiftDay(ref: string, ctx: PosContext) {
+    const shift = await findShift(ref, ctx);
+    if (shift.status !== 'open') throw new ServiceError('Shift sudah ditutup', 409);
+    return { shift, date: businessDate(shift.openedAt) };
+}
+
+interface ShiftPurchaseInput {
+    rawMaterialId: string;
+    quantity: number;
+    unitPrice?: number;
+    totalAmount: number;
+    supplier?: string | null;
+    notes?: string | null;
+}
+
+/**
+ * Raw material bought with drawer cash. Recorded like the admin's daily cash
+ * form does: paid in cash, received, and added to stock at once.
+ */
+export async function addShiftPurchase(ref: string, input: ShiftPurchaseInput, ctx: PosContext) {
+    const { shift, date } = await openShiftDay(ref, ctx);
+    const material = await prisma.rawMaterial.findFirst({
+        where: { id: input.rawMaterialId, outletId: shift.outletId },
+        select: { id: true },
+    });
+    if (!material) throw new ServiceError('Bahan baku tidak ditemukan di outlet ini', 404);
+
+    const unitPrice = input.unitPrice && input.unitPrice > 0 ? input.unitPrice : input.totalAmount / input.quantity;
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+        await tx.inventoryPurchase.create({
+            data: {
+                outletId: shift.outletId,
+                rawMaterialId: input.rawMaterialId,
+                date: new Date(`${date}T00:00:00Z`),
+                quantity: input.quantity.toFixed(2),
+                unitPrice: unitPrice.toFixed(2),
+                totalAmount: input.totalAmount.toFixed(2),
+                supplier: input.supplier || null,
+                notes: input.notes || null,
+                paymentMethod: 'CASH',
+                paymentSource: 'Cash',
+                paymentStatus: 'PAID',
+                paidAt: now,
+                deliveryStatus: 'RECEIVED',
+                receivedAt: now,
+            },
+        });
+        await addStockToMaterial(tx, input.rawMaterialId, input.quantity, input.totalAmount);
+    });
+    invalidateProjectionCache(shift.outletId);
+
+    return getClosingSummary(shift.id, ctx);
+}
+
+/** Only the day's cash shopping can be removed from the till. */
+export async function deleteShiftPurchase(ref: string, purchaseId: string, ctx: PosContext) {
+    const { shift, date } = await openShiftDay(ref, ctx);
+    const purchase = await prisma.inventoryPurchase.findFirst({
+        where: { id: purchaseId, ...paidInCashOn(shift.outletId, date) },
+    });
+    if (!purchase) throw new ServiceError('Belanja tidak ditemukan di catatan hari ini', 404);
+
+    await prisma.$transaction(async (tx) => {
+        if (purchase.deliveryStatus === 'RECEIVED') {
+            await removeStockFromMaterial(
+                tx,
+                purchase.rawMaterialId,
+                Number(purchase.quantity),
+                Number(purchase.totalAmount)
+            );
+        }
+        await tx.inventoryPurchase.delete({ where: { id: purchase.id } });
+    });
+    invalidateProjectionCache(shift.outletId);
+
+    return getClosingSummary(shift.id, ctx);
+}
+
+interface ShiftExpenseInput {
+    category: string;
+    amount: number;
+    description?: string | null;
+}
+
+/** An operational cost paid with drawer cash, as the admin form records it. */
+export async function addShiftExpense(ref: string, input: ShiftExpenseInput, ctx: PosContext) {
+    const { shift, date } = await openShiftDay(ref, ctx);
+    await prisma.expense.create({
+        data: {
+            outletId: shift.outletId,
+            date: new Date(`${date}T00:00:00Z`),
+            category: input.category,
+            amount: input.amount,
+            description: input.description || undefined,
+            paymentMethod: 'CASH',
+            paymentSource: 'Cash',
+            paymentStatus: 'PAID',
+            deliveryStatus: 'RECEIVED',
+        },
+    });
+    return getClosingSummary(shift.id, ctx);
+}
+
+export async function deleteShiftExpense(ref: string, expenseId: string, ctx: PosContext) {
+    const { shift, date } = await openShiftDay(ref, ctx);
+    const expense = await prisma.expense.findFirst({
+        where: { id: expenseId, ...paidInCashOn(shift.outletId, date) },
+        select: { id: true },
+    });
+    if (!expense) throw new ServiceError('Pengeluaran tidak ditemukan di catatan hari ini', 404);
+
+    await prisma.expense.delete({ where: { id: expense.id } });
+    return getClosingSummary(shift.id, ctx);
 }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { requirePermission } from "@/lib/auth-utils"
 import { Decimal } from "@prisma/client/runtime/library"
 import { invalidateProjectionCache } from "@/lib/cache/projection-cache"
+import { addStockToMaterial, removeStockFromMaterial } from "@/lib/services/inventory-stock-service"
 
 export async function getInventoryPurchases(
     outletId: string,
@@ -47,77 +48,6 @@ export async function getInventoryPurchases(
             }
         },
         orderBy: { date: 'desc' }
-    })
-}
-
-/**
- * Helper: update currentStock & averageCost on a RawMaterial
- * Used when a purchase is created with deliveryStatus=RECEIVED or when marking as received.
- */
-async function addStockToMaterial(
-    tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-    rawMaterialId: string,
-    quantity: number,
-    totalAmount: number
-) {
-    const material = await tx.rawMaterial.findUnique({
-        where: { id: rawMaterialId }
-    })
-    if (!material) throw new Error("Bahan baku tidak ditemukan")
-
-    const oldStock = Number(material.currentStock)
-    const oldAvgCost = Number(material.averageCost)
-    const newStock = oldStock + quantity
-
-    // Moving Average Cost = (oldStock * oldAvgCost + totalAmount) / (oldStock + quantity)
-    const newAvgCost = newStock > 0
-        ? (oldStock * oldAvgCost + totalAmount) / newStock
-        : 0
-
-    await tx.rawMaterial.update({
-        where: { id: rawMaterialId },
-        data: {
-            currentStock: new Decimal(newStock.toFixed(2)),
-            averageCost: new Decimal(newAvgCost.toFixed(2)),
-        }
-    })
-
-    return { materialName: material.name, unit: material.unit, newAvgCost }
-}
-
-/**
- * Helper: reverse stock changes when deleting a received purchase.
- */
-async function removeStockFromMaterial(
-    tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-    rawMaterialId: string,
-    quantity: number,
-    totalAmount: number
-) {
-    const material = await tx.rawMaterial.findUnique({
-        where: { id: rawMaterialId }
-    })
-    if (!material) return
-
-    const oldStock = Number(material.currentStock)
-    const oldAvgCost = Number(material.averageCost)
-    const newStock = Math.max(0, oldStock - quantity)
-
-    // Reverse Moving Average: (oldStock * oldAvgCost - total) / (oldStock - qty)
-    let newAvgCost = oldAvgCost
-    if (newStock > 0) {
-        const calculated = (oldStock * oldAvgCost - totalAmount) / newStock
-        if (calculated > 0) {
-            newAvgCost = calculated
-        }
-    }
-
-    await tx.rawMaterial.update({
-        where: { id: rawMaterialId },
-        data: {
-            currentStock: new Decimal(newStock.toFixed(2)),
-            averageCost: new Decimal(newAvgCost.toFixed(2)),
-        }
     })
 }
 
