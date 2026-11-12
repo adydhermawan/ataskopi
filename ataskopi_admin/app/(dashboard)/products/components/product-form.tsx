@@ -57,6 +57,7 @@ const productFormSchema = z.object({
     ),
     modifiers: z.array(
         z.object({
+            id: z.string().optional(),
             name: z.string().min(1, "Modifier name is required"),
             price: z.coerce.number().default(0),
             isAvailable: z.boolean().default(true),

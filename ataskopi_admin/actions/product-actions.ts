@@ -89,10 +89,6 @@ export async function updateProduct(id: string, data: any) {
                 },
             });
 
-            // 2. Delete old modifiers
-            await tx.productModifier.deleteMany({
-                where: { productId: id },
-            });
 
             // 3. Diff and update options and values to avoid foreign key errors on ordered items
             const existingOptions = await tx.productOption.findMany({
@@ -228,19 +224,37 @@ export async function updateProduct(id: string, data: any) {
                 }
             }
 
-            // 5. Create new modifiers
-            if (modifiers && modifiers.length > 0) {
-                for (let i = 0; i < modifiers.length; i++) {
-                    const mod = modifiers[i];
-                    await tx.productModifier.create({
-                        data: {
-                            productId: id,
-                            name: mod.name,
-                            price: Number(mod.price || 0),
-                            isAvailable: mod.isAvailable !== false,
-                            sortOrder: i,
-                        }
-                    });
+            // 5. Diff modifiers. Old orders reference modifier rows, so a modifier that was
+            // ever ordered is hidden instead of deleted.
+            const existingModifiers = await tx.productModifier.findMany({
+                where: { productId: id },
+                select: { id: true, _count: { select: { orderItemModifiers: true } } },
+            });
+            const existingModifierIds = new Set(existingModifiers.map((m) => m.id));
+            const incomingModifiers: any[] = modifiers || [];
+            const incomingModifierIds = new Set(incomingModifiers.map((m) => m.id).filter(Boolean));
+
+            for (const mod of existingModifiers) {
+                if (incomingModifierIds.has(mod.id)) continue;
+                if (mod._count.orderItemModifiers > 0) {
+                    await tx.productModifier.update({ where: { id: mod.id }, data: { isAvailable: false } });
+                } else {
+                    await tx.productModifier.delete({ where: { id: mod.id } });
+                }
+            }
+
+            for (let i = 0; i < incomingModifiers.length; i++) {
+                const mod = incomingModifiers[i];
+                const modifierData = {
+                    name: mod.name,
+                    price: Number(mod.price || 0),
+                    isAvailable: mod.isAvailable !== false,
+                    sortOrder: i,
+                };
+                if (mod.id && existingModifierIds.has(mod.id)) {
+                    await tx.productModifier.update({ where: { id: mod.id }, data: modifierData });
+                } else {
+                    await tx.productModifier.create({ data: { productId: id, ...modifierData } });
                 }
             }
         });
