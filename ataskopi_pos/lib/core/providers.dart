@@ -13,6 +13,7 @@ import '../features/sale/data/sale_service.dart';
 import '../features/sale/domain/cart.dart';
 import '../features/sale/domain/local_order.dart';
 import '../features/selfie/data/selfie_settings.dart';
+import '../features/selfie/data/selfie_store.dart';
 import '../features/shift/data/local_shift.dart';
 import '../features/sync/data/sync_engine.dart';
 import 'api/api_client.dart';
@@ -22,6 +23,7 @@ const cartKey = 'cart';
 const printerKey = 'printer';
 const lastPhoneKey = 'last_phone';
 const selfieKey = 'selfie';
+const appendKey = 'append';
 
 const _pollInterval = Duration(seconds: 5);
 const _catalogInterval = Duration(minutes: 5);
@@ -39,6 +41,8 @@ class BootState {
     this.printerMac,
     this.lastPhone,
     this.selfie = const SelfieSettings(),
+    required this.selfies,
+    this.append,
   });
 
   final LocalDb db;
@@ -51,6 +55,8 @@ class BootState {
   final String? printerMac;
   final String? lastPhone;
   final SelfieSettings selfie;
+  final SelfieStore selfies;
+  final AppendTarget? append;
 }
 
 final bootProvider = Provider<BootState>((ref) => throw UnimplementedError());
@@ -119,6 +125,71 @@ class CartNotifier extends Notifier<Cart> {
 }
 
 final cartProvider = NotifierProvider<CartNotifier, Cart>(CartNotifier.new);
+
+/// An unpaid order getting more items. The cart the cashier was building is
+/// put aside meanwhile and comes back afterwards.
+class AppendTarget {
+  const AppendTarget({required this.clientOrderId, required this.queueNumber, required this.stash});
+
+  AppendTarget.fromJson(Map<String, dynamic> json)
+      : clientOrderId = json['clientOrderId'] as String,
+        queueNumber = json['queueNumber'] as String,
+        stash = Cart.fromJson(json['stash'] as Map<String, dynamic>);
+
+  final String clientOrderId;
+  final String queueNumber;
+  final Cart stash;
+
+  Map<String, dynamic> toJson() => {'clientOrderId': clientOrderId, 'queueNumber': queueNumber, 'stash': stash.toJson()};
+}
+
+class AppendNotifier extends Notifier<AppendTarget?> {
+  @override
+  AppendTarget? build() => ref.read(bootProvider).append;
+
+  Future<void> start(LocalOrder order) async {
+    // Starting again from another order keeps the cart put aside first.
+    final current = state;
+    final Cart stash = current == null ? ref.read(cartProvider) : current.stash;
+    final target = AppendTarget(clientOrderId: order.clientOrderId, queueNumber: order.queueNumber, stash: stash);
+    await ref.read(dbProvider).writeJson(appendKey, target.toJson());
+    state = target;
+    ref.read(cartProvider.notifier).update(
+          Cart(channel: order.channel, orderType: order.orderType, guestName: order.guestName),
+        );
+  }
+
+  /// Back to the cart that was put aside. With [keepLines], what was picked
+  /// for the order stays in the cart as a new sale instead.
+  Future<void> finish({bool keepLines = false}) async {
+    final target = state;
+    if (target == null) return;
+    final picked = ref.read(cartProvider);
+    var cart = target.stash;
+    if (keepLines && picked.channel == cart.channel) {
+      for (final line in picked.lines) {
+        cart = cart.add(line);
+      }
+    } else if (keepLines) {
+      cart = Cart(channel: picked.channel, orderType: picked.orderType, lines: picked.lines);
+    }
+    ref.read(cartProvider.notifier).update(cart);
+    await ref.read(dbProvider).remove(appendKey);
+    state = null;
+  }
+}
+
+final appendProvider = NotifierProvider<AppendNotifier, AppendTarget?>(AppendNotifier.new);
+
+class TabNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void select(int index) => state = index;
+}
+
+/// The bottom tab, so a screen can send the cashier to another one.
+final tabProvider = NotifierProvider<TabNotifier, int>(TabNotifier.new);
 
 class OrdersNotifier extends Notifier<List<LocalOrder>> {
   @override
@@ -201,6 +272,27 @@ class SelfieSettingsNotifier extends Notifier<SelfieSettings> {
 }
 
 final selfieProvider = NotifierProvider<SelfieSettingsNotifier, SelfieSettings>(SelfieSettingsNotifier.new);
+
+/// Orders whose selfie is saved on the phone.
+class SavedSelfiesNotifier extends Notifier<Set<String>> {
+  SelfieStore get _store => ref.read(bootProvider).selfies;
+
+  @override
+  Set<String> build() => {..._store.ids};
+
+  Future<void> save(String clientOrderId, SelfieShot shot) async {
+    await _store.save(clientOrderId, shot);
+    state = {..._store.ids};
+  }
+
+  Future<SelfieShot?> load(String clientOrderId) async {
+    final shot = await _store.load(clientOrderId);
+    if (shot == null) state = {..._store.ids};
+    return shot;
+  }
+}
+
+final savedSelfiesProvider = NotifierProvider<SavedSelfiesNotifier, Set<String>>(SavedSelfiesNotifier.new);
 
 /// Keeps the phone and the server in step for as long as a shift is open.
 class SyncLoop {
@@ -313,5 +405,30 @@ Future<bool> printReceipt(Reader read, LocalOrder order) async {
   return read(printerProvider).print(read(printerMacProvider), receipt);
 }
 
-Future<bool> printStrip(Reader read, List<int> strip) =>
-    read(printerProvider).print(read(printerMacProvider), strip);
+/// A ticket with only the items added to an order, for the bar.
+Future<bool> printAddedTicket(Reader read, LocalOrder order, List<CartLine> added) => read(printerProvider).print(
+      read(printerMacProvider),
+      buildTicket(
+        number: order.queueNumber,
+        heading: 'TAMBAHAN',
+        lines: [
+          for (final line in added) TicketLine(line.quantity, line.name, extras: line.requests, notes: line.notes),
+        ],
+        time: DateTime.now(),
+        name: order.guestName,
+      ),
+      priority: PrintPriority.ticket,
+    );
+
+/// The strip is built from the order as it is now, so a reprint after more
+/// items were added shows them too.
+Future<bool> printStrip(Reader read, LocalOrder order, SelfieShot shot) => read(printerProvider).print(
+      read(printerMacProvider),
+      buildStrip(
+        order,
+        raster: shot.raster,
+        caption: shot.caption,
+        social: shot.social,
+        outletName: read(catalogProvider)?.outletName ?? 'AtasKopi',
+      ),
+    );

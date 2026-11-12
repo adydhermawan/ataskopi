@@ -11,6 +11,7 @@ import '../../../core/ui/atas_ui.dart';
 import '../../../core/utils/format.dart';
 import '../../catalog/data/catalog.dart';
 import '../../printer/data/receipt.dart';
+import '../../printer/presentation/print_sheet.dart';
 import '../../selfie/presentation/selfie_flow.dart';
 import '../domain/cart.dart';
 import '../domain/local_order.dart';
@@ -65,6 +66,10 @@ class _SellScreenState extends ConsumerState<SellScreen> {
 
   void _setChannel(String channel) {
     final cart = ref.read(cartProvider);
+    if (ref.read(appendProvider) != null) {
+      _toast('Kanal mengikuti order yang sedang ditambah.');
+      return;
+    }
     if (!cart.isEmpty) {
       _toast('Kosongkan keranjang dulu sebelum ganti kanal, karena harganya berbeda.');
       return;
@@ -74,6 +79,7 @@ class _SellScreenState extends ConsumerState<SellScreen> {
 
   Future<void> _pay() async {
     if (_paying) return;
+    if (ref.read(appendProvider) != null) return _append();
     final cart = ref.read(cartProvider);
     final catalog = ref.read(catalogProvider)!;
     if (cart.isEmpty) return;
@@ -85,45 +91,83 @@ class _SellScreenState extends ConsumerState<SellScreen> {
         due: cart.total(catalog.taxEnabled),
         channel: cart.channel,
         offerSelfie: cart.channel == 'walk_in' && !ref.read(selfieProvider).rush,
+        guestName: cart.guestName,
       );
       if (choice == null || !mounted) return;
 
-      final order = await completeSale(ref, cart, choice.payments);
-      _announce(order, selfie: choice.selfie);
+      final named = ref.read(cartProvider).copyWith(guestName: choice.guestName);
+      final order = await completeSale(ref, named, choice.payments);
+      if (mounted) _announce(order, selfie: choice.selfie);
     } finally {
       if (mounted) setState(() => _paying = false);
     }
   }
 
-  /// The bar ticket goes out at once. A paid order then gets its receipt, or
-  /// the camera opens when the cashier picked a selfie strip while paying.
-  void _announce(LocalOrder order, {bool selfie = false}) {
+  /// Puts the picked items on the unpaid order, then offers to settle it.
+  Future<void> _append() async {
+    final target = ref.read(appendProvider)!;
+    final cart = ref.read(cartProvider);
+    final catalog = ref.read(catalogProvider)!;
+    if (cart.isEmpty) return;
+
+    setState(() => _paying = true);
+    try {
+      final order = await ref.read(dbProvider).findOrder(target.clientOrderId);
+      if (order == null || order.isPaid || !order.isActive) {
+        await ref.read(appendProvider.notifier).finish(keepLines: true);
+        _toast('${target.queueNumber} sudah lunas atau selesai. Item tetap di keranjang sebagai order baru.');
+        return;
+      }
+
+      await ref.read(salesProvider).appendItems(order, cart, taxEnabled: catalog.taxEnabled, guestName: cart.guestName);
+      await ref.read(appendProvider.notifier).finish();
+      await ref.read(ordersProvider.notifier).reload();
+      unawaited(ref.read(syncLoopProvider).kick());
+      if (!mounted) return;
+
+      final choice = await showPaymentSheet(
+        context,
+        due: order.remaining,
+        channel: order.channel,
+        offerSelfie: offersSelfie(readerOf(context), order),
+        guestName: order.guestName,
+      );
+      if (choice != null && (choice.payments.isNotEmpty || choice.guestName != (order.guestName ?? ''))) {
+        await ref.read(salesProvider).addPayments(order, choice.payments, guestName: choice.guestName);
+        await ref.read(ordersProvider.notifier).reload();
+        unawaited(ref.read(syncLoopProvider).kick());
+      }
+      if (mounted) _announce(order, selfie: choice?.selfie ?? false, added: cart.lines);
+    } finally {
+      if (mounted) setState(() => _paying = false);
+    }
+  }
+
+  Future<void> _cancelAppend() async {
+    await ref.read(appendProvider.notifier).finish();
+    ref.read(tabProvider.notifier).select(1);
+  }
+
+  /// Nothing prints on its own. The cashier taps Print, or the camera opens
+  /// when a selfie strip was picked while paying.
+  void _announce(LocalOrder order, {bool selfie = false, List<CartLine> added = const []}) {
     final cash = order.payments.where((payment) => payment.tenderedAmount != null);
     final change = cash.fold(0, (sum, payment) => sum + payment.tenderedAmount! - payment.amount);
     final summary = [
-      '${order.queueNumber} tersimpan',
+      added.isEmpty ? '${order.queueNumber} tersimpan' : 'Ditambahkan ke ${order.queueNumber}',
       if (change > 0) 'Kembali ${rupiah(change)}',
       if (!order.isPaid) 'BELUM LUNAS',
     ].join(' · ');
 
-    final read = readerOf(context);
-    final messenger = ScaffoldMessenger.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(summary),
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(label: 'Print', onPressed: () => showPrintSheet(context, order, added: added)),
+      ));
 
-    // Unpaid: only the bar ticket. The receipt or strip comes with the payment.
-    if (!order.isPaid) {
-      _toast(summary);
-      unawaited(printWithRetry(messenger, read, 'tiket ${order.queueNumber}', () => printTicket(read, order)));
-      return;
-    }
-
-    _toast(summary);
-    if (!selfie || !offersSelfie(read, order)) {
-      unawaited(printWithRetry(messenger, read, order.queueNumber, () => printOrder(read, order)));
-      return;
-    }
-
-    unawaited(printWithRetry(messenger, read, 'tiket ${order.queueNumber}', () => printTicket(read, order)));
-    unawaited(selfieOrReceipt(context, order));
+    if (selfie && order.isPaid && offersSelfie(readerOf(context), order)) unawaited(takeSelfie(context, order));
   }
 
   void _toast(String message) {
@@ -136,6 +180,7 @@ class _SellScreenState extends ConsumerState<SellScreen> {
   Widget build(BuildContext context) {
     final catalog = ref.watch(catalogProvider);
     final cart = ref.watch(cartProvider);
+    final append = ref.watch(appendProvider);
     ref.watch(shiftProvider);
     if (catalog == null) {
       return const EmptyState(icon: LucideIcons.coffee, title: 'Menu belum tersedia');
@@ -149,6 +194,7 @@ class _SellScreenState extends ConsumerState<SellScreen> {
       children: [
         Column(
           children: [
+            if (append != null) _AppendBanner(queueNumber: append.queueNumber, onCancel: _cancelAppend),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Row(
@@ -264,7 +310,13 @@ class _SellScreenState extends ConsumerState<SellScreen> {
               duration: const Duration(milliseconds: 200),
               child: IgnorePointer(
                 ignoring: cart.isEmpty,
-                child: _CartBar(cart: cart, taxEnabled: catalog.taxEnabled, paying: _paying, onPay: _pay),
+                child: _CartBar(
+                  cart: cart,
+                  taxEnabled: catalog.taxEnabled,
+                  paying: _paying,
+                  onPay: _pay,
+                  appendTo: append?.queueNumber,
+                ),
               ),
             ),
           ),
@@ -425,13 +477,55 @@ class _ProductTile extends StatelessWidget {
   }
 }
 
+class _AppendBanner extends StatelessWidget {
+  const _AppendBanner({required this.queueNumber, required this.onCancel});
+
+  final String queueNumber;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(color: AtasColors.sun, borderRadius: BorderRadius.circular(AtasRadius.md)),
+      child: Row(
+        children: [
+          const Icon(LucideIcons.plusCircle, size: 18, color: AtasColors.ink),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Tambah item ke $queueNumber',
+              style: const TextStyle(fontWeight: FontWeight.w800, color: AtasColors.ink),
+            ),
+          ),
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(foregroundColor: AtasColors.ink),
+            child: const Text('Batal'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CartBar extends ConsumerWidget {
-  const _CartBar({required this.cart, required this.taxEnabled, required this.paying, required this.onPay});
+  const _CartBar({
+    required this.cart,
+    required this.taxEnabled,
+    required this.paying,
+    required this.onPay,
+    this.appendTo,
+  });
 
   final Cart cart;
   final bool taxEnabled;
   final bool paying;
   final VoidCallback onPay;
+
+  /// The order getting these items, when the cart is not a new sale.
+  final String? appendTo;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -477,7 +571,9 @@ class _CartBar extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Bayar ${rupiah(cart.total(taxEnabled))}'),
+                Text(appendTo == null
+                    ? 'Bayar ${rupiah(cart.total(taxEnabled))}'
+                    : 'Tambah ${rupiah(cart.subtotal - cart.discount)}'),
                 const SizedBox(width: 6),
                 const Icon(LucideIcons.arrowRight, size: 18),
               ],
@@ -597,12 +693,14 @@ class _CartSheetState extends ConsumerState<_CartSheet> {
               padding: EdgeInsets.only(top: 2, bottom: 10),
               child: Text('Tap item untuk ubah pilihan', style: TextStyle(color: AtasColors.inkFaint, fontSize: 12)),
             ),
-            PillToggle<String>(
-              options: const {'pickup': 'Bawa pulang', 'dine_in': 'Makan di sini'},
-              value: cart.orderType,
-              onChanged: (value) => notifier.update(cart.copyWith(orderType: value)),
-            ),
-            const SizedBox(height: 12),
+            if (ref.watch(appendProvider) == null) ...[
+              PillToggle<String>(
+                options: const {'pickup': 'Bawa pulang', 'dine_in': 'Makan di sini'},
+                value: cart.orderType,
+                onChanged: (value) => notifier.update(cart.copyWith(orderType: value)),
+              ),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _name,
               textCapitalization: TextCapitalization.words,

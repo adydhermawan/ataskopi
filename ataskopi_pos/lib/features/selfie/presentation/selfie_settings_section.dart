@@ -69,15 +69,15 @@ class SelfieSettingsSection extends ConsumerWidget {
       createdAt: DateTime.now(),
       guestName: 'Tes strip',
     );
-    final strip = await showSelfie(context, sample);
-    if (strip == null) return;
+    final shot = await showSelfie(context, sample);
+    if (shot == null) return;
 
     final watch = Stopwatch()..start();
-    final printed = await printStrip(ref.read, strip);
+    final printed = await printStrip(ref.read, sample, shot);
     final seconds = (watch.elapsedMilliseconds / 1000).toStringAsFixed(1);
     messenger.showSnackBar(SnackBar(
       content: Text(printed
-          ? 'Strip terkirim dalam $seconds detik (${(strip.length / 1024).toStringAsFixed(0)} KB)'
+          ? 'Strip terkirim dalam $seconds detik (${(shot.raster.length / 1024).toStringAsFixed(0)} KB)'
           : 'Strip gagal terkirim setelah $seconds detik. Cek printer menyala dan dekat HP.'),
       duration: const Duration(seconds: 6),
     ));

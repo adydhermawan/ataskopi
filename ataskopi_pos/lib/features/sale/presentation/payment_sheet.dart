@@ -10,28 +10,41 @@ import '../data/sale_service.dart';
 import '../domain/local_order.dart';
 
 class PaymentChoice {
-  const PaymentChoice(this.payments, {this.selfie = false});
+  const PaymentChoice(this.payments, {this.selfie = false, this.guestName = ''});
 
   /// Empty for "bayar nanti".
   final List<LocalPayment> payments;
 
-  /// The customer wants a selfie strip in place of the receipt.
+  /// The customer wants a selfie strip.
   final bool selfie;
+
+  /// As typed, empty when the cashier left it blank.
+  final String guestName;
 }
 
 /// Collects one or more payments. Returns null when the cashier backs out.
-/// With [offerSelfie] the cashier can pick a selfie strip before paying, so
-/// it prints once in place of the receipt.
+/// With [offerSelfie] the cashier can pick a selfie strip before paying, and
+/// the camera opens once the order is saved. The customer's name can be typed
+/// here, so it never needs a detour through the cart.
 Future<PaymentChoice?> showPaymentSheet(
   BuildContext context, {
   required int due,
   required String channel,
   bool allowLater = true,
   bool offerSelfie = false,
+  String? guestName,
+  bool askName = true,
 }) {
   return showGlassSheet<PaymentChoice>(
     context,
-    (_) => _PaymentSheet(due: due, channel: channel, allowLater: allowLater, offerSelfie: offerSelfie),
+    (_) => _PaymentSheet(
+      due: due,
+      channel: channel,
+      allowLater: allowLater,
+      offerSelfie: offerSelfie,
+      guestName: guestName ?? '',
+      askName: askName,
+    ),
   );
 }
 
@@ -56,12 +69,16 @@ class _PaymentSheet extends StatefulWidget {
     required this.channel,
     required this.allowLater,
     required this.offerSelfie,
+    required this.guestName,
+    required this.askName,
   });
 
   final int due;
   final String channel;
   final bool allowLater;
   final bool offerSelfie;
+  final String guestName;
+  final bool askName;
 
   @override
   State<_PaymentSheet> createState() => _PaymentSheetState();
@@ -70,6 +87,7 @@ class _PaymentSheet extends StatefulWidget {
 class _PaymentSheetState extends State<_PaymentSheet> {
   final _payments = <LocalPayment>[];
   final _amount = TextEditingController();
+  late final _name = TextEditingController(text: widget.guestName);
   bool _done = false;
   bool _selfie = false;
 
@@ -80,6 +98,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
   @override
   void dispose() {
     _amount.dispose();
+    _name.dispose();
     super.dispose();
   }
 
@@ -114,7 +133,11 @@ class _PaymentSheetState extends State<_PaymentSheet> {
   void _finish() {
     if (_done) return;
     _done = true;
-    Navigator.of(context).pop(PaymentChoice(List<LocalPayment>.from(_payments), selfie: _selfie));
+    Navigator.of(context).pop(PaymentChoice(
+      List<LocalPayment>.from(_payments),
+      selfie: _selfie,
+      guestName: _name.text.trim(),
+    ));
   }
 
   @override
@@ -139,6 +162,18 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             textAlign: TextAlign.center,
             style: theme.textTheme.displaySmall?.copyWith(color: AtasColors.ink),
           ),
+          if (widget.askName) ...[
+            const SizedBox(height: 14),
+            TextField(
+              controller: _name,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              decoration: const InputDecoration(
+                labelText: 'Nama customer (boleh kosong)',
+                prefixIcon: Icon(LucideIcons.user, size: 18),
+              ),
+            ),
+          ],
           if (_payments.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(

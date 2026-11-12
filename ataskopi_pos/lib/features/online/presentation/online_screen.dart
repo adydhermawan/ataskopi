@@ -93,7 +93,7 @@ class _OnlineScreenState extends ConsumerState<OnlineScreen> {
   Future<void> _pay(Map<String, dynamic> order) async {
     final id = order['id'] as String;
     final due = (order['total'] as num).round() - ((order['paidAmount'] as num?) ?? 0).round();
-    final payments = (await showPaymentSheet(context, due: due, channel: 'walk_in', allowLater: false))?.payments;
+    final payments = (await showPaymentSheet(context, due: due, channel: 'walk_in', allowLater: false, askName: false))?.payments;
     if (payments == null || payments.isEmpty || !mounted) return;
 
     final shift = ref.read(shiftProvider);

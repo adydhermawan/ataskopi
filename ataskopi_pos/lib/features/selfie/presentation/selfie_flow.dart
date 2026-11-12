@@ -26,18 +26,22 @@ Future<void> printWithRetry(
   ));
 }
 
-/// The strip takes the receipt's place. When the customer skips the photo,
-/// the receipt prints instead, unless it already went out.
-Future<void> selfieOrReceipt(BuildContext context, LocalOrder order, {bool receiptIfSkipped = true}) async {
+/// Opens the camera. The photo is saved on the phone before it prints, so the
+/// strip can be printed again later with the same photo.
+Future<void> takeSelfie(BuildContext context, LocalOrder order) async {
   final read = readerOf(context);
   final messenger = ScaffoldMessenger.of(context);
-  final strip = await showSelfie(context, order);
+  final shot = await showSelfie(context, order);
+  if (shot == null) return;
 
-  if (strip != null) {
-    await printWithRetry(messenger, read, 'strip ${order.queueNumber}', () => printStrip(read, strip));
-  } else if (receiptIfSkipped) {
-    await printWithRetry(messenger, read, order.queueNumber, () => printReceipt(read, order));
-  }
+  await read(savedSelfiesProvider.notifier).save(order.clientOrderId, shot);
+  await printWithRetry(messenger, read, 'strip ${order.queueNumber}', () => printStrip(read, order, shot));
+}
+
+/// Prints the saved strip again. False when the photo is gone.
+Future<bool> reprintSelfie(Reader read, LocalOrder order) async {
+  final shot = await read(savedSelfiesProvider.notifier).load(order.clientOrderId);
+  return shot != null && await printStrip(read, order, shot);
 }
 
 bool offersSelfie(Reader read, LocalOrder order) => order.channel == 'walk_in' && !read(selfieProvider).rush;

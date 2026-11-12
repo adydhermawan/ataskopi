@@ -20,8 +20,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _tab = 0;
-
   @override
   void initState() {
     super.initState();
@@ -39,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final inbox = ref.watch(inboxProvider);
     final waiting = inbox.where((order) => order['orderStatus'] == 'pending').length;
     final activeOrders = ref.watch(ordersProvider).where((order) => order.isActive).length;
+    final tab = ref.watch(tabProvider);
 
     ref.listen(inboxProvider, (previous, next) {
       int count(List<Map<String, dynamic>>? list) =>
@@ -61,7 +60,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const StatusBanner(),
               Expanded(
                 child: IndexedStack(
-                  index: _tab,
+                  index: tab,
                   children: const [SellScreen(), QueueScreen(), OnlineScreen(), MoreScreen()],
                 ),
               ),
@@ -69,8 +68,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         bottomNavigationBar: GlassNavBar(
-          index: _tab,
-          onSelect: (index) => setState(() => _tab = index),
+          index: tab,
+          onSelect: ref.read(tabProvider.notifier).select,
           items: [
             const NavItem(LucideIcons.layoutGrid, 'Kasir'),
             NavItem(LucideIcons.receipt, 'Antrian', badge: activeOrders),

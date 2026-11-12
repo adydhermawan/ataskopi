@@ -79,10 +79,19 @@ export const posOpenShiftSchema = z.object({
     openedAt: z.iso.datetime().optional(),
 });
 
+export const posDailyCashSchema = z.object({
+    cashAmount: money,
+    qrisAmount: money,
+    otherAmount: money.optional(),
+    otherMethodName: z.string().trim().max(100).nullish(),
+    notes: z.string().max(500).nullish(),
+});
+
 export const posCloseShiftSchema = z.object({
     actualCash: money,
     closedAt: z.iso.datetime().optional(),
     notes: z.string().max(300).nullish(),
+    dailyCash: posDailyCashSchema.optional(),
 });
 
 export const posCashMovementSchema = z.object({

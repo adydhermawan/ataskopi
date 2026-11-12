@@ -7,7 +7,8 @@ import { assertPaymentAllowsStatus } from '@/lib/services/order-status-service';
 import { isStandardChoice } from '@/lib/services/pos-catalog-service';
 import { assertOutletAcceptsOnlineOrders, POS_OFFLINE_LIMIT_MS } from '@/lib/services/pos-outlet';
 import { assertOrderTotals, collectedAmount, summarizePayments } from '@/lib/services/pos-order-service';
-import { calculateExpectedCash } from '@/lib/services/pos-shift-service';
+import { calculateExpectedCash, daySalesByMethod } from '@/lib/services/pos-shift-service';
+import { businessDate, businessDayRange, suggestDailyCash } from '@/lib/services/daily-cash-service';
 import { posOrderSchema } from '@/lib/validation/pos-schemas';
 
 const product = {
@@ -206,5 +207,45 @@ describe('calculateExpectedCash', () => {
             ]
         );
         expect(expected).toBe(245000);
+    });
+});
+
+describe('daily cash at shift close', () => {
+    it('dates a shift by its WIB day, also late at night', () => {
+        expect(businessDate(new Date('2026-11-12T16:30:00.000Z'))).toBe('2026-11-12');
+        expect(businessDate(new Date('2026-11-12T17:30:00.000Z'))).toBe('2026-11-13');
+        const { start, end } = businessDayRange('2026-11-12');
+        expect(start.toISOString()).toBe('2026-11-11T17:00:00.000Z');
+        expect(end.toISOString()).toBe('2026-11-12T17:00:00.000Z');
+    });
+
+    it('adds every shift of the day and app orders, net of refunds', () => {
+        const sales = daySalesByMethod(
+            [
+                {
+                    payments: [
+                        { method: 'cash', amount: 50000 },
+                        { method: 'qris', amount: 30000 },
+                    ],
+                    refunds: [{ method: 'cash', amount: 10000 }],
+                },
+                { payments: [{ method: 'grab', amount: 26000 }], refunds: [] },
+            ],
+            [{ paymentMethod: 'qris', total: '20000' }]
+        );
+        expect(sales).toEqual({ cash: 40000, qris: 50000, grab: 26000 });
+    });
+
+    it('takes cash purchases and expenses off the cash takings', () => {
+        expect(suggestDailyCash({ cash: 300000, qris: 120000, grab: 26000, shopeefood: 0 }, 80000, 20000)).toEqual({
+            cashAmount: 200000,
+            qrisAmount: 120000,
+            otherAmount: 26000,
+            otherMethodName: 'Grab',
+        });
+    });
+
+    it('never suggests negative cash', () => {
+        expect(suggestDailyCash({ cash: 50000 }, 80000, 0).cashAmount).toBe(0);
     });
 });

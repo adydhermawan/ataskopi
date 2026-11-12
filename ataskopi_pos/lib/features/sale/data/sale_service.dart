@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:uuid/uuid.dart';
 
 import '../../../core/db/local_db.dart';
@@ -49,7 +51,45 @@ class SaleService {
     return order;
   }
 
-  Future<void> addPayments(LocalOrder order, List<LocalPayment> payments) async {
+  /// Adds what the customer ordered on top of an unpaid order, stacking a
+  /// drink that is already on it. A [guestName] given replaces the old one.
+  Future<void> appendItems(
+    LocalOrder order,
+    Cart extra, {
+    required bool taxEnabled,
+    String? guestName,
+  }) async {
+    var merged = Cart(lines: order.lines);
+    for (final line in extra.lines) {
+      merged = merged.add(line);
+    }
+    final subtotal = merged.subtotal;
+    final discount = math.min(order.discount + extra.discount, subtotal);
+    final tax = merged.tax(taxEnabled);
+    final name = guestName?.trim();
+
+    order
+      ..lines = merged.lines
+      ..subtotal = subtotal
+      ..discount = discount
+      ..tax = tax
+      ..total = subtotal - discount + tax
+      ..guestName = (name == null || name.isEmpty) ? order.guestName : name
+      ..revision += 1
+      ..syncState = SyncState.pending
+      ..version += 1;
+    await _db.saveOrder(order);
+  }
+
+  /// Payments for an existing order. A name typed while paying goes on the
+  /// order too.
+  Future<void> addPayments(LocalOrder order, List<LocalPayment> payments, {String? guestName}) async {
+    final name = guestName?.trim();
+    if (name != null && name.isNotEmpty && name != order.guestName) {
+      order
+        ..guestName = name
+        ..revision += 1;
+    }
     order
       ..payments = [...order.payments, ...payments]
       ..syncState = SyncState.pending

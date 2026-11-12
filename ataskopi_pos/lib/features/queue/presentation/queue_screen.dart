@@ -8,6 +8,7 @@ import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/atas_ui.dart';
 import '../../../core/utils/format.dart';
+import '../../printer/presentation/print_sheet.dart';
 import '../../sale/domain/local_order.dart';
 import '../../sale/presentation/payment_sheet.dart';
 import '../../sale/presentation/sell_screen.dart';
@@ -73,30 +74,35 @@ class _OrderCard extends ConsumerWidget {
     unawaited(ref.read(syncLoopProvider).kick());
   }
 
+  /// Nothing prints after paying; the cashier taps Print when the customer
+  /// wants a receipt. A selfie picked while paying opens the camera.
   Future<void> _pay(BuildContext context, WidgetRef ref) async {
     final read = readerOf(context);
-    final messenger = ScaffoldMessenger.of(context);
     final choice = await showPaymentSheet(
       context,
       due: order.remaining,
       channel: order.channel,
       allowLater: false,
       offerSelfie: offersSelfie(read, order),
+      guestName: order.guestName,
     );
     if (choice == null || choice.payments.isEmpty) return;
-    await _change(ref, () => ref.read(salesProvider).addPayments(order, choice.payments));
-    // The receipt waits until the bill is settled; a part payment prints nothing.
-    if (!order.isPaid) return;
-    if (choice.selfie && context.mounted) {
-      unawaited(selfieOrReceipt(context, order));
-    } else {
-      unawaited(printWithRetry(messenger, read, order.queueNumber, () => printReceipt(read, order)));
-    }
+    await _change(ref, () => ref.read(salesProvider).addPayments(order, choice.payments, guestName: choice.guestName));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(order.isPaid ? '${order.queueNumber} lunas' : '${order.queueNumber} dibayar sebagian'),
+        action: SnackBarAction(label: 'Print', onPressed: () => showPrintSheet(context, order)),
+      ));
+    if (choice.selfie && order.isPaid) unawaited(takeSelfie(context, order));
   }
 
-  void _reprint(BuildContext context) {
-    final read = readerOf(context);
-    unawaited(printWithRetry(ScaffoldMessenger.of(context), read, order.queueNumber, () => printOrder(read, order)));
+  /// Opens the Kasir tab to pick more items for this order.
+  Future<void> _addItems(WidgetRef ref) async {
+    await ref.read(appendProvider.notifier).start(order);
+    ref.read(tabProvider.notifier).select(0);
   }
 
   @override
@@ -173,6 +179,13 @@ class _OrderCard extends ConsumerWidget {
                   icon: const Icon(LucideIcons.wallet, size: 16),
                   label: const Text('Bayar'),
                 ),
+              if (!order.isPaid && order.isActive)
+                OutlinedButton.icon(
+                  style: compactButton(),
+                  onPressed: () => _addItems(ref),
+                  icon: const Icon(LucideIcons.plus, size: 16),
+                  label: const Text('Tambah'),
+                ),
               if (order.orderStatus == 'preparing')
                 FilledButton.icon(
                   style: compactButton(),
@@ -190,15 +203,15 @@ class _OrderCard extends ConsumerWidget {
               if (offersSelfie(ref.watch, order))
                 OutlinedButton.icon(
                   style: compactButton(),
-                  onPressed: () => selfieOrReceipt(context, order, receiptIfSkipped: false),
+                  onPressed: () => takeSelfie(context, order),
                   icon: const Icon(LucideIcons.camera, size: 16),
                   label: const Text('Selfie'),
                 ),
               OutlinedButton.icon(
                 style: compactButton(),
-                onPressed: () => _reprint(context),
+                onPressed: () => showPrintSheet(context, order),
                 icon: const Icon(LucideIcons.printer, size: 16),
-                label: const Text('Print ulang'),
+                label: const Text('Print'),
               ),
               if (order.syncState == SyncState.rejected)
                 OutlinedButton.icon(

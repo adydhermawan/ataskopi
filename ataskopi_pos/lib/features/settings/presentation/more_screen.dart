@@ -10,6 +10,7 @@ import '../../../core/ui/atas_ui.dart';
 import '../../../core/utils/format.dart';
 import '../../printer/data/receipt.dart';
 import '../../selfie/presentation/selfie_settings_section.dart';
+import '../../shift/presentation/close_shift_screen.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -44,6 +45,8 @@ class MoreScreen extends ConsumerWidget {
     }
   }
 
+  /// Needs the server: the form starts from the day's figures there, and the
+  /// daily cash record is written as the shift closes.
   Future<void> _closeShift(BuildContext context, WidgetRef ref) async {
     await ref.read(syncLoopProvider).kick();
     final status = ref.read(syncStatusProvider);
@@ -53,36 +56,43 @@ class MoreScreen extends ConsumerWidget {
     }
 
     final shift = ref.read(shiftProvider)!;
-    final counted = await showDialog<(int, String)>(
-      context: context,
-      builder: (_) => const _AmountDialog(title: 'Uang di laci sekarang'),
-    );
-    if (counted == null || !context.mounted) return;
+    final shiftId = shift.serverId;
+    if (shiftId == null) return _toast(context, 'Shift belum terkirim ke server. Coba lagi saat online.');
 
+    final ClosingSummary summary;
     try {
-      final closed = await ref.read(apiProvider).patch('/api/pos/shifts/${shift.serverId}', {
-        'actualCash': counted.$1,
-      }) as Map<String, dynamic>;
-      final expected = (closed['expectedCash'] as num).round();
-      await ref.read(shiftProvider.notifier).clear();
-      if (!context.mounted) return;
-
-      final difference = counted.$1 - expected;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Shift ditutup'),
-          content: Text(
-            'Seharusnya: ${rupiah(expected)}\n'
-            'Di laci: ${rupiah(counted.$1)}\n'
-            'Selisih: ${difference == 0 ? 'tidak ada' : (difference > 0 ? '+' : '-') + rupiah(difference.abs())}',
-          ),
-          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
-        ),
+      summary = ClosingSummary.fromJson(
+        await ref.read(apiProvider).get('/api/pos/shifts/$shiftId/closing') as Map<String, dynamic>,
       );
     } catch (error) {
-      if (context.mounted) _toast(context, error.toString());
+      if (context.mounted) _toast(context, 'Data penutupan belum bisa diambil: $error');
+      return;
     }
+    if (!context.mounted) return;
+
+    final closed = await Navigator.of(context).push<ClosedShift>(
+      MaterialPageRoute(builder: (_) => CloseShiftScreen(shiftId: shiftId, summary: summary)),
+    );
+    if (closed == null || !context.mounted) return;
+
+    final difference = closed.counted - closed.expected;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Shift ditutup'),
+        content: Text(
+          'Seharusnya: ${rupiah(closed.expected)}\n'
+          'Di laci: ${rupiah(closed.counted)}\n'
+          'Selisih: ${difference == 0 ? 'tidak ada' : (difference > 0 ? '+' : '-') + rupiah(difference.abs())}\n\n'
+          '${closed.dailyCashNote}',
+        ),
+        actions: [TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('OK'))],
+      ),
+    );
+
+    await ref.read(appendProvider.notifier).finish();
+    ref.read(tabProvider.notifier).select(0);
+    await ref.read(shiftProvider.notifier).clear();
   }
 
   Future<void> _pickPrinter(BuildContext context, WidgetRef ref) async {

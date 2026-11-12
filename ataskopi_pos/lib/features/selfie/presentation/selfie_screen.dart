@@ -10,21 +10,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../printer/data/logo.dart';
-import '../../printer/data/receipt.dart';
 import '../../sale/domain/local_order.dart';
 import '../data/selfie_settings.dart';
+import '../data/selfie_store.dart';
 import '../domain/strip.dart';
 
-/// Returns the strip ready to print, or null when the customer skips it.
-Future<List<int>?> showSelfie(BuildContext context, LocalOrder order) => Navigator.of(context).push(
+/// Returns the photo to save and print, or null when the customer skips it.
+Future<SelfieShot?> showSelfie(BuildContext context, LocalOrder order) => Navigator.of(context).push(
       MaterialPageRoute(fullscreenDialog: true, builder: (_) => SelfieScreen(order: order)),
     );
 
 /// Plenty for a 376-dot photo, and small enough to process in a moment.
 const _decodeWidth = 1000;
 
-/// The photo only lives in memory: the camera's file is deleted as soon as it
-/// is read, and nothing is uploaded.
+/// The camera's file is deleted as soon as it is read. Only the printed
+/// version is kept, on this phone, so the strip can be printed again; nothing
+/// is uploaded.
 class SelfieScreen extends ConsumerStatefulWidget {
   const SelfieScreen({super.key, required this.order});
 
@@ -215,12 +216,11 @@ class _SelfieScreenState extends ConsumerState<SelfieScreen> with WidgetsBinding
   void _print() {
     final strip = _strip;
     if (strip == null) return;
-    Navigator.of(context).pop(buildStrip(
-      widget.order,
+    Navigator.of(context).pop(SelfieShot(
       raster: strip.raster,
-      caption: _caption,
       social: strip.social,
-      outletName: ref.read(catalogProvider)?.outletName ?? 'AtasKopi',
+      preview: strip.preview,
+      caption: _caption,
     ));
   }
 
@@ -244,7 +244,7 @@ class _SelfieScreenState extends ConsumerState<SelfieScreen> with WidgetsBinding
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Struk biasa', style: TextStyle(color: Colors.white)),
+            child: const Text('Lewati', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

@@ -57,6 +57,7 @@ class LocalOrder {
     this.serverId,
     this.orderNumber,
     this.lastError,
+    this.revision = 0,
   });
 
   LocalOrder.fromJson(Map<String, dynamic> json)
@@ -83,21 +84,26 @@ class LocalOrder {
         version = json['version'] as int,
         serverId = json['serverId'] as String?,
         orderNumber = json['orderNumber'] as String?,
-        lastError = json['lastError'] as String?;
+        lastError = json['lastError'] as String?,
+        revision = json['revision'] as int? ?? 0;
 
   final String clientOrderId;
   final String shiftRef;
   final String queueNumber;
   final String orderType;
   final String channel;
-  final List<CartLine> lines;
-  final int subtotal;
-  final int discount;
-  final int tax;
-  final int total;
+
+  /// Items can still grow while the order is unpaid; each change raises
+  /// [revision] so the server replaces its items.
+  List<CartLine> lines;
+  int subtotal;
+  int discount;
+  int tax;
+  int total;
   final DateTime createdAt;
-  final String? guestName;
+  String? guestName;
   List<LocalPayment> payments;
+  int revision;
 
   /// What the cashier wants, and what the server last confirmed.
   String orderStatus;
@@ -142,13 +148,14 @@ class LocalOrder {
         'serverId': serverId,
         'orderNumber': orderNumber,
         'lastError': lastError,
+        'revision': revision,
       };
 
-  /// Revision stays 0: payments are added on repeat syncs without one, and
-  /// items do not change after an order is placed.
+  /// Payments are added on every sync; the items are replaced only when
+  /// [revision] is newer than the one the server holds.
   Map<String, dynamic> toSyncJson() => {
         'clientOrderId': clientOrderId,
-        'revision': 0,
+        'revision': revision,
         'orderType': orderType,
         'channel': channel,
         'queueNumber': queueNumber,
